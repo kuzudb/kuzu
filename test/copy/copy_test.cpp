@@ -156,9 +156,10 @@ struct FSMLeakChecker {
         const auto numUsedPages = numTotalPages - getNumFreePages(conn);
 
         storage::Checkpointer checkpointer{*conn->getClientContext()};
-        auto databaseHeader = checkpointer.getCurrentDatabaseHeader();
-        ASSERT_EQ(1 + databaseHeader.catalogPageRange.numPages +
-                      databaseHeader.metadataPageRange.numPages,
+        auto databaseHeader = storage::StorageManager::Get(*conn->getClientContext())
+                                  ->getOrInitDatabaseHeader(*conn->getClientContext());
+        ASSERT_EQ(1 + databaseHeader->catalogPageRange.numPages +
+                      databaseHeader->metadataPageRange.numPages,
             numUsedPages);
     }
 };

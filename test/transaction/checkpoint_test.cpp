@@ -1,8 +1,9 @@
+#include <fstream>
+
 #include "api_test/private_api_test.h"
 #include "common/exception/runtime.h"
 #include "storage/checkpointer.h"
 #include "storage/storage_manager.h"
-#include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction_manager.h"
 
@@ -31,7 +32,7 @@ class FlakyCheckpointerTest : public PrivateApiTest {
 public:
     std::string getInputDir() override { return "empty"; }
 
-    void runTest(const FlakyCheckpointer& flakyCheckpointer) {
+    void runFlakyCheckpoint(const FlakyCheckpointer& flakyCheckpointer) {
         conn->query("CALL force_checkpoint_on_close=false;");
         conn->query("CALL auto_checkpoint=false");
         conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
@@ -42,8 +43,12 @@ public:
         flakyCheckpointer.setCheckpointer(*context);
         auto res = conn->query("CHECKPOINT;");
         ASSERT_FALSE(res->isSuccess());
+    }
+
+    void runTest(const FlakyCheckpointer& flakyCheckpointer) {
+        runFlakyCheckpoint(flakyCheckpointer);
         createDBAndConn();
-        res = conn->query("MATCH (a:test) RETURN COUNT(a);");
+        auto res = conn->query("MATCH (a:test) RETURN COUNT(a);");
         ASSERT_TRUE(res->isSuccess());
         ASSERT_EQ(res->getNext()->getValue(0)->getValue<int64_t>(), 5000);
     }
@@ -141,7 +146,7 @@ public:
         const auto storageManager = StorageManager::Get(clientContext);
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
-        shadowFile.flushAll();
+        shadowFile.flushAll(clientContext);
         // Simulate a failure during logging the checkpoint.
         throw RuntimeException("checkpoint failed.");
     }
@@ -167,7 +172,7 @@ public:
         const auto storageManager = StorageManager::Get(clientContext);
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
-        shadowFile.flushAll();
+        shadowFile.flushAll(clientContext);
         auto wal = WAL::Get(clientContext);
         // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
         // files (snapshots of catalog and metadata) have been written to disk. The part that is not
@@ -200,7 +205,7 @@ public:
         const auto storageManager = StorageManager::Get(clientContext);
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
-        shadowFile.flushAll();
+        shadowFile.flushAll(clientContext);
         auto wal = WAL::Get(clientContext);
         // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
         // files (snapshots of catalog and metadata) have been written to disk. The part that is not
@@ -223,6 +228,83 @@ TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointClearingFilesFailure) {
     };
     FlakyCheckpointer flakyCheckpointer(initFlakyCheckpointer);
     runTest(flakyCheckpointer);
+}
+
+// Simulates a situation where a database attempts to replay a shadow file from an older database
+// with the same path
+TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchExistingDB) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    auto initFlakyCheckpointer = [](main::ClientContext& context) {
+        return std::make_unique<FlakyCheckpointerFailsOnClearingFiles>(context);
+    };
+    FlakyCheckpointer flakyCheckpointer(initFlakyCheckpointer);
+    runFlakyCheckpoint(flakyCheckpointer);
+
+    std::filesystem::remove(databasePath);
+
+    // Temporarily rename the shadow file and wal file
+    auto shadowFilePath = StorageUtils::getShadowFilePath(databasePath);
+    auto walFilePath = StorageUtils::getWALFilePath(databasePath);
+    auto tmpShadowFilePath = shadowFilePath + "1";
+    auto tmpWALFilePath = walFilePath + "1";
+    ASSERT_TRUE(std::filesystem::exists(shadowFilePath));
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    std::filesystem::rename(shadowFilePath, tmpShadowFilePath);
+    std::filesystem::rename(walFilePath, tmpWALFilePath);
+
+    // Recreate a new DB with the same path as before
+    createDBAndConn();
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+
+    // Close the DB
+    conn.reset();
+    database.reset();
+
+    // Rename the files to the original names
+    std::filesystem::rename(tmpShadowFilePath, shadowFilePath);
+    std::filesystem::rename(tmpWALFilePath, walFilePath);
+
+    // The shadow file replay should now fail
+    EXPECT_THROW(createDBAndConn(), RuntimeException);
+}
+
+TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchNewDB) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    auto initFlakyCheckpointer = [](main::ClientContext& context) {
+        return std::make_unique<FlakyCheckpointerFailsOnClearingFiles>(context);
+    };
+    FlakyCheckpointer flakyCheckpointer(initFlakyCheckpointer);
+    runFlakyCheckpoint(flakyCheckpointer);
+
+    std::filesystem::remove(databasePath);
+
+    // The shadow file replay should now fail
+    EXPECT_THROW(createDBAndConn(), RuntimeException);
+}
+
+TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchCorruptedDB) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    auto initFlakyCheckpointer = [](main::ClientContext& context) {
+        return std::make_unique<FlakyCheckpointerFailsOnClearingFiles>(context);
+    };
+    FlakyCheckpointer flakyCheckpointer(initFlakyCheckpointer);
+    runFlakyCheckpoint(flakyCheckpointer);
+
+    std::filesystem::remove(databasePath);
+
+    // Create a new DB file and write garbage bytes to it
+    std::ofstream ofs(databasePath);
+    ofs << "1a1a1a1a1a1a1a1a1a1a";
+    ofs.close();
+
+    // The shadow file replay should now fail
+    EXPECT_THROW(createDBAndConn(), InternalException);
 }
 
 } // namespace testing

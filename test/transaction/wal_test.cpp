@@ -1,15 +1,17 @@
 #include <fstream>
 
 #include "api_test/api_test.h"
-#include "api_test/private_api_test.h"
+#include "common/exception/runtime.h"
 #include "storage/storage_utils.h"
-#include "storage/wal/wal.h"
 
 using namespace kuzu::common;
 using namespace kuzu::testing;
 using namespace kuzu::transaction;
 
-class WalTest : public ApiTest {};
+class WalTest : public ApiTest {
+protected:
+    void testStrayWALFile(const std::function<void()>& setupNewDBFunc);
+};
 
 TEST_F(WalTest, NoWALFile) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
@@ -197,6 +199,102 @@ TEST_F(WalTest, CorruptedWALTailTruncated2) {
     auto res = conn->query("CALL show_tables() WHERE name STARTS WITH 'test' RETURN *;");
     ASSERT_TRUE(res->isSuccess());
     ASSERT_EQ(res->getNumTuples(), 3);
+}
+
+TEST_F(WalTest, WALFileLeftoverFromPreviousDBNewReadOnlyDB) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test2(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test3(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test4(id INT64 PRIMARY KEY, name STRING);");
+
+    // Delete the DB file but keep the WAL
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    conn.reset();
+    database.reset();
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::exists(databasePath));
+    std::filesystem::remove(databasePath);
+
+    // Recreate the DB then close it
+    ASSERT_FALSE(std::filesystem::exists(databasePath));
+    auto createEmptyDB = [&]() {
+        database = std::make_unique<kuzu::main::Database>(databasePath, *systemConfig);
+    };
+    // When opening an empty read-only DB we don't write the header
+    // This shouldn't cause any crashes when deserializing
+    systemConfig->readOnly = true;
+    // Creating a new empty DB file bypasses the empty read-only DB check
+    std::ofstream ofs(databasePath);
+    ofs.close();
+
+    // When loading the DB, replaying should fail
+    EXPECT_THROW(createEmptyDB(), RuntimeException);
+}
+
+void WalTest::testStrayWALFile(const std::function<void()>& setupNewDBFunc) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test2(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test3(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test4(id INT64 PRIMARY KEY, name STRING);");
+
+    // Delete the DB file but keep the WAL
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    conn.reset();
+    database.reset();
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    ASSERT_TRUE(std::filesystem::exists(databasePath));
+    std::filesystem::remove(databasePath);
+
+    // temporarily rename the WAL file so that replay doesn't immediately trigger
+    auto tmpWALPath = walFilePath + "__";
+    std::filesystem::rename(walFilePath, tmpWALPath);
+
+    // Recreate the DB then close it
+    createDBAndConn();
+    setupNewDBFunc();
+    conn.reset();
+    database.reset();
+
+    // Rename the WAL to the original
+    ASSERT_FALSE(std::filesystem::exists(walFilePath));
+    std::filesystem::rename(tmpWALPath, walFilePath);
+
+    // When loading the DB, replaying should fail
+    EXPECT_THROW(createDBAndConn(), RuntimeException);
+}
+
+TEST_F(WalTest, WALFileLeftoverFromPreviousDBExistingDB) {
+    testStrayWALFile([]() {});
+}
+
+TEST_F(WalTest, WALFileLeftoverFromPreviousDBNewDBCOPYWithoutCheckpoint) {
+    testStrayWALFile([this]() {
+        conn->query("CALL force_checkpoint_on_close=false");
+        conn->query("create node table Comment (id int64, creationDate INT64, locationIP STRING, "
+                    "browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));");
+        conn->query(stringFormat("COPY Comment FROM '{}/dataset/ldbc-sf01/Comment.csv'",
+            KUZU_ROOT_DIRECTORY));
+    });
+}
+
+TEST_F(WalTest, WALFileLeftoverFromPreviousDBNewDBCOPYWithoutCheckpointReadOnly) {
+    testStrayWALFile([this]() {
+        conn->query("CALL force_checkpoint_on_close=false");
+        conn->query("create node table Comment (id int64, creationDate INT64, locationIP STRING, "
+                    "browserUsed STRING, content STRING, length INT32, PRIMARY KEY (id));");
+        conn->query(stringFormat("COPY Comment FROM '{}/dataset/ldbc-sf01/Comment.csv'",
+            KUZU_ROOT_DIRECTORY));
+        systemConfig->readOnly = true;
+    });
 }
 
 // Similar to CorruptedWALTailTruncated2, but with multiple transactions and then recovering from

@@ -7,6 +7,7 @@
 #include "main/client_context.h"
 #include "main/database.h"
 #include "main/db_config.h"
+#include "storage/file_db_id_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/local_wal.h"
@@ -73,12 +74,21 @@ void WAL::initWriter(main::ClientContext* context) {
     fileInfo = vfs->openFile(walPath,
         FileOpenFlags(FileFlags::CREATE_IF_NOT_EXISTS | FileFlags::READ_ONLY | FileFlags::WRITE),
         context);
+
     writer = std::make_shared<BufferedFileWriter>(*fileInfo);
+    serializer = std::make_unique<Serializer>(writer);
+
+    // Write the databaseID at the start of the WAL if needed
+    // This is used to ensure that when replaying the WAL matches the database
+    if (fileInfo->getFileSize() == 0) {
+        FileDBIDUtils::writeDatabaseID(*serializer,
+            StorageManager::Get(*context)->getOrInitDatabaseID(*context));
+    }
+
     // WAL should always be APPEND only. We don't want to overwrite the file as it may still
     // contain records not replayed. This can happen if checkpoint is not triggered before the
     // Database is closed last time.
     writer->setFileOffset(fileInfo->getFileSize());
-    serializer = std::make_unique<Serializer>(writer);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.

@@ -12,6 +12,7 @@
 #include "extension/extension_manager.h"
 #include "main/client_context.h"
 #include "processor/expression_mapper.h"
+#include "storage/file_db_id_utils.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
@@ -55,6 +56,7 @@ void WALReplayer::replay() const {
     // A previous unclean exit may have left non-durable contents in the WAL, so before we start
     // replaying the WAL records, make a best-effort attempt at ensuring the WAL is fully durable.
     syncWALFile(*fileInfo);
+
     // Start replaying the WAL records.
     try {
         // First, we dry run the replay to find out the offset of the last record that was
@@ -73,6 +75,14 @@ void WALReplayer::replay() const {
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
             Deserializer deserializer(std::make_unique<BufferedFileReader>(*fileInfo));
+
+            // Make sure the WAL file is for the current database
+            ku_uuid_t walDatabaseID{};
+            deserializer.deserializeValue(walDatabaseID);
+            FileDBIDUtils::verifyDatabaseID(*fileInfo,
+                StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
+                walDatabaseID);
+
             while (deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset() <
                    offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
@@ -100,6 +110,10 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
     bool isLastRecordCheckpoint = false;
     try {
         Deserializer deserializer(std::make_unique<BufferedFileReader>(fileInfo));
+
+        ku_uuid_t walDatabaseID{};
+        deserializer.deserializeValue(walDatabaseID);
+
         bool finishedDeserializing = deserializer.finished();
         while (!finishedDeserializing) {
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);

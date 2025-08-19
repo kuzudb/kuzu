@@ -24,6 +24,7 @@ class Table;
 class NodeTable;
 class RelTable;
 class DiskArrayCollection;
+struct DatabaseHeader;
 
 class KUZU_API StorageManager {
 public:
@@ -65,6 +66,14 @@ public:
 
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    // If the database header hasn't been created yet, calling these methods will create + return
+    // the header
+    common::ku_uuid_t getOrInitDatabaseID(const main::ClientContext& clientContext);
+    const storage::DatabaseHeader* getOrInitDatabaseHeader(
+        const main::ClientContext& clientContext);
+
+    void setDatabaseHeader(std::unique_ptr<storage::DatabaseHeader> header);
+
     static StorageManager* Get(const main::ClientContext& context);
 
 private:
@@ -77,6 +86,7 @@ private:
 private:
     std::mutex mtx;
     std::string databasePath;
+    std::unique_ptr<storage::DatabaseHeader> databaseHeader;
     bool readOnly;
     FileHandle* dataFH;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;
