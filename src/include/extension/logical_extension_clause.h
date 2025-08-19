@@ -13,6 +13,9 @@ public:
     explicit LogicalExtensionClause(std::string statementName)
         : LogicalSimple{type_}, statementName{std::move(statementName)} {}
 
+    void computeFactorizedSchema() override { createEmptySchema(); }
+    void computeFlatSchema() override { createEmptySchema(); }
+
     std::string getStatementName() const { return statementName; }
 
 private:
