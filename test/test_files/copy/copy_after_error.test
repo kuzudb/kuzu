@@ -3,6 +3,7 @@
 --
 
 -CASE CopyNodeAfterError
+-SKIP
 -STATEMENT CREATE NODE TABLE Comment(ID INT64, creationDate TIMESTAMP, locationIP STRING, browserUsed STRING, content STRING, length INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv' (DELIM="|", header=false);
@@ -15,6 +16,7 @@ Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/
 92.39.58.88
 
 -CASE CopyRelAfterNodeCopyError
+-SKIP
 -STATEMENT CREATE NODE TABLE Comment(ID INT64, creationDate TIMESTAMP, locationIP STRING, browserUsed STRING, content STRING, length INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE replyOfComment(FROM Comment TO Comment, MANY_ONE);

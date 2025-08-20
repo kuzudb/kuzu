@@ -168,7 +168,6 @@ jobs:
 
       - name: Test
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Test in mem
@@ -258,7 +257,6 @@ jobs:
         env:
           IN_MEM_MODE: true
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test VECTOR_CAPACITY_LOG2=10
 
       - name: Test vector capacity of 1024 under in-memory mode
@@ -300,9 +298,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Setup dataset symlink
-        run: ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
 
       - name: Test coverage for on-disk mode
         run: make lcov
@@ -406,7 +401,6 @@ jobs:
 
       - name: Kernel build & test
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           source /home/runner/emsdk/emsdk_env.sh
           make wasmtest
 
@@ -472,7 +466,6 @@ jobs:
 
       - name: Test with TSAN
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
         env:
           TSAN_OPTIONS: "halt_on_error=1"
@@ -503,7 +496,6 @@ jobs:
 
       - name: Test with ASAN
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test ASAN=1 BM_MALLOC=ON
         env:
           ASAN_OPTIONS: "detect_leaks=1"
@@ -551,7 +543,6 @@ jobs:
 
       - name: Test
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Test fwd only rel tables
@@ -627,7 +618,6 @@ jobs:
 
       - name: Build
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make release PAGE_SIZE_LOG2=${{ matrix.page_size_log2 }}
 
       - name: Generate binary demo
@@ -664,7 +654,6 @@ jobs:
 
       - name: Build
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           if [ ${{ matrix.node_group_size_log2 }} -ge 11 ]; then
             make release VECTOR_CAPACITY_LOG2=11 NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
           else
@@ -992,7 +981,6 @@ jobs:
       - name: Test
         run: |
           ulimit -n 10240
-          ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Test in mem

@@ -75,7 +75,6 @@ jobs:
           make test
           echo "Test,$?" >> status.txt
           make clean
-          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
@@ -214,7 +213,6 @@ jobs:
           make test
           echo Test,%ERRORLEVEL% >> status.txt
           make clean
-          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
@@ -364,7 +362,6 @@ jobs:
           make test
           echo "Test,$?" >> status.txt
           make clean
-          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
@@ -522,7 +519,6 @@ jobs:
           make test
           echo "Test,$?" >> status.txt
           make clean
-          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true
@@ -649,7 +645,6 @@ jobs:
           make test
           echo "Test,$?" >> status.txt
           make clean
-          rm -rf dataset/ldbc-1
 
       - name: Build
         continue-on-error: true

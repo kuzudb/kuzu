@@ -195,11 +195,6 @@ Binder exception: Number of columns mismatch. Expected .+
 ---- 1
 14
 
--LOG CaseInsensitiveColumnName
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv" RETURN MIN(Length);
----- 1
-2
-
 -LOG CompressedCSVExample
 -STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/compressed-csv-example/user.csv.gz" RETURN *;
 ---- 2
