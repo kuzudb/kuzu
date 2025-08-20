@@ -324,12 +324,15 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     BetweennessCentralityState state{mm, numNodes};
     BCFwdData fwdData(mm, numNodes);
     BCBwdData bwdData(mm, numNodes);
-    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>().maxIterations.getParamVal();
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
+                             .maxIterations.getParamVal();
 
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
-    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, std::make_unique<EmptyGDSAuxiliaryState>());
+    auto frontierPair =
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr,
+        std::make_unique<EmptyGDSAuxiliaryState>());
     for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
         fwdData.init(i /*sourceNode*/);
@@ -344,7 +347,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         // Backward Traverse
         bwdData.init();
 
-        std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
+        std::sort(fwdData.levels.begin(), fwdData.levels.end(),
+            std::greater<BCFwdData::LevelData>{});
 
         auto maxLevel = fwdData.levels.front().level;
         for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
