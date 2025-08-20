@@ -8,6 +8,7 @@ oC_Cypher
 oC_Statement
     : oC_Query
         | kU_CreateUser
+        | kU_CreateRole
         | kU_CreateNodeTable
         | kU_CreateRelTable
         | kU_CreateSequence
@@ -125,8 +126,14 @@ kU_SequenceOptions
         | kU_StartWith
         | kU_Cycle;
 
+kU_WithPasswd
+    : SP WITH SP PASSWORD SP StringLiteral ;
+
 kU_CreateUser
-    : CREATE SP USER SP (kU_IfNotExists SP)? oC_Variable;
+    : CREATE SP USER SP (kU_IfNotExists SP)? oC_Variable kU_WithPasswd? ;
+
+kU_CreateRole
+    : CREATE SP ROLE SP (kU_IfNotExists SP)? oC_Variable ;
 
 kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
 
@@ -747,6 +754,7 @@ kU_NonReservedKeywords
         | RENAME
         | RETURN
         | ROLLBACK
+        | ROLE
         | SEQUENCE
         | SET
         | START
@@ -763,6 +771,7 @@ kU_NonReservedKeywords
         | TO
         | YIELD
         | USER
+        | PASSWORD
         ;
 
 UnescapedSymbolicName

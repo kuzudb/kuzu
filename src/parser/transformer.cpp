@@ -45,6 +45,8 @@ std::unique_ptr<Statement> Transformer::transformStatement(CypherParser::OC_Stat
         return transformCreateType(*ctx.kU_CreateType());
     } else if (ctx.kU_CreateUser()) {
         return transformExtensionStatement(ctx.kU_CreateUser());
+    } else if (ctx.kU_CreateRole()) {
+        return transformExtensionStatement(ctx.kU_CreateRole());
     } else if (ctx.kU_Drop()) {
         return transformDrop(*ctx.kU_Drop());
     } else if (ctx.kU_AlterTable()) {
