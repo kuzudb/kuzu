@@ -30,7 +30,7 @@ void WAL::logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context) {
     }
     std::unique_lock lck{mtx};
     initWriter(context);
-    localWAL.writer->flush(*writer);
+    localWAL.localWriter->flush(*writer);
     flushAndSyncNoLock();
 }
 
@@ -89,13 +89,17 @@ void WAL::initWriter(main::ClientContext* context) {
     // contain records not replayed. This can happen if checkpoint is not triggered before the
     // Database is closed last time.
     writer->setFileOffset(fileInfo->getFileSize());
+    checksumWriter = std::make_shared<ChecksumWriter>(writer, MemoryManager::Get(*context));
+    serializer = std::make_unique<Serializer>(checksumWriter);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     KU_ASSERT(!inMemory);
+    checksumWriter->startEntry();
     walRecord.serialize(*serializer);
+    checksumWriter->finishEntry();
 }
 
 WAL* WAL::Get(const main::ClientContext& context) {

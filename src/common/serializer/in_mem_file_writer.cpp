@@ -1,6 +1,5 @@
 #include "common/serializer/in_mem_file_writer.h"
 
-#include "common/serializer/buffered_file.h"
 #include "storage/file_handle.h"
 #include "storage/shadow_file.h"
 #include "storage/shadow_utils.h"
@@ -65,7 +64,7 @@ void InMemFileWriter::flush(storage::PageRange allocatedPageRange, storage::File
     }
 }
 
-void InMemFileWriter::flush(BufferedFileWriter& writer) const {
+void InMemFileWriter::flush(Writer& writer) const {
     for (auto i = 0u; i < pages.size(); i++) {
         auto sizeToFlush = (i == pages.size() - 1) ? pageOffset : KUZU_PAGE_SIZE;
         writer.write(pages[i]->getData(), sizeToFlush);

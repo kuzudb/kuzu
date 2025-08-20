@@ -13,6 +13,7 @@ add_subdirectory(file_system)
 add_library(kuzu_common
         OBJECT
         case_insensitive_map.cpp
+        checksum.cpp
         constants.cpp
         database_lifecycle_manager.cpp
         expression_type.cpp

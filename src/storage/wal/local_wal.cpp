@@ -14,7 +14,8 @@ namespace kuzu {
 namespace storage {
 
 LocalWAL::LocalWAL(MemoryManager& mm) {
-    writer = std::make_shared<InMemFileWriter>(mm);
+    localWriter = std::make_shared<InMemFileWriter>(mm);
+    writer = std::make_shared<ChecksumWriter>(localWriter, mm);
     serializer = std::make_unique<Serializer>(writer);
 }
 
@@ -104,7 +105,9 @@ uint64_t LocalWAL::getSize() {
 void LocalWAL::addNewWALRecord(const WALRecord& walRecord) {
     std::unique_lock lck{mtx};
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
+    writer->startEntry();
     walRecord.serialize(*serializer);
+    writer->finishEntry();
 }
 
 } // namespace storage
