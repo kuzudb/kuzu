@@ -1001,6 +1001,12 @@ jobs:
         run: |
           make test
 
+      - name: Test with deserializer debugging info
+        env:
+          ENABLE_DESER_DEBUG: 1
+        run: |
+          make test
+
       - name: C and C++ Examples
         run: |
           ulimit -n 10240
@@ -1260,13 +1266,13 @@ jobs:
         run: |
           python3 scripts/setup-extension-repo.py &
           make extension-static-link-test
-          
+
       - name: Static link extension test in mem mode
         env:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
         run: |
-          make extension-static-link-test && make clean    
+          make extension-static-link-test && make clean
 
   windows-extension-test:
     name: windows extension test
