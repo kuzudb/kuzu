@@ -233,16 +233,18 @@ void ListColumn::lookupInternal(const SegmentState& state, offset_t nodeOffset,
 void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVector,
     uint64_t numValuesToScan, const ListOffsetSizeInfo& listOffsetInfoInStorage,
     offset_t offsetInResult) const {
+    auto dataVector = ListVector::getDataVector(resultVector);
+    // Scans append to the end of the vector, so we need to start at the end of the last list
+    auto startOffsetInDataVector = ListVector::getDataVectorSize(resultVector);
+    auto offsetInDataVector = startOffsetInDataVector;
+
     numValuesToScan = std::min(numValuesToScan, listOffsetInfoInStorage.numTotal);
-    offset_t offsetInVector = offsetInResult;
     for (auto i = 0u; i < numValuesToScan; i++) {
         auto listLen = listOffsetInfoInStorage.getListSize(i);
-        resultVector->setValue(offsetInResult + i, list_entry_t{offsetInVector, listLen});
-        offsetInVector += listLen;
+        resultVector->setValue(offsetInResult + i, list_entry_t{offsetInDataVector, listLen});
+        offsetInDataVector += listLen;
     }
-    ListVector::resizeDataVector(resultVector, offsetInVector);
-    auto dataVector = ListVector::getDataVector(resultVector);
-    offsetInVector = offsetInResult;
+    ListVector::resizeDataVector(resultVector, offsetInDataVector);
     const bool checkOffsetOrder =
         listOffsetInfoInStorage.isOffsetSortedAscending(0, numValuesToScan);
     if (checkOffsetOrder) {
@@ -252,16 +254,17 @@ void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVe
         dataColumn->scanSegment(
             state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
             startListOffsetInStorage, endListOffsetInStorage - startListOffsetInStorage, dataVector,
-            static_cast<uint64_t>(offsetInResult /* offsetInVector */));
+            static_cast<uint64_t>(startOffsetInDataVector /* offsetInVector */));
     } else {
+        offsetInDataVector = startOffsetInDataVector;
         for (auto i = 0u; i < numValuesToScan; i++) {
             // Nulls are scanned to the resultVector first
             if (!resultVector->isNull(i)) {
                 auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(i);
                 auto appendSize = listOffsetInfoInStorage.getListSize(i);
                 dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                    startListOffsetInStorage, appendSize, dataVector, offsetInVector);
-                offsetInVector += appendSize;
+                    startListOffsetInStorage, appendSize, dataVector, offsetInDataVector);
+                offsetInDataVector += appendSize;
             }
         }
     }
@@ -269,25 +272,28 @@ void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVe
 
 void ListColumn::scanFiltered(const SegmentState& state, ValueVector* resultVector,
     const ListOffsetSizeInfo& listOffsetSizeInfo, offset_t offsetInResult) const {
-    offset_t listOffset = offsetInResult;
+    auto dataVector = ListVector::getDataVector(resultVector);
+    auto startOffsetInDataVector = ListVector::getDataVectorSize(resultVector);
+    auto offsetInDataVector = startOffsetInDataVector;
+
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
         auto listSize = listOffsetSizeInfo.getListSize(pos);
-        resultVector->setValue(pos, list_entry_t{(offset_t)listOffset, listSize});
-        listOffset += listSize;
+        resultVector->setValue(offsetInResult + pos,
+            list_entry_t{(offset_t)offsetInDataVector, listSize});
+        offsetInDataVector += listSize;
     }
-    ListVector::resizeDataVector(resultVector, listOffset);
-    listOffset = offsetInResult;
+    ListVector::resizeDataVector(resultVector, offsetInDataVector);
+    offsetInDataVector = startOffsetInDataVector;
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
         // Nulls are scanned to the resultVector first
         if (!resultVector->isNull(pos)) {
             auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
             auto appendSize = listOffsetSizeInfo.getListSize(pos);
-            auto dataVector = ListVector::getDataVector(resultVector);
             dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                startOffsetInStorageToScan, appendSize, dataVector, listOffset);
-            listOffset += resultVector->getValue<list_entry_t>(pos).size;
+                startOffsetInStorageToScan, appendSize, dataVector, offsetInDataVector);
+            offsetInDataVector += resultVector->getValue<list_entry_t>(pos).size;
         }
     }
 }
