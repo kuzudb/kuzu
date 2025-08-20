@@ -20,7 +20,7 @@ COPY commentIsLocatedIn FROM 'dataset/ldbc-1/csv/dynamic/comment_isLocatedIn_pla
 COPY organisationIsLocatedIn FROM 'dataset/ldbc-1/csv/static/organisation_isLocatedIn_place_0_0.csv';
 COPY personIsLocatedIn FROM 'dataset/ldbc-1/csv/dynamic/person_isLocatedIn_place_0_0.csv';
 COPY postIsLocatedIn FROM 'dataset/ldbc-1/csv/dynamic/post_isLocatedIn_place_0_0.csv';
-COPY isPartOf FROM 'dataset/ldbc-1/csv/dynamic/place_isPartOf_place_0_0.csv';
+COPY isPartOf FROM 'dataset/ldbc-1/csv/static/place_isPartOf_place_0_0.csv';
 COPY isSubclassOf FROM 'dataset/ldbc-1/csv/static/tagclass_isSubclassOf_tagclass_0_0.csv';
 COPY knows FROM 'dataset/ldbc-1/csv/dynamic/person_knows_person_0_0.csv';
 COPY likeComment FROM 'dataset/ldbc-1/csv/dynamic/person_likes_comment_0_0.csv';

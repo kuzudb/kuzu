@@ -196,7 +196,7 @@ Binder exception: Number of columns mismatch. Expected .+
 14
 
 -LOG CaseInsensitiveColumnName
--STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv" RETURN MIN(Length);
+-STATEMENT LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv" RETURN MIN(Length);
 ---- 1
 2
 
