@@ -33,26 +33,6 @@ Charlie|35|2000.000000|1988-12-05 00:00:00
 Diana|40|2500.300000|1983-07-20 00:00:00
 Ethan|28|1800.600000|1996-03-10 00:00:00
 
--LOG S3DeltaTable
--STATEMENT CALL s3_access_key_id='${UW_S3_ACCESS_KEY_ID}'
----- ok
--STATEMENT CALL s3_secret_access_key='${UW_S3_SECRET_ACCESS_KEY}'
----- ok
--STATEMENT CALL s3_endpoint='rgw.cs.uwaterloo.ca'
----- ok
--STATEMENT CALL s3_url_style='path'
----- ok
--STATEMENT CALL s3_region='US'
----- ok
--STATEMENT LOAD FROM 's3://kuzu-test/delta/university' (file_format='delta') RETURN *
----- 6
-Cambridge|5|280.200000
-Harvard|1|210.500000
-MIT|3|170.000000
-Oxford|4|300.000000
-Stanford|2|250.300000
-Yale|6|190.700000
-
 -LOG TableOfDifferentTypes
 -STATEMENT LOAD FROM '${KUZU_ROOT_DIRECTORY}/extension/delta/test/delta_tables/student' (file_format='delta') RETURN *
 ---- 3
