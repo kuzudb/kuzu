@@ -2,6 +2,7 @@
 
 #include "binder/expression/expression_util.h"
 #include "main/client_context.h"
+#include "main/query_result/materialized_query_result.h"
 #include "processor/execution_context.h"
 
 using namespace kuzu::common;
@@ -83,6 +84,10 @@ void ResultCollector::finalizeInternal(ExecutionContext* context) {
     default:
         break;
     }
+}
+
+std::unique_ptr<main::QueryResult> ResultCollector::getQueryResult() const {
+    return std::make_unique<main::MaterializedQueryResult>(sharedState->getTable());
 }
 
 } // namespace processor

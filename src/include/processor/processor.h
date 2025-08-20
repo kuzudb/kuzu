@@ -3,6 +3,9 @@
 #include "common/task_system/task_scheduler.h"
 
 namespace kuzu {
+namespace main {
+class QueryResult;
+}
 namespace processor {
 class FactorizedTable;
 class PhysicalPlan;
@@ -18,8 +21,8 @@ public:
 
     common::TaskScheduler* getTaskScheduler() { return taskScheduler.get(); }
 
-    // TODO(Xiyang): we should change this to directly return a query result.
-    std::shared_ptr<FactorizedTable> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
+    std::unique_ptr<main::QueryResult> execute(PhysicalPlan* physicalPlan,
+        ExecutionContext* context);
 
 private:
     void decomposePlanIntoTask(PhysicalOperator* op, common::Task* task, ExecutionContext* context);

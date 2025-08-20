@@ -15,14 +15,13 @@ namespace common {
 static void resizeVector(ArrowVector* vector, const LogicalType& type, int64_t capacity,
     bool fallbackExtensionTypes);
 
-ArrowRowBatch::ArrowRowBatch(std::vector<LogicalType> types, std::int64_t capacity,
+ArrowRowBatch::ArrowRowBatch(const std::vector<LogicalType>& types, std::int64_t capacity,
     bool fallbackExtensionTypes)
-    : types{std::move(types)}, numTuples{0}, fallbackExtensionTypes{fallbackExtensionTypes} {
-    auto numVectors = this->types.size();
-    vectors.resize(numVectors);
-    for (auto i = 0u; i < numVectors; i++) {
+    : numTuples{0}, fallbackExtensionTypes{fallbackExtensionTypes} {
+    vectors.resize(types.size());
+    for (auto i = 0u; i < types.size(); i++) {
         vectors[i] = std::make_unique<ArrowVector>();
-        resizeVector(vectors[i].get(), this->types[i], capacity, fallbackExtensionTypes);
+        resizeVector(vectors[i].get(), types[i], capacity, fallbackExtensionTypes);
     }
 }
 
@@ -1028,12 +1027,12 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(ArrowVector& vector, const Logic
     }
 }
 
-ArrowArray ArrowRowBatch::toArray() {
+ArrowArray ArrowRowBatch::toArray(const std::vector<LogicalType>& types) {
     auto rootHolder = std::make_unique<ArrowVector>();
     ArrowArray result{};
-    rootHolder->childPointers.resize(types.size());
+    rootHolder->childPointers.resize(vectors.size());
     result.children = rootHolder->childPointers.data();
-    result.n_children = (std::int64_t)types.size();
+    result.n_children = (std::int64_t)vectors.size();
     result.length = numTuples;
     result.n_buffers = 1;
     result.buffers = rootHolder->buffers.data(); // no actual buffer
@@ -1051,8 +1050,8 @@ ArrowArray ArrowRowBatch::toArray() {
 }
 
 void ArrowRowBatch::append(const processor::FlatTuple& tuple) {
-    for (auto i = 0u; i < types.size(); i++) {
-        appendValue(vectors[i].get(), types[i], tuple[i], fallbackExtensionTypes);
+    for (auto i = 0u; i < vectors.size(); i++) {
+        appendValue(vectors[i].get(), tuple[i].getDataType(), tuple[i], fallbackExtensionTypes);
     }
     numTuples++;
 }
