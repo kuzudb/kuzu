@@ -114,12 +114,12 @@ public:
 };
 
 static decltype(auto) getDbSizeInPages(main::Connection* conn) {
-    return conn->getClientContext()->getStorageManager()->getDataFH()->getNumPages();
+    return storage::StorageManager::Get(*conn->getClientContext())->getDataFH()->getNumPages();
 }
 
 static decltype(auto) getNumFreePages(main::Connection* conn) {
     auto& pageManager =
-        *conn->getClientContext()->getStorageManager()->getDataFH()->getPageManager();
+        *storage::StorageManager::Get(*conn->getClientContext())->getDataFH()->getPageManager();
     auto numFreeEntries = pageManager.getNumFreeEntries();
     auto entries = pageManager.getFreeEntries(0, numFreeEntries);
     return std::accumulate(entries.begin(), entries.end(), 0ull,

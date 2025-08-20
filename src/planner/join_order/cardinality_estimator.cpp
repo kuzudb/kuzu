@@ -39,7 +39,7 @@ void CardinalityEstimator::init(const NodeExpression& node) {
     cardinality_t numNodes = 0u;
     for (auto tableID : node.getTableIDs()) {
         auto stats =
-            context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>().getStats(
+            storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>().getStats(
                 context->getTransaction());
         numNodes += stats.getTableCard();
         if (!nodeTableStats.contains(tableID)) {
@@ -203,7 +203,7 @@ uint64_t CardinalityEstimator::getNumRels(const Transaction* transaction,
     const std::vector<table_id_t>& tableIDs) const {
     cardinality_t numRels = 0u;
     for (auto tableID : tableIDs) {
-        numRels += context->getStorageManager()->getTable(tableID)->getNumTotalRows(transaction);
+        numRels += storage::StorageManager::Get(*context)->getTable(tableID)->getNumTotalRows(transaction);
     }
     return atLeastOne(numRels);
 }

@@ -65,6 +65,8 @@ public:
 
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    static StorageManager* Get(const main::ClientContext& context);
+
 private:
     void createNodeTable(catalog::NodeTableCatalogEntry* entry);
 

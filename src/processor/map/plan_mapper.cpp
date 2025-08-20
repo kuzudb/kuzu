@@ -219,7 +219,7 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
 }
 
 std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
-    auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
+    auto table = StorageManager::Get(*clientContext)->getTable(tableID)->ptrCast<NodeTable>();
     return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
 }
 

@@ -227,7 +227,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     // As `k` can be larger than the default vector capacity, we run the actual search in the first
     // call, and output the rest of the query result in chunks in the following calls.
     if (!localState->hasResultToOutput()) {
-        const auto nodeTable = input.context->clientContext->getStorageManager()
+        const auto nodeTable = storage::StorageManager::Get(*input.context->clientContext)
                                    ->getTable(bindData->nodeTableEntry->getTableID())
                                    ->ptrCast<storage::NodeTable>();
         auto indexOpt = nodeTable->getIndex(bindData->indexEntry->getIndexName());
@@ -269,7 +269,7 @@ static std::unique_ptr<TableFuncSharedState> initQueryHNSWSharedState(
     const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<QueryHNSWIndexBindData>();
     auto context = input.context->clientContext;
-    auto nodeTable = context->getStorageManager()
+    auto nodeTable = storage::StorageManager::Get(*context)
                          ->getTable(bindData->nodeTableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
     auto numNodes = nodeTable->getStats(context->getTransaction()).getTableCard();

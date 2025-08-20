@@ -253,7 +253,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     auto& dataChunk = output.dataChunk;
     auto localState = ku_dynamic_cast<StorageInfoLocalState*>(input.localState);
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
-    auto storageManager = input.context->clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*input.context->clientContext);
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
             // Copy from local state chunk.

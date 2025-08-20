@@ -454,14 +454,14 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(const main::ClientContext* context, IndexInfo i
     std::unique_ptr<IndexStorageInfo> storageInfo, HNSWIndexConfig config)
     : HNSWIndex{indexInfo, std::move(storageInfo), std::move(config),
           getArrayTypeInfo(
-              context->getStorageManager()->getTable(indexInfo.tableID)->cast<NodeTable>(),
+              StorageManager::Get(*context)->getTable(indexInfo.tableID)->cast<NodeTable>(),
               indexInfo.columnIDs[0])},
       mm{MemoryManager::Get(*context)},
-      nodeTable{context->getStorageManager()->getTable(indexInfo.tableID)->cast<NodeTable>()} {
+      nodeTable{StorageManager::Get(*context)->getTable(indexInfo.tableID)->cast<NodeTable>()} {
     KU_ASSERT(this->indexInfo.columnIDs.size() == 1);
     KU_ASSERT(nodeTable.getColumn(this->indexInfo.columnIDs[0]).getDataType().getLogicalTypeID() ==
               common::LogicalTypeID::ARRAY);
-    const auto storageManager = context->getStorageManager();
+    const auto storageManager = StorageManager::Get(*context);
     const auto& hnswStorageInfo = this->storageInfo->cast<HNSWStorageInfo>();
     lowerRelTable = storageManager->getTable(hnswStorageInfo.lowerRelTableID)->ptrCast<RelTable>();
     upperRelTable = storageManager->getTable(hnswStorageInfo.upperRelTableID)->ptrCast<RelTable>();

@@ -26,7 +26,7 @@ static TableCatalogEntry* getEntry(const ClientContext& context, const std::stri
 }
 
 static Table* getTable(const ClientContext& context, const std::string& tableName) {
-    return context.getStorageManager()->getTable(getEntry(context, tableName)->getTableID());
+    return StorageManager::Get(context)->getTable(getEntry(context, tableName)->getTableID());
 }
 
 static bool validateNumericalType(const LogicalType& type) {
