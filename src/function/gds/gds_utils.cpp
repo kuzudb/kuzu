@@ -86,7 +86,8 @@ static void runOneIteration(ExecutionContext* context, Graph* graph,
 }
 
 void GDSUtils::runAlgorithmEdgeCompute(ExecutionContext* context, GDSComputeState& compState,
-    Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration, const std::vector<std::string>& propertiesToScan) {
+    Graph* graph, ExtendDirection extendDirection, uint64_t maxIteration,
+    const std::vector<std::string>& propertiesToScan) {
     auto frontierPair = compState.frontierPair.get();
     while (frontierPair->continueNextIter(maxIteration)) {
         frontierPair->beginNewIteration();

@@ -153,18 +153,26 @@ public:
             auto nbrPathData = fwdData.nodePathData[nbrNodeID.offset].load();
             const auto weight = propertyVectors[0]->template getValue<double>(i);
             if (weight <= 0) {
-                throw RuntimeException(stringFormat("Betweenness Centrality does not work on non-positive weights. Got {}", weight));
+                throw RuntimeException(stringFormat(
+                    "Betweenness Centrality does not work on non-positive weights. Got {}",
+                    weight));
             }
             // We find a better path.
-            while(nbrPathData.pathScore > curScore+weight) {
-                if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths, .level = curLevel+1, .pathScore = curScore+weight})) {
+            while (nbrPathData.pathScore > curScore + weight) {
+                if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData,
+                        BCFwdData::PathData{.numPaths = curPaths,
+                            .level = curLevel + 1,
+                            .pathScore = curScore + weight})) {
                     result.push_back(nbrNodeID);
                     return;
                 }
             }
             // We find an equivalent path.
             while (nbrPathData.pathScore == curScore + weight) {
-                if(fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths+nbrPathData.numPaths, .level = std::max(curLevel+1, nbrPathData.level), .pathScore = curScore+weight})) {
+                if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData,
+                        BCFwdData::PathData{.numPaths = curPaths + nbrPathData.numPaths,
+                            .level = std::max(curLevel + 1, nbrPathData.level),
+                            .pathScore = curScore + weight})) {
                     return;
                 }
             }
@@ -194,13 +202,19 @@ public:
             auto nbrNodeID = neighbors[i];
             auto nbrPathData = BCFwdData::PathData{};
             // We see the node for the first time.
-            if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths, .level = curLevel+1, .pathScore = curScore+1})) {
+            if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData,
+                    BCFwdData::PathData{.numPaths = curPaths,
+                        .level = curLevel + 1,
+                        .pathScore = curScore + 1})) {
                 result.push_back(nbrNodeID);
                 return;
             }
             // Reaching here means CAS failed, so nbrPathData is up to date.
             while (nbrPathData.pathScore == curScore + 1) {
-                if(fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths+nbrPathData.numPaths, .level = curLevel+1, .pathScore = curScore+1})) {
+                if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData,
+                        BCFwdData::PathData{.numPaths = curPaths + nbrPathData.numPaths,
+                            .level = curLevel + 1,
+                            .pathScore = curScore + 1})) {
                     return;
                 }
             }
@@ -229,7 +243,8 @@ public:
         chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             auto nbrNodeID = neighbors[i];
             auto nbrDistance = fwdData.nodePathData[nbrNodeID.offset].load().pathScore;
-            const auto weight = propertyVectors.empty() ? 1 : propertyVectors[0]->template getValue<double>(i);
+            const auto weight =
+                propertyVectors.empty() ? 1 : propertyVectors[0]->template getValue<double>(i);
             if (nbrDistance + weight == curDistance) {
                 auto nbrPaths = fwdData.nodePathData[nbrNodeID.offset].load().numPaths;
                 auto scoreToAdd = ((double)nbrPaths / curPaths) * (1 + curScore);
@@ -258,7 +273,8 @@ public:
     void beginOnTableInternal(table_id_t) override {}
     void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
         for (auto i = startOffset; i < endOffset; ++i) {
-            fwdData.levels[i] = BCFwdData::LevelData{.node = i, .level = fwdData.nodePathData[i].load().level};
+            fwdData.levels[i] =
+                BCFwdData::LevelData{.node = i, .level = fwdData.nodePathData[i].load().level};
         }
     }
     std::unique_ptr<VertexCompute> copy() override {
@@ -391,8 +407,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         computeState.frontierPair->addNodeToNextFrontier(i);
         if (relProps.empty()) {
             computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
-        }
-        else {
+        } else {
             computeState.edgeCompute = std::make_unique<WeightedFwdTraverse>(fwdData);
         }
         computeState.frontierPair->setActiveNodesForNextIter();
@@ -401,10 +416,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         // Backward Traverse
         bwdData.init();
 
-
-        const auto populateLevels = std::make_unique<PopulateLevels>(sharedState->getGraphNodeMaskMap(), fwdData);
+        const auto populateLevels =
+            std::make_unique<PopulateLevels>(sharedState->getGraphNodeMaskMap(), fwdData);
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *populateLevels);
-        std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
+        std::sort(fwdData.levels.begin(), fwdData.levels.end(),
+            std::greater<BCFwdData::LevelData>{});
 
         auto maxLevel = fwdData.levels.front().level;
         for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
