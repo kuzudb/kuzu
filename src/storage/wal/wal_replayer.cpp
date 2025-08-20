@@ -16,6 +16,7 @@
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
+#include "storage/wal/checksum_reader.h"
 #include "storage/wal/wal_record.h"
 
 using namespace kuzu::binder;
@@ -72,7 +73,9 @@ void WALReplayer::replay() const {
             // Read the checkpointed data from the disk.
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
-            Deserializer deserializer(std::make_unique<BufferedFileReader>(*fileInfo));
+            Deserializer deserializer(
+                std::make_unique<ChecksumReader>(std::make_unique<BufferedFileReader>(*fileInfo),
+                    *clientContext.getMemoryManager()));
             while (deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset() <
                    offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
@@ -99,7 +102,8 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
     uint64_t offsetDeserialized = 0;
     bool isLastRecordCheckpoint = false;
     try {
-        Deserializer deserializer(std::make_unique<BufferedFileReader>(fileInfo));
+        Deserializer deserializer(std::make_unique<ChecksumReader>(
+            std::make_unique<BufferedFileReader>(fileInfo), *clientContext.getMemoryManager()));
         bool finishedDeserializing = deserializer.finished();
         while (!finishedDeserializing) {
             auto walRecord = WALRecord::deserialize(deserializer, clientContext);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/wal/checksum_writer.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -40,6 +41,7 @@ private:
     common::VirtualFileSystem* vfs;
     std::unique_ptr<common::FileInfo> fileInfo;
     std::shared_ptr<common::BufferedFileWriter> writer;
+    std::shared_ptr<ChecksumWriter> checksumWriter;
     std::unique_ptr<common::Serializer> serializer;
 };
 

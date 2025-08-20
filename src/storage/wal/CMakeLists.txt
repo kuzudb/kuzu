@@ -1,5 +1,7 @@
 add_library(kuzu_storage_wal
         OBJECT
+        checksum_reader.cpp
+        checksum_writer.cpp
         local_wal.cpp
         wal.cpp
         wal_record.cpp
