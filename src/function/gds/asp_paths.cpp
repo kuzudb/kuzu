@@ -81,12 +81,12 @@ private:
     std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData&,
         RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
+        auto mm = storage::MemoryManager::Get(*clientContext);
         auto denseFrontier =
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto frontierPair = std::make_unique<SPFrontierPair>(std::move(denseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
+            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         auto edgeCompute =
             std::make_unique<ASPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

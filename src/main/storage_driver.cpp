@@ -130,8 +130,7 @@ void StorageDriver::scanColumn(Table* table, column_id_t columnID, const offset_
     auto column = &nodeTable->getColumn(columnID);
     // Create value vectors
     auto idVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
-    auto columnVector = std::make_unique<ValueVector>(column->getDataType().copy(),
-        clientContext->getMemoryManager());
+    auto columnVector = std::make_unique<ValueVector>(column->getDataType().copy(), MemoryManager::Get(*clientContext));
     auto vectorState = DataChunkState::getSingleValueDataChunkState();
     idVector->state = vectorState;
     columnVector->state = vectorState;

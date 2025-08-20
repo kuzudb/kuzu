@@ -144,14 +144,14 @@ private:
     std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context,
         const RJBindData& bindData, RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
+        auto mm = storage::MemoryManager::Get(*clientContext);
         auto graph = sharedState->graph.get();
         auto curDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
+            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraph.get());

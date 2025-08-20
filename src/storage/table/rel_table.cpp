@@ -396,7 +396,7 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
     LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     if (localRelTable.isEmpty()) {
-        localTable->clear(*context->getMemoryManager());
+        localTable->clear(*MemoryManager::Get(*context));
         return;
     }
     // Update relID in local storage.
@@ -434,7 +434,7 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
         }
     }
 
-    localRelTable.clear(*context->getMemoryManager());
+    localRelTable.clear(*MemoryManager::Get(*context));
 }
 
 void RelTable::reclaimStorage(PageAllocator& pageAllocator) const {

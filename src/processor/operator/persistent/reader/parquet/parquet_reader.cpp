@@ -280,7 +280,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 ListType::getChildType(resultType).copy(), sEle, thisIdx, maxDefine - 1,
                 maxRepeat - 1, std::move(childrenReaders));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
-                maxDefine, maxRepeat, std::move(structReader), context->getMemoryManager());
+                maxDefine, maxRepeat, std::move(structReader), storage::MemoryManager::Get(*context));
         }
 
         if (structFields.size() > 1 || (!isList && !isMap && !isRepeated)) {
@@ -295,7 +295,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         if (isRepeated) {
             resultType = LogicalType::LIST(resultType.copy());
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
-                maxDefine, maxRepeat, std::move(result), context->getMemoryManager());
+                maxDefine, maxRepeat, std::move(result), storage::MemoryManager::Get(*context));
         }
         return result;
     } else {
@@ -311,7 +311,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             auto elementReader = ColumnReader::createReader(*this, std::move(derivedType), sEle,
                 nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,
-                maxDefine, maxRepeat, std::move(elementReader), context->getMemoryManager());
+                maxDefine, maxRepeat, std::move(elementReader), storage::MemoryManager::Get(*context));
         }
         // TODO check return value of derive type or should we only do this on read()
         return ColumnReader::createReader(*this, deriveLogicalType(sEle), sEle, nextFileIdx++,

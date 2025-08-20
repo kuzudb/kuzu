@@ -172,7 +172,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     finalizeFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
     // Initialize fTable for BatchInsert.
     auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+        FactorizedTableUtils::getSingleStringColumnFTable(storage::MemoryManager::Get(*clientContext));
     // Create RelBatchInsert and dummy sink operators.
     const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
     auto upperInsertInfo = std::make_unique<RelBatchInsertInfo>(upperRelTableEntry->getName(),

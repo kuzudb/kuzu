@@ -6,6 +6,7 @@
 #include "extension/extension.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace processor {
@@ -30,8 +31,7 @@ void UninstallExtension::executeInternal(ExecutionContext* context) {
                 errCode.message())};
         // LCOV_EXCL_STOP
     }
-    appendMessage(stringFormat("Extension: {} has been uninstalled", path),
-        clientContext->getMemoryManager());
+    appendMessage(stringFormat("Extension: {} has been uninstalled", path), storage::MemoryManager::Get(*clientContext));
 }
 
 } // namespace processor

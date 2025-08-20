@@ -70,7 +70,7 @@ void ShadowFile::applyShadowPages(ClientContext& context) const {
         dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
             record.originalPageIdx * KUZU_PAGE_SIZE);
         // NOTE: We're not taking lock here, as we assume this is only called with a single thread.
-        context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
+        MemoryManager::Get(context)->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
             record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
     }
     dataFileInfo->syncFile();

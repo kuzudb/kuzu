@@ -55,7 +55,7 @@ std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& co
                                              ->getTableID())
                               ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
-        context.getMemoryManager(), stopWordsTable, context.getTransaction(),
+        MemoryManager::Get(context), stopWordsTable, context.getTransaction(),
         optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal(),
         true /* isQuery */);
 }

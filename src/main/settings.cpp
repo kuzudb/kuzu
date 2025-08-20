@@ -28,7 +28,7 @@ void SpillToDiskSetting::setContext(ClientContext* context, const common::Value&
         // Set path to empty will disable spiller.
         spillPath = "";
     }
-    context->getMemoryManager()->getBufferManager()->resetSpiller(spillPath);
+    storage::MemoryManager::Get(*context)->getBufferManager()->resetSpiller(spillPath);
 }
 
 } // namespace main

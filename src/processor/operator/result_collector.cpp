@@ -3,6 +3,7 @@
 #include "binder/expression/expression_util.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -28,8 +29,7 @@ void ResultCollector::initNecessaryLocalState(ResultSet* resultSet, ExecutionCon
         payloadAndMarkVectors.push_back(vec);
     }
     if (info.accumulateType == AccumulateType::OPTIONAL_) {
-        markVector = std::make_unique<ValueVector>(LogicalType::BOOL(),
-            context->clientContext->getMemoryManager());
+        markVector = std::make_unique<ValueVector>(LogicalType::BOOL(), MemoryManager::Get(*context->clientContext));
         markVector->state = DataChunkState::getSingleValueDataChunkState();
         markVector->setValue<bool>(0, true);
         payloadAndMarkVectors.push_back(markVector.get());
@@ -38,8 +38,7 @@ void ResultCollector::initNecessaryLocalState(ResultSet* resultSet, ExecutionCon
 
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     initNecessaryLocalState(resultSet, context);
-    localTable = std::make_unique<FactorizedTable>(context->clientContext->getMemoryManager(),
-        info.tableSchema.copy());
+    localTable = std::make_unique<FactorizedTable>(MemoryManager::Get(*context->clientContext), info.tableSchema.copy());
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {
@@ -59,7 +58,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
 void ResultCollector::finalizeInternal(ExecutionContext* context) {
     switch (info.accumulateType) {
     case AccumulateType::OPTIONAL_: {
-        auto localResultSet = getResultSet(context->clientContext->getMemoryManager());
+        auto localResultSet = getResultSet(MemoryManager::Get(*context->clientContext));
         initNecessaryLocalState(localResultSet.get(), context);
         // We should remove currIdx completely as some of the code still relies on currIdx = -1 to
         // check if the state if unFlat or not. This should no longer be necessary.

@@ -143,7 +143,7 @@ void Partitioner::executeInternal(ExecutionContext* context) {
             partitionIdxes->state = keyVector->state;
             partitionInfo.partitionerFunc(keyVector.get(), partitionIdxes.get());
             auto chunkToCopyFrom = constructDataChunk(keyVector->state);
-            copyDataToPartitions(*context->clientContext->getMemoryManager(), partitioningIdx,
+            copyDataToPartitions(*MemoryManager::Get(*context->clientContext), partitioningIdx,
                 chunkToCopyFrom);
         }
     }

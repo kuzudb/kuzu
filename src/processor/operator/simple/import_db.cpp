@@ -3,6 +3,7 @@
 #include "common/exception/runtime.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -24,7 +25,7 @@ static void validateQueryResult(main::QueryResult* queryResult) {
 void ImportDB::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     if (query.empty()) { // Export empty database.
-        appendMessage("Imported database successfully.", clientContext->getMemoryManager());
+        appendMessage("Imported database successfully.", storage::MemoryManager::Get(*clientContext));
         return;
     }
     // TODO(Guodong): this is special for "Import database". Should refactor after we support
@@ -41,7 +42,7 @@ void ImportDB::executeInternal(ExecutionContext* context) {
         res = clientContext->queryNoLock(indexQuery);
         validateQueryResult(res.get());
     }
-    appendMessage("Imported database successfully.", clientContext->getMemoryManager());
+    appendMessage("Imported database successfully.", storage::MemoryManager::Get(*clientContext));
 }
 
 } // namespace processor

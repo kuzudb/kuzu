@@ -4,6 +4,7 @@
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/hash_join/hash_join_probe.h"
 #include "processor/plan_mapper.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -84,7 +85,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapHashJoin(const LogicalOperator*
         ExpressionUtil::excludeExpressions(hashJoin->getExpressionsToMaterialize(), probeKeys);
     // Create build
     auto buildInfo = createHashBuildInfo(*buildSchema, buildKeys, payloads);
-    auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
+    auto globalHashTable = std::make_unique<JoinHashTable>(*storage::MemoryManager::Get(*clientContext),
         LogicalType::copy(buildKeyTypes), buildInfo.tableSchema.copy());
     auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
     auto buildPrintInfo = std::make_unique<HashJoinBuildPrintInfo>(buildKeys, payloads);

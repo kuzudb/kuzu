@@ -17,7 +17,7 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    auto memoryManager = clientContext->getMemoryManager();
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     // Check conflict
     if (catalog->containsTable(transaction, info.tableName)) {
         switch (info.onConflict) {

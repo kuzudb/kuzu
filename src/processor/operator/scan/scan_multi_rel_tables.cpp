@@ -55,7 +55,7 @@ void ScanMultiRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     auto clientContext = context->clientContext;
     boundNodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
     auto nbrNodeIDVector = outVectors[0];
-    scanState = std::make_unique<RelTableScanState>(*clientContext->getMemoryManager(),
+    scanState = std::make_unique<RelTableScanState>(*MemoryManager::Get(*clientContext),
         boundNodeIDVector, outVectors, nbrNodeIDVector->state);
     for (auto& [_, scanner] : scanners) {
         for (auto& relInfo : scanner.relInfos) {

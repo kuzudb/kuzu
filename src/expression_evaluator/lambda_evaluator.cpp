@@ -7,6 +7,7 @@
 #include "function/list/vector_list_functions.h"
 #include "main/client_context.h"
 #include "parser/expression/parsed_lambda_expression.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -27,6 +28,7 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
     collector.visit(lambdaRootEvaluator.get());
     auto evaluators = collector.getEvaluators();
     auto lambdaVarState = std::make_shared<DataChunkState>();
+    memoryManager = MemoryManager::Get(*clientContext);
     for (auto& evaluator : evaluators) {
         // For list_filter, list_transform:
         // The resultVector of lambdaEvaluator should be the list dataVector.
@@ -36,18 +38,16 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
         evaluator->resultVector = listLambdaType != ListLambdaType::LIST_REDUCE ?
                                       ListVector::getSharedDataVector(listInputVector) :
                                       std::make_shared<ValueVector>(
-                                          ListType::getChildType(listInputVector->dataType).copy(),
-                                          clientContext->getMemoryManager());
+                                          ListType::getChildType(listInputVector->dataType).copy(), memoryManager);
         evaluator->resultVector->state = lambdaVarState;
         lambdaParamEvaluators.push_back(evaluator->ptrCast<LambdaParamEvaluator>());
     }
     lambdaRootEvaluator->init(resultSet, clientContext);
-    resolveResultVector(resultSet, clientContext->getMemoryManager());
+    resolveResultVector(resultSet, memoryManager);
     params.push_back(children[0]->resultVector);
     params.push_back(lambdaRootEvaluator->resultVector);
     auto paramIndices = getParamIndices();
     bindData = ListLambdaBindData{lambdaParamEvaluators, paramIndices, lambdaRootEvaluator.get()};
-    memoryManager = clientContext->getMemoryManager();
 }
 
 void ListLambdaEvaluator::evaluateInternal() {

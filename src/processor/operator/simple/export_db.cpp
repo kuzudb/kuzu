@@ -14,6 +14,7 @@
 #include "function/scalar_macro_function.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -194,7 +195,7 @@ void ExportDB::executeInternal(ExecutionContext* context) {
     // write the index.cypher file
     writeStringStreamToFile(clientContext, getIndexCypher(clientContext, boundFileInfo),
         boundFileInfo.filePaths[0] + "/" + PortDBConstants::INDEX_FILE_NAME);
-    appendMessage("Exported database successfully.", clientContext->getMemoryManager());
+    appendMessage("Exported database successfully.", storage::MemoryManager::Get(*clientContext));
 }
 
 } // namespace processor

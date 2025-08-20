@@ -103,8 +103,9 @@ private:
 };
 
 void DenseFrontier::init(ExecutionContext* context, Graph* graph, iteration_t val) {
+    auto mm = storage::MemoryManager::Get(*context->clientContext);
     for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
-        denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
+        denseObjects.allocate(tableID, maxOffset, mm);
     }
     resetValue(context, graph, val);
 }

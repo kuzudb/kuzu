@@ -150,8 +150,9 @@ public:
     void switchToDense(ExecutionContext* context) {
         KU_ASSERT(densityState == GDSDensityState::SPARSE);
         densityState = GDSDensityState::DENSE;
+        auto mm = MemoryManager::Get(*context->clientContext);
         for (auto& [tableID, maxOffset] : maxOffsetMap) {
-            denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
+            denseObjects.allocate(tableID, maxOffset, mm);
             auto data = denseObjects.getData(tableID);
             for (auto i = 0u; i < maxOffset; i++) {
                 data[i].store(std::numeric_limits<double>::max());

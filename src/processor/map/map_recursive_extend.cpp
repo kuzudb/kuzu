@@ -31,7 +31,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     auto columns = extend.getResultColumns();
     auto tableSchema = createFlatFTableSchema(columns, *extend.getSchema());
     auto table =
-        std::make_shared<FactorizedTable>(clientContext->getMemoryManager(), tableSchema.copy());
+        std::make_shared<FactorizedTable>(storage::MemoryManager::Get(*clientContext), tableSchema.copy());
     auto graph = std::make_unique<OnDiskGraph>(clientContext, bindData.graphEntry.copy());
     auto sharedState =
         std::make_shared<RecursiveExtendSharedState>(table, std::move(graph), extend.getLimitNum());
