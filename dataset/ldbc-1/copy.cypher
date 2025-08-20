@@ -1,9 +1,9 @@
-COPY Comment FROM 'dataset/ldbc-1/csv/comment_0_0.csv' ;
+COPY Comment FROM 'dataset/ldbc-1/csv/comment_0_*.csv' ;
 COPY Forum FROM 'dataset/ldbc-1/csv/forum_0_0.csv' ;
 COPY Organisation FROM 'dataset/ldbc-1/csv/organisation_0_0.csv' ;
 COPY Person FROM 'dataset/ldbc-1/csv/person_0_0.csv' ;
 COPY Place FROM 'dataset/ldbc-1/csv/place_0_0.csv' ;
-COPY Post FROM 'dataset/ldbc-1/csv/post_0_0.csv' ;
+COPY Post FROM 'dataset/ldbc-1/csv/post_0_*.csv' ;
 COPY Tag FROM 'dataset/ldbc-1/csv/tag_0_0.csv' ;
 COPY Tagclass FROM 'dataset/ldbc-1/csv/tagclass_0_0.csv' ;
 COPY containerOf FROM 'dataset/ldbc-1/csv/forum_containerOf_post_0_0.csv' ;
