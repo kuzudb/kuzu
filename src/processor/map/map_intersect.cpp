@@ -1,5 +1,4 @@
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_intersect.h"
 #include "processor/operator/intersect/intersect.h"
 #include "processor/operator/intersect/intersect_build.h"

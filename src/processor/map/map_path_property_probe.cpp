@@ -3,7 +3,6 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_utils.h"
-#include "main/client_context.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
 #include "planner/operator/logical_path_property_probe.h"
 #include "processor/operator/hash_join/hash_join_build.h"

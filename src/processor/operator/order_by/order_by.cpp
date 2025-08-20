@@ -1,7 +1,6 @@
 #include "processor/operator/order_by/order_by.h"
 
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 

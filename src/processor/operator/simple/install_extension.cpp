@@ -1,7 +1,6 @@
 #include "processor/operator/simple/install_extension.h"
 
 #include "common/string_format.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 
