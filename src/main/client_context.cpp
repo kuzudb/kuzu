@@ -230,11 +230,6 @@ extension::ExtensionManager* ClientContext::getExtensionManager() const {
     return localDatabase->extensionManager.get();
 }
 
-storage::WAL* ClientContext::getWAL() const {
-    KU_ASSERT(localDatabase && localDatabase->storageManager);
-    return &localDatabase->storageManager->getWAL();
-}
-
 Catalog* ClientContext::getCatalog() const {
     if (remoteDatabase == nullptr) {
         return localDatabase->catalog.get();

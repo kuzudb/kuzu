@@ -4,7 +4,10 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/in_mem_file_writer.h"
+#include "main/client_context.h"
+#include "main/database.h"
 #include "main/db_config.h"
+#include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/local_wal.h"
 
@@ -83,6 +86,11 @@ void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     KU_ASSERT(!inMemory);
     walRecord.serialize(*serializer);
+}
+
+WAL* WAL::Get(const main::ClientContext& context) {
+    KU_ASSERT(context.getDatabase() && context.getDatabase()->getStorageManager());
+    return &context.getDatabase()->getStorageManager()->getWAL();
 }
 
 } // namespace storage
