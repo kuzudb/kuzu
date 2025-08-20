@@ -308,6 +308,7 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryMana
     deSer.validateDebuggingInfo(key, "chunks");
     deSer.deserializeVectorOfPtrs<ColumnChunk>(chunks,
         [&](Deserializer& deser) { return ColumnChunk::deserialize(memoryManager, deser); });
+    deSer.validateDebuggingInfo(key, "startRowIdx");
     row_idx_t startRowIdx = 0;
     deSer.deserializeValue<row_idx_t>(startRowIdx);
     auto chunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
