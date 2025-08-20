@@ -469,7 +469,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     }
     auto scoreColumn = input->binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
     columns.push_back(scoreColumn);
-    auto nodeTable = StorageManager::Get(*context)->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
+    auto nodeTable =
+        StorageManager::Get(*context)->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
     auto index = nodeTable->getIndex(indexName);
     KU_ASSERT(index.has_value());
     auto& ftsIndex = index.value()->cast<FTSIndex>();

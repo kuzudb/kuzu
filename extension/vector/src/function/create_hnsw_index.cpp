@@ -48,7 +48,8 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
         HNSWIndexUtils::IndexOperation::CREATE);
     const auto tableID = tableEntry->getTableID();
     HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
-    const auto& table = storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
+    const auto& table =
+        storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();

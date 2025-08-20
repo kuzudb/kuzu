@@ -96,7 +96,8 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
     CacheArrayColumnLocalState(const main::ClientContext& context, table_id_t tableID,
         column_id_t columnID)
         : dataChunk{2, std::make_shared<DataChunkState>()} {
-        auto& table = storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>();
+        auto& table =
+            storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>();
         dataChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
         dataChunk.insert(1,
             std::make_shared<ValueVector>(table.getColumn(columnID).getDataType().copy()));

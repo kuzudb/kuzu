@@ -23,9 +23,10 @@ struct FreeSpaceInfoBindData final : TableFuncBindData {
 static common::offset_t internalTableFunc(const TableFuncMorsel& morsel,
     const TableFuncInput& input, common::DataChunk& output) {
     const auto bindData = input.bindData->constPtrCast<FreeSpaceInfoBindData>();
-    const auto entries =
-        storage::StorageManager::Get(*bindData->ctx)->getDataFH()->getPageManager()->getFreeEntries(
-            morsel.startOffset, morsel.endOffset);
+    const auto entries = storage::StorageManager::Get(*bindData->ctx)
+                             ->getDataFH()
+                             ->getPageManager()
+                             ->getFreeEntries(morsel.startOffset, morsel.endOffset);
     for (common::row_idx_t i = 0; i < entries.size(); ++i) {
         const auto& freeEntry = entries[i];
         output.getValueVectorMutable(0).setValue<uint64_t>(i, freeEntry.startPageIdx);
@@ -42,7 +43,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnTypes.push_back(common::LogicalType::UINT64());
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<FreeSpaceInfoBindData>(columns,
-        storage::StorageManager::Get(*context)->getDataFH()->getPageManager()->getNumFreeEntries(), context);
+        storage::StorageManager::Get(*context)->getDataFH()->getPageManager()->getNumFreeEntries(),
+        context);
 }
 
 function_set FreeSpaceInfoFunction::getFunctionSet() {
