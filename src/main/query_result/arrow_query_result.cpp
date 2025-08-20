@@ -32,8 +32,8 @@ uint64_t ArrowQueryResult::getNumTuples() const {
 }
 
 ArrowArray ArrowQueryResult::getArray(FactorizedTableIterator& iterator, int64_t chunkSize) {
-    auto rowBatch = std::make_unique<ArrowRowBatch>(columnTypes, chunkSize,
-        false /* fallbackExtensionTypes */);
+    auto rowBatch =
+        std::make_unique<ArrowRowBatch>(columnTypes, chunkSize, false /* fallbackExtensionTypes */);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!iterator.hasNext()) {

@@ -13,7 +13,7 @@ namespace main {
 
 MaterializedQueryResult::MaterializedQueryResult() = default;
 
-MaterializedQueryResult::MaterializedQueryResult( std::shared_ptr<FactorizedTable> table)
+MaterializedQueryResult::MaterializedQueryResult(std::shared_ptr<FactorizedTable> table)
     : QueryResult{type_}, table{std::move(table)} {
     iterator = std::make_unique<FactorizedTableIterator>(*this->table);
 }
@@ -92,8 +92,8 @@ bool MaterializedQueryResult::hasNextArrowChunk() {
 
 std::unique_ptr<ArrowArray> MaterializedQueryResult::getNextArrowChunk(int64_t chunkSize) {
     checkDatabaseClosedOrThrow();
-    auto rowBatch = std::make_unique<ArrowRowBatch>(columnTypes, chunkSize,
-        false /* fallbackExtensionTypes */);
+    auto rowBatch =
+        std::make_unique<ArrowRowBatch>(columnTypes, chunkSize, false /* fallbackExtensionTypes */);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!iterator->hasNext()) {

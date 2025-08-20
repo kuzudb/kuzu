@@ -54,9 +54,7 @@ public:
         bool fallbackExtensionTypes);
 
     void append(const processor::FlatTuple& tuple);
-    std::int64_t size() const {
-        return numTuples;
-    }
+    std::int64_t size() const { return numTuples; }
     ArrowArray toArray(const std::vector<LogicalType>& types);
 
 private:

@@ -578,8 +578,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 const auto executionContext =
                     std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
                 auto mapper = PlanMapper(executionContext.get());
-                const auto physicalPlan = mapper.getPhysicalPlan(
-                    cachedStatement->logicalPlan.get(), cachedStatement->columns, queryConfig.asArrow, queryConfig.arrowConfig);
+                const auto physicalPlan = mapper.getPhysicalPlan(cachedStatement->logicalPlan.get(),
+                    cachedStatement->columns, queryConfig.asArrow, queryConfig.arrowConfig);
                 if (isTransactionStatement) {
                     result = localDatabase->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());

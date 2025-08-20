@@ -2,8 +2,8 @@
 
 #include "binder/expression/expression_util.h"
 #include "main/client_context.h"
-#include "processor/execution_context.h"
 #include "main/query_result/materialized_query_result.h"
+#include "processor/execution_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

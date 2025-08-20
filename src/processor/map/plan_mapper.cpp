@@ -26,8 +26,8 @@ std::unique_ptr<PhysicalPlan> PlanMapper::getPhysicalPlan(const LogicalPlan* log
     auto root = mapOperator(logicalPlan->getLastOperator().get());
     if (!root->isSink()) {
         if (asArrow) {
-            root = createArrowResultCollector(arrowConfig, expressions,
-                logicalPlan->getSchema(), std::move(root));
+            root = createArrowResultCollector(arrowConfig, expressions, logicalPlan->getSchema(),
+                std::move(root));
         } else {
             root = createResultCollector(AccumulateType::REGULAR, expressions,
                 logicalPlan->getSchema(), std::move(root));

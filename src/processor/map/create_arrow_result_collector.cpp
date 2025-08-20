@@ -1,14 +1,14 @@
-#include "processor/plan_mapper.h"
 #include "processor/operator/arrow_result_collector.h"
+#include "processor/plan_mapper.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::createArrowResultCollector(ArrowResultConfig arrowConfig,
-    const binder::expression_vector& expressions, planner::Schema* schema,
-    std::unique_ptr<PhysicalOperator> prevOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::createArrowResultCollector(
+    ArrowResultConfig arrowConfig, const binder::expression_vector& expressions,
+    planner::Schema* schema, std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> columnDataPos;
     std::vector<LogicalType> columnTypes;
     for (auto& expr : expressions) {
@@ -16,7 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createArrowResultCollector(ArrowRe
         columnTypes.push_back(expr->getDataType().copy());
     }
     auto sharedState = std::make_shared<ArrowResultCollectorSharedState>();
-    auto opInfo = ArrowResultCollectorInfo(arrowConfig.chunkSize, columnDataPos, std::move(columnTypes));
+    auto opInfo =
+        ArrowResultCollectorInfo(arrowConfig.chunkSize, columnDataPos, std::move(columnTypes));
     auto printInfo = OPPrintInfo::EmptyInfo();
     auto op = std::make_unique<ArrowResultCollector>(sharedState, std::move(opInfo),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
@@ -24,5 +25,5 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createArrowResultCollector(ArrowRe
     return op;
 }
 
-}
-}
+} // namespace processor
+} // namespace kuzu

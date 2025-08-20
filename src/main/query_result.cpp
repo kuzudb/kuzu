@@ -15,8 +15,7 @@ QueryResult::QueryResult()
       dbLifeCycleManager{nullptr} {}
 
 QueryResult::QueryResult(QueryResultType type)
-    : type{type}, nextQueryResult{nullptr}, queryResultIterator{this},
-      dbLifeCycleManager{nullptr} {
+    : type{type}, nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {
 
 }
 

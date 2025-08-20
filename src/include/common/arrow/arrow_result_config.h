@@ -12,5 +12,5 @@ struct ArrowResultConfig {
     explicit ArrowResultConfig(int64_t chunkSize) : chunkSize(chunkSize) {}
 };
 
-}
-}
+} // namespace common
+} // namespace kuzu
