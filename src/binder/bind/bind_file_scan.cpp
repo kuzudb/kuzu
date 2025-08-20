@@ -52,7 +52,7 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
         // When we read delta/iceberg/azure tables from s3/httpfs, we don't have the httpfs
         // extension loaded meaning that we cannot handle remote paths. So we pass the file path to
         // duckdb for validation when we bindFileScanSource.
-        const auto& loadedExtensions = clientContext->getExtensionManager()->getLoadedExtensions();
+        const auto& loadedExtensions = extension::ExtensionManager::Get(*clientContext)->getLoadedExtensions();
         const bool httpfsExtensionLoaded =
             std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
                 [](const auto& extension) { return extension.getExtensionName() == "HTTPFS"; });

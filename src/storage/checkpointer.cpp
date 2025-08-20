@@ -291,7 +291,7 @@ void Checkpointer::readCheckpoint() {
         readCheckpoint(&clientContext, clientContext.getCatalog(),
             StorageManager::Get(clientContext));
     }
-    clientContext.getExtensionManager()->autoLoadLinkedExtensions(&clientContext);
+    extension::ExtensionManager::Get(clientContext)->autoLoadLinkedExtensions(&clientContext);
 }
 
 void Checkpointer::readCheckpoint(main::ClientContext* context, catalog::Catalog* catalog,
