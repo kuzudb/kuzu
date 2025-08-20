@@ -547,8 +547,8 @@ getIndexTableCatalogEntries(const catalog::Catalog* catalog, const Transaction* 
 
 std::unique_ptr<Index::InsertState> OnDiskHNSWIndex::initInsertState(main::ClientContext* context,
     visible_func) {
-    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] =
-        getIndexTableCatalogEntries(catalog::Catalog::Get(*context), context->getTransaction(), indexInfo);
+    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
+        catalog::Catalog::Get(*context), context->getTransaction(), indexInfo);
     return std::make_unique<HNSWInsertState>(context, nodeTableEntry, upperRelTableEntry,
         lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
 }
@@ -608,8 +608,8 @@ void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
     if (numTotalRows == hnswStorageInfo.numCheckpointedNodes) {
         return;
     }
-    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] =
-        getIndexTableCatalogEntries(catalog::Catalog::Get(*context), context->getTransaction(), indexInfo);
+    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
+        catalog::Catalog::Get(*context), context->getTransaction(), indexInfo);
     const auto embeddingDim = typeInfo.constPtrCast<common::ArrayTypeInfo>()->getNumElements();
     const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(context->getTransaction(), mm,
         nodeTable, indexInfo.columnIDs[0], embeddingDim);

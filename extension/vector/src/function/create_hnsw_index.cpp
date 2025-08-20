@@ -118,8 +118,9 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
     auto finalizeFuncEntry =
-        catalog::Catalog::Get(*clientContext)->getFunctionEntry(clientContext->getTransaction(),
-            InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
+        catalog::Catalog::Get(*clientContext)
+            ->getFunctionEntry(clientContext->getTransaction(),
+                InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
         finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
     auto info = TableFunctionCallInfo();

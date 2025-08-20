@@ -309,8 +309,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     int64_t maxValue = 0;
     switch (info.onConflict) {
     case ConflictAction::ON_CONFLICT_THROW: {
-        if (Catalog::Get(*clientContext)->containsSequence(clientContext->getTransaction(),
-                sequenceName)) {
+        if (Catalog::Get(*clientContext)
+                ->containsSequence(clientContext->getTransaction(), sequenceName)) {
             throw BinderException(sequenceName + " already exists in catalog.");
         }
     } break;

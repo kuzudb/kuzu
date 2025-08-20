@@ -16,16 +16,16 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     IndexOperation indexOperation) {
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (catalog::Catalog::Get(context)->containsIndex(context.getTransaction(), tableEntry->getTableID(),
-                indexName)) {
+        if (catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+                tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
         }
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!catalog::Catalog::Get(context)->containsIndex(context.getTransaction(), tableEntry->getTableID(),
-                indexName)) {
+        if (!catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+                tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }

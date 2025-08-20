@@ -323,14 +323,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         onDiskIndex->getInternalTableInfo().docTable->checkpoint(context.clientContext,
             docTableEntry, pageAllocator);
         auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
-        auto termsTableEntry =
-            catalog::Catalog::Get(*context.clientContext)->getTableCatalogEntry(transaction, termsTableName);
+        auto termsTableEntry = catalog::Catalog::Get(*context.clientContext)
+                                   ->getTableCatalogEntry(transaction, termsTableName);
         onDiskIndex->getInternalTableInfo().termsTable->checkpoint(context.clientContext,
             termsTableEntry, pageAllocator);
         auto appearsInTableName =
             FTSUtils::getAppearsInTableName(bindData.tableID, bindData.indexName);
-        auto appearsInTableEntry = catalog::Catalog::Get(*context.clientContext)->getTableCatalogEntry(
-            transaction, appearsInTableName);
+        auto appearsInTableEntry = catalog::Catalog::Get(*context.clientContext)
+                                       ->getTableCatalogEntry(transaction, appearsInTableName);
         onDiskIndex->getInternalTableInfo().appearsInfoTable->checkpoint(context.clientContext,
             appearsInTableEntry, pageAllocator);
     }
