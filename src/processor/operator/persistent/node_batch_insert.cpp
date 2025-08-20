@@ -241,15 +241,15 @@ void NodeBatchInsert::appendIncompleteNodeGroup(transaction::Transaction* transa
         nodeSharedState->sharedNodeGroup = std::move(localNodeGroup);
         return;
     }
-    auto numNodesAppended = nodeSharedState->sharedNodeGroup->append(*localNodeGroup,
-        0 /* offsetInNodeGroup */, localNodeGroup->getNumRows());
-    while (nodeSharedState->sharedNodeGroup->isFull()) {
-        writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder, mm,
-            *nodeLocalState->optimisticAllocator);
-        if (numNodesAppended < localNodeGroup->getNumRows()) {
-            numNodesAppended += nodeSharedState->sharedNodeGroup->append(*localNodeGroup,
-                numNodesAppended, localNodeGroup->getNumRows() - numNodesAppended);
+    uint64_t numNodesAppended = 0;
+    while (numNodesAppended < localNodeGroup->getNumRows()) {
+        if (nodeSharedState->sharedNodeGroup->isFull()) {
+            writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup, indexBuilder, mm,
+                *nodeLocalState->optimisticAllocator);
         }
+        numNodesAppended += nodeSharedState->sharedNodeGroup->append(*localNodeGroup,
+            numNodesAppended /* offsetInNodeGroup */,
+            localNodeGroup->getNumRows() - numNodesAppended);
     }
     KU_ASSERT(numNodesAppended == localNodeGroup->getNumRows());
 }

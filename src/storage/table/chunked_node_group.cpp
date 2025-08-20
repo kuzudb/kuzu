@@ -1,6 +1,9 @@
 #include "storage/table/chunked_node_group.h"
 
+#include <exception>
+
 #include "common/assert.h"
+#include "common/exception/buffer_manager.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -17,6 +20,19 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
+
+template<class Chunk>
+static void handleAppendException(std::vector<std::unique_ptr<Chunk>>& chunks, uint64_t numRows) {
+    // After an exception is thrown other threads may continue to work on this chunked group for a
+    // while before they are interrupted
+    // Although the changes will eventually be rolled back
+    // We reset the state of the chunk so later changes won't corrupt any data
+    // Due to the numValues in column chunks not matching the number of rows
+    for (const auto& chunk : chunks) {
+        chunk->setNumValues(numRows);
+    }
+    std::rethrow_exception(std::current_exception());
+}
 
 ChunkedNodeGroup::ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
     row_idx_t startRowIdx, NodeGroupDataFormat format)
@@ -142,7 +158,7 @@ uint64_t ChunkedNodeGroup::append(const Transaction* transaction,
                                                 startRowInVectors, numRowsToAppendInChunk));
         }
     } catch ([[maybe_unused]] std::exception& e) {
-        handleAppendException();
+        handleAppendException(chunks, numRows);
     }
     if (transaction->shouldAppendToUndoBuffer()) {
         if (!versionInfo) {
@@ -191,7 +207,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
             chunks[columnID]->append(other[i], offsetInOtherNodeGroup, numToAppendInChunkedGroup);
         }
     } catch ([[maybe_unused]] std::exception& e) {
-        handleAppendException();
+        handleAppendException(chunks, numRows);
     }
     if (transaction->getID() != Transaction::DUMMY_TRANSACTION_ID) {
         if (!versionInfo) {
@@ -216,7 +232,7 @@ offset_t ChunkedNodeGroup::append(const Transaction* transaction,
             chunks[columnID]->append(other[i], offsetInOtherNodeGroup, numToAppendInChunkedGroup);
         }
     } catch ([[maybe_unused]] std::exception& e) {
-        handleAppendException();
+        handleAppendException(chunks, numRows);
     }
     if (transaction->shouldAppendToUndoBuffer()) {
         if (!versionInfo) {
@@ -611,18 +627,6 @@ SpillResult InMemChunkedNodeGroup::spillToDisk() {
     return SpillResult{reclaimedSpace, nowEvictableMemory};
 }
 
-void ChunkedNodeGroup::handleAppendException() {
-    // After an exception is thrown other threads may continue to work on this chunked group for a
-    // while before they are interrupted
-    // Although the changes will eventually be rolled back
-    // We reset the state of the chunk so later changes won't corrupt any data
-    // Due to the numValues in column chunks not matching the number of rows
-    for (const auto& chunk : chunks) {
-        chunk->setNumValues(numRows);
-    }
-    std::rethrow_exception(std::current_exception());
-}
-
 void InMemChunkedNodeGroup::resetToEmpty() {
     numRows = 0;
     for (const auto& chunk : chunks) {
@@ -650,10 +654,14 @@ uint64_t InMemChunkedNodeGroup::append(const std::vector<ValueVector*>& columnVe
     row_idx_t startRowInVectors, uint64_t numValuesToAppend) {
     KU_ASSERT(columnVectors.size() == chunks.size());
     const auto numRowsToAppendInChunk = std::min(numValuesToAppend, capacity - numRows);
-    for (auto i = 0u; i < columnVectors.size(); i++) {
-        const auto columnVector = columnVectors[i];
-        chunks[i]->append(columnVector,
-            columnVector->state->getSelVector().slice(startRowInVectors, numRowsToAppendInChunk));
+    try {
+        for (auto i = 0u; i < columnVectors.size(); i++) {
+            const auto columnVector = columnVectors[i];
+            chunks[i]->append(columnVector, columnVector->state->getSelVector().slice(
+                                                startRowInVectors, numRowsToAppendInChunk));
+        }
+    } catch ([[maybe_unused]] std::exception& e) {
+        handleAppendException(chunks, numRows);
     }
     numRows += numRowsToAppendInChunk;
     return numRowsToAppendInChunk;
@@ -663,8 +671,13 @@ offset_t InMemChunkedNodeGroup::append(const InMemChunkedNodeGroup& other,
     offset_t offsetInOtherNodeGroup, offset_t numRowsToAppend) {
     KU_ASSERT(other.chunks.size() == chunks.size());
     const auto numToAppendInChunkedGroup = std::min(numRowsToAppend, capacity - numRows);
-    for (auto i = 0u; i < other.getNumColumns(); i++) {
-        chunks[i]->append(other.chunks[i].get(), offsetInOtherNodeGroup, numToAppendInChunkedGroup);
+    try {
+        for (auto i = 0u; i < other.getNumColumns(); i++) {
+            chunks[i]->append(other.chunks[i].get(), offsetInOtherNodeGroup,
+                numToAppendInChunkedGroup);
+        }
+    } catch ([[maybe_unused]] std::exception& e) {
+        handleAppendException(chunks, numRows);
     }
     numRows += numToAppendInChunkedGroup;
     return numToAppendInChunkedGroup;

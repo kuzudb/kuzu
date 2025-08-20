@@ -101,8 +101,7 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, MemoryManager& mm,
-        PageAllocator& pageAllocator);
+        transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator);
 
 protected:
     common::row_idx_t startRowIdx;
@@ -245,9 +244,6 @@ public:
     const TARGET& cast() const {
         return common::ku_dynamic_cast<const TARGET&>(*this);
     }
-
-private:
-    void handleAppendException();
 
 protected:
     NodeGroupDataFormat format;
