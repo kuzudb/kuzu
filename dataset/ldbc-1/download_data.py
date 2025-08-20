@@ -1,79 +1,67 @@
 import os
 import urllib.request
 import sys
+import subprocess
+import ssl
 from urllib.error import URLError
 
 FILE_PATH = __file__
-BASE_URL = "https://raw.githubusercontent.com/kuzudb/kuzu-swift-demo/main/Datasets/ldbc-1/csv"
-
-CSV_FILES = [
-    "comment_0_0.csv",
-    "comment_0_1.csv", 
-    "comment_0_2.csv",
-    "comment_hasCreator_person_0_0.csv",
-    "comment_hasTag_tag_0_0.csv",
-    "comment_isLocatedIn_place_0_0.csv",
-    "comment_replyOf_comment_0_0.csv",
-    "comment_replyOf_post_0_0.csv",
-    "forum_0_0.csv",
-    "forum_containerOf_post_0_0.csv",
-    "forum_hasMember_person_0_0.csv",
-    "forum_hasModerator_person_0_0.csv",
-    "forum_hasTag_tag_0_0.csv",
-    "organisation_0_0.csv",
-    "organisation_isLocatedIn_place_0_0.csv",
-    "person_0_0.csv",
-    "person_email_emailaddress_0_0.csv",
-    "person_hasInterest_tag_0_0.csv",
-    "person_isLocatedIn_place_0_0.csv",
-    "person_knows_person_0_0.csv",
-    "person_likes_comment_0_0.csv",
-    "person_likes_post_0_0.csv",
-    "person_speaks_language_0_0.csv",
-    "person_studyAt_organisation_0_0.csv",
-    "person_workAt_organisation_0_0.csv",
-    "place_0_0.csv",
-    "place_isPartOf_place_0_0.csv",
-    "post_0_0.csv",
-    "post_0_1.csv",
-    "post_hasCreator_person_0_0.csv",
-    "post_hasTag_tag_0_0.csv",
-    "post_isLocatedIn_place_0_0.csv",
-    "tag_0_0.csv",
-    "tag_hasType_tagclass_0_0.csv",
-    "tagclass_0_0.csv",
-    "tagclass_isSubclassOf_tagclass_0_0.csv"
-]
+URL = "https://repository.surfsara.nl/datasets/cwi/ldbc-snb-interactive-v1-datagen-v100/files/social_network-sf1-CsvBasic-StringDateFormatter.tar.zst"
 
 BASE_PATH = os.path.dirname(FILE_PATH)
+ARCHIVE_PATH = os.path.join(BASE_PATH, "social_network-sf1-CsvBasic-StringDateFormatter.tar.zst")
+UNARCHIVED_PATH = os.path.join(BASE_PATH, "social_network-sf1-CsvBasic-StringDateFormatter")
 CSV_PATH = os.path.join(BASE_PATH, "csv")
 
 if os.path.exists(CSV_PATH):
     print("CSV directory already exists. Skipping download.")
     sys.exit(0)
 
-print("Creating CSV directory at '%s'..." % CSV_PATH)
-os.makedirs(CSV_PATH, exist_ok=True)
+print("Downloading LDBC SF1 dataset from '%s'..." % URL)
+print("This may take a while as the file is large...")
 
-print("Downloading %d CSV files from GitHub repository..." % len(CSV_FILES))
+# Create SSL context that doesn't verify certificates (for compatibility)
+ssl_context = ssl.create_default_context()
+ssl_context.check_hostname = False
+ssl_context.verify_mode = ssl.CERT_NONE
 
-failed_downloads = []
-for i, csv_file in enumerate(CSV_FILES, 1):
-    file_url = "%s/%s" % (BASE_URL, csv_file)
-    local_path = os.path.join(CSV_PATH, csv_file)
-    
-    try:
-        print("[%d/%d] Downloading %s..." % (i, len(CSV_FILES), csv_file))
-        urllib.request.urlretrieve(file_url, local_path)
-    except URLError as e:
-        print("Failed to download %s: %s" % (csv_file, e))
-        failed_downloads.append(csv_file)
-        continue
-
-if failed_downloads:
-    print("Warning: %d files failed to download:" % len(failed_downloads))
-    for failed_file in failed_downloads:
-        print("  - %s" % failed_file)
+try:
+    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl_context))
+    urllib.request.install_opener(opener)
+    urllib.request.urlretrieve(URL, ARCHIVE_PATH)
+    print("Download completed.")
+except URLError as e:
+    print("Failed to download file: %s" % e)
     sys.exit(1)
 
-print("All done.")
+print("Extracting tar.zst archive...")
+try:
+    # Check if zstd is available
+    subprocess.check_call(["zstd", "--version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Extract using zstd and tar
+    subprocess.check_call(["zstd", "-d", ARCHIVE_PATH, "-c"], stdout=open(ARCHIVE_PATH[:-4], 'w'))
+    subprocess.check_call(["tar", "-xf", ARCHIVE_PATH[:-4], "-C", BASE_PATH])
+    os.remove(ARCHIVE_PATH[:-4])  # Remove the uncompressed tar file
+except (subprocess.CalledProcessError, OSError):
+    print("zstd not found. Trying with tar directly (requires GNU tar with zstd support)...")
+    try:
+        subprocess.check_call(["tar", "--zstd", "-xf", ARCHIVE_PATH, "-C", BASE_PATH])
+    except subprocess.CalledProcessError:
+        print("Error: Cannot extract tar.zst file. Please install zstd or use GNU tar with zstd support.")
+        print("On macOS: brew install zstd")
+        print("On Ubuntu/Debian: sudo apt-get install zstd")
+        os.remove(ARCHIVE_PATH)
+        sys.exit(1)
+
+print("Removing archive file...")
+os.remove(ARCHIVE_PATH)
+
+# Rename the extracted directory to a more manageable name CSV_PATH
+if os.path.exists(UNARCHIVED_PATH):
+    print("Renaming extracted directory to 'csv'...")
+    os.rename(UNARCHIVED_PATH, CSV_PATH)
+    print("All done.")
+else:
+    print("Error: Extracted directory does not exist. Please check the extraction process.")
+    sys.exit(1)
+
