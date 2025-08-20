@@ -462,7 +462,8 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
 
 void WALReplayer::replayLoadExtensionRecord(const WALRecord& walRecord) const {
     const auto& loadExtensionRecord = walRecord.constCast<LoadExtensionRecord>();
-    extension::ExtensionManager::Get(clientContext)->loadExtension(loadExtensionRecord.path, &clientContext);
+    extension::ExtensionManager::Get(clientContext)
+        ->loadExtension(loadExtensionRecord.path, &clientContext);
 }
 
 void WALReplayer::removeWALAndShadowFiles() const {
