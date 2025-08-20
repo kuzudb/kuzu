@@ -75,7 +75,7 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::
 
 static NativeGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std::string& tableName,
     const std::string& predicate) {
-    auto catalog = context.getCatalog();
+    auto catalog = Catalog::Get(context);
     auto transaction = context.getTransaction();
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, tableName);
     if (nodeEntry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
@@ -96,7 +96,7 @@ static NativeGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std
 
 static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std::string& tableName,
     const std::string& predicate) {
-    auto catalog = context.getCatalog();
+    auto catalog = Catalog::Get(context);
     auto transaction = context.getTransaction();
     auto relEntry = catalog->getTableCatalogEntry(transaction, tableName);
     if (relEntry->getType() != CatalogEntryType::REL_GROUP_ENTRY) {
@@ -119,7 +119,7 @@ static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std:
 
 NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
     const ParsedNativeGraphEntry& entry) {
-    auto catalog = context.getCatalog();
+    auto catalog = Catalog::Get(context);
     auto transaction = context.getTransaction();
     auto result = NativeGraphEntry();
     table_id_set_t projectedNodeTableIDSet;

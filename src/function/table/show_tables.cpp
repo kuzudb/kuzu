@@ -69,7 +69,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     std::vector<TableInfo> tableInfos;
     auto transaction = context->getTransaction();
     if (!context->hasDefaultDatabase()) {
-        auto catalog = context->getCatalog();
+        auto catalog = Catalog::Get(*context);
         for (auto& entry :
             catalog->getTableEntries(transaction, context->useInternalCatalogEntry())) {
             tableInfos.emplace_back(entry->getName(), entry->getTableID(),

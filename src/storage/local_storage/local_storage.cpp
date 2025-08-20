@@ -16,7 +16,7 @@ namespace storage {
 
 LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
-    auto catalog = clientContext.getCatalog();
+    auto catalog = catalog::Catalog::Get(clientContext);
     auto transaction = clientContext.getTransaction();
     auto& mm = *MemoryManager::Get(clientContext);
     if (!tables.contains(tableID)) {
@@ -57,7 +57,7 @@ PageAllocator* LocalStorage::addOptimisticAllocator() {
 }
 
 void LocalStorage::commit() {
-    auto catalog = clientContext.getCatalog();
+    auto catalog = catalog::Catalog::Get(clientContext);
     auto transaction = clientContext.getTransaction();
     auto storageManager = StorageManager::Get(clientContext);
     for (auto& [tableID, localTable] : tables) {

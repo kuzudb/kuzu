@@ -24,7 +24,7 @@ public:
         PrivateApiTest::SetUp();
         conn->query("BEGIN TRANSACTION");
         context = getClientContext(*conn);
-        catalog = context->getCatalog();
+        catalog = catalog::Catalog::Get(*context);
         auto transaction = context->getTransaction();
         std::vector<catalog::TableCatalogEntry*> nodeEntries;
         for (auto& entry : catalog->getNodeTableEntries(transaction)) {
@@ -188,7 +188,7 @@ TEST_F(EmptyVertexScanTest, ScanVertexProperties) {
     ASSERT_TRUE(res->isSuccess());
     conn->query("BEGIN TRANSACTION");
     context = getClientContext(*conn);
-    catalog = context->getCatalog();
+    catalog = catalog::Catalog::Get(*context);
     auto transaction = context->getTransaction();
     std::vector<catalog::TableCatalogEntry*> nodeEntries;
     for (auto& entry : catalog->getNodeTableEntries(transaction)) {
@@ -241,7 +241,7 @@ TEST_F(EmptyVertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
 
     conn->query("BEGIN TRANSACTION");
     context = getClientContext(*conn);
-    catalog = context->getCatalog();
+    catalog = catalog::Catalog::Get(*context);
     auto transaction = context->getTransaction();
     std::vector<catalog::TableCatalogEntry*> nodeEntries;
     for (auto& entry : catalog->getNodeTableEntries(transaction)) {
@@ -307,7 +307,7 @@ TEST_F(EmptyVertexScanTest, ScanVertexPropertiesDuringTransaction) {
     ASSERT_TRUE(res->isSuccess());
 
     context = getClientContext(*conn);
-    catalog = context->getCatalog();
+    catalog = catalog::Catalog::Get(*context);
     auto transaction = context->getTransaction();
     std::vector<catalog::TableCatalogEntry*> nodeEntries;
     for (auto& entry : catalog->getNodeTableEntries(transaction)) {

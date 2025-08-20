@@ -16,6 +16,7 @@
 #include "common/string_format.h"
 #include "extension/extension_manager.h"
 #include "function/function_collection.h"
+#include "main/client_context.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::binder;
@@ -29,6 +30,14 @@ namespace catalog {
 Catalog::Catalog() : version{0} {
     initCatalogSets();
     registerBuiltInFunctions();
+}
+
+Catalog* Catalog::Get(const main::ClientContext& context) {
+    if (context.getAttachedDatabase()) {
+        return context.getAttachedDatabase()->getCatalog();
+    } else {
+        return context.getDatabase()->getCatalog();
+    }
 }
 
 void Catalog::initCatalogSets() {

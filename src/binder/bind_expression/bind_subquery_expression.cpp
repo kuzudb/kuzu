@@ -35,7 +35,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
     boundSubqueryExpr->setWhereExpression(boundGraphPattern.where);
     // Bind projection
     auto entry =
-        context->getCatalog()->getFunctionEntry(context->getTransaction(), CountStarFunction::name);
+        catalog::Catalog::Get(*context)->getFunctionEntry(context->getTransaction(), CountStarFunction::name);
     auto function = BuiltInFunctionsUtils::matchAggregateFunction(CountStarFunction::name,
         std::vector<LogicalType>{}, false, entry->ptrCast<catalog::FunctionCatalogEntry>());
     auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));

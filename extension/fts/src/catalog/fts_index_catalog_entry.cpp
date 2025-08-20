@@ -48,7 +48,7 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     const catalog::ToCypherInfo& info) const {
     auto& indexToCypherInfo = info.constCast<catalog::IndexToCypherInfo>();
     std::string cypher;
-    auto catalog = indexToCypherInfo.context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*indexToCypherInfo.context);
     auto tableCatalogEntry = catalog->getTableCatalogEntry(
         indexToCypherInfo.context->getTransaction(), indexEntry.getTableID());
     auto tableName = tableCatalogEntry->getName();
@@ -72,7 +72,7 @@ catalog::TableCatalogEntry* FTSIndexAuxInfo::getTableEntryToExport(
     if (config.stopWordsTableName == FTSUtils::getDefaultStopWordsTableName()) {
         return nullptr;
     }
-    return context->getCatalog()->getTableCatalogEntry(context->getTransaction(),
+    return catalog::Catalog::Get(*context)->getTableCatalogEntry(context->getTransaction(),
         config.stopWordsTableName);
 }
 

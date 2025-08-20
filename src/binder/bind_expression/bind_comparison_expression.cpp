@@ -46,7 +46,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         return bindComparisonExpression(expressionType, newChildren);
     }
 
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto transaction = context->getTransaction();
     auto functionName = ExpressionTypeUtil::toString(expressionType);
     LogicalType combinedType(LogicalTypeID::ANY);

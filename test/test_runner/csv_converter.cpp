@@ -200,7 +200,7 @@ void CSVConverter::convertCSVDataset() {
 
 static std::string getColumnAlias(main::ClientContext* context, const std::string& tableName) {
     auto properties =
-        context->getCatalog()
+        catalog::Catalog::Get(*context)
             ->getTableCatalogEntry(&transaction::DUMMY_CHECKPOINT_TRANSACTION, tableName)
             ->getProperties();
     std::string alias;

@@ -51,7 +51,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto columnName = input->getLiteralVal<std::string>(1);
     binder::Binder::validateTableExistence(*context, tableName);
     const auto tableEntry =
-        context->getCatalog()->getTableCatalogEntry(context->getTransaction(), tableName);
+        catalog::Catalog::Get(*context)->getTableCatalogEntry(context->getTransaction(), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     binder::Binder::validateColumnExistence(tableEntry, columnName);
     auto propertyID = tableEntry->getPropertyID(columnName);

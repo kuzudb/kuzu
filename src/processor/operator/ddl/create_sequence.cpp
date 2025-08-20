@@ -18,7 +18,7 @@ std::string CreateSequencePrintInfo::toString() const {
 
 void CreateSequence::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     auto memoryManager = storage::MemoryManager::Get(*clientContext);
     if (catalog->containsSequence(transaction, info.sequenceName)) {

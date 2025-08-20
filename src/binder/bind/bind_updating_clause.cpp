@@ -191,7 +191,7 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     auto nodeEntry = entry->ptrCast<NodeTableCatalogEntry>();
     validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
     // Check extension secondary index loaded
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
         if (!indexEntry->isLoaded()) {
@@ -300,7 +300,7 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
     auto& nodeOrRel = expr->constCast<NodeOrRelExpression>();
     auto& property = boundSetItem.first->constCast<PropertyExpression>();
     // Check secondary index constraint
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     for (auto entry : nodeOrRel.getEntries()) {
         // When setting multi labeled node, skip checking if property is not in current table.
@@ -349,7 +349,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
         if (ExpressionUtil::isNodePattern(*pattern)) {
             auto deleteNodeInfo = BoundDeleteInfo(deleteType, TableType::NODE, pattern);
             auto& node = pattern->constCast<NodeExpression>();
-            auto catalog = clientContext->getCatalog();
+            auto catalog = Catalog::Get(*clientContext);
             auto transaction = clientContext->getTransaction();
             for (auto entry : node.getEntries()) {
                 for (auto index : catalog->getIndexEntries(transaction, entry->getTableID())) {

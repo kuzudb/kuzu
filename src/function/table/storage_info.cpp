@@ -350,7 +350,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     columnTypes.emplace_back(LogicalType::STRING());
     auto tableName = input->getLiteralVal<std::string>(0);
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     if (!catalog->containsTable(context->getTransaction(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }

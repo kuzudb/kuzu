@@ -35,7 +35,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 static common::offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto& context = *input.context->clientContext;
     const auto bindData = input.bindData->constPtrCast<DropHNSWIndexBindData>();
-    context.getCatalog()->dropIndex(context.getTransaction(), bindData->tableEntry->getTableID(),
+    catalog::Catalog::Get(context)->dropIndex(context.getTransaction(), bindData->tableEntry->getTableID(),
         bindData->indexName);
     return 0;
 }

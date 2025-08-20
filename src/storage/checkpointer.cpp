@@ -121,7 +121,7 @@ void Checkpointer::writeCheckpoint() {
     auto bufferManager = MemoryManager::Get(clientContext)->getBufferManager();
     bufferManager->removeEvictedCandidates();
 
-    clientContext.getCatalog()->resetVersion();
+    catalog::Catalog::Get(clientContext)->resetVersion();
     auto* dataFH = storageManager->getDataFH();
     dataFH->getPageManager()->resetVersion();
     storageManager->getWAL().reset();
@@ -137,7 +137,7 @@ bool Checkpointer::checkpointStorage() {
 void Checkpointer::serializeCatalogAndMetadata(DatabaseHeader& databaseHeader,
     bool hasStorageChanges) {
     const auto storageManager = StorageManager::Get(clientContext);
-    const auto catalog = clientContext.getCatalog();
+    const auto catalog = catalog::Catalog::Get(clientContext);
     auto* dataFH = storageManager->getDataFH();
 
     // Serialize the catalog if there are changes
@@ -198,7 +198,7 @@ void Checkpointer::rollback() {
         return;
     }
     const auto storageManager = StorageManager::Get(clientContext);
-    auto catalog = clientContext.getCatalog();
+    auto catalog = catalog::Catalog::Get(clientContext);
     // Any pages freed during the checkpoint are no longer freed
     storageManager->rollbackCheckpoint(*catalog);
 }
@@ -288,7 +288,7 @@ void Checkpointer::readCheckpoint() {
     auto storageManager = StorageManager::Get(clientContext);
     storageManager->initDataFileHandle(clientContext.getVFSUnsafe(), &clientContext);
     if (!isInMemory && storageManager->getDataFH()->getNumPages() > 0) {
-        readCheckpoint(&clientContext, clientContext.getCatalog(),
+        readCheckpoint(&clientContext, catalog::Catalog::Get(clientContext),
             StorageManager::Get(clientContext));
     }
     extension::ExtensionManager::Get(clientContext)->autoLoadLinkedExtensions(&clientContext);

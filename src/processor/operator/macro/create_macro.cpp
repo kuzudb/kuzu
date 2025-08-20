@@ -16,7 +16,7 @@ std::string CreateMacroPrintInfo::toString() const {
 
 void CreateMacro::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
+    auto catalog = catalog::Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     catalog->addScalarMacroFunction(transaction, info.macroName, info.macro->copy());
     appendMessage(stringFormat("Macro: {} has been created.", info.macroName),

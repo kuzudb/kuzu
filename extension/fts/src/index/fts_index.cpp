@@ -21,7 +21,7 @@ FTSIndex::FTSIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storag
 
 std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context, StorageManager*,
     IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
-    auto catalog = context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context);
     auto reader =
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
@@ -226,7 +226,7 @@ void FTSIndex::finalize(main::ClientContext* context) {
 
 void FTSIndex::checkpoint(main::ClientContext* context, storage::PageAllocator& pageAllocator) {
     KU_ASSERT(!context->isInMemory());
-    auto catalog = context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context);
     internalTableInfo.docTable->checkpoint(context,
         catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
             internalTableInfo.docTable->getTableID()),

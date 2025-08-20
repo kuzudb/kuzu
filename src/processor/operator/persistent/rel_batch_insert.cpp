@@ -36,7 +36,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState->optimisticAllocator =
         context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
     const auto clientContext = context->clientContext;
-    const auto catalog = clientContext->getCatalog();
+    const auto catalog = Catalog::Get(*clientContext);
     const auto transaction = clientContext->getTransaction();
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
@@ -61,7 +61,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto clientContext = context->clientContext;
-    const auto catalog = clientContext->getCatalog();
+    const auto catalog = Catalog::Get(*clientContext);
     const auto transaction = clientContext->getTransaction();
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
@@ -99,7 +99,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     const auto clientContext = context->clientContext;
     const auto& relGroupEntry =
-        context->clientContext->getCatalog()
+        Catalog::Get(*context->clientContext)
             ->getTableCatalogEntry(clientContext->getTransaction(), relInfo->tableName)
             ->constCast<RelGroupCatalogEntry>();
     while (true) {

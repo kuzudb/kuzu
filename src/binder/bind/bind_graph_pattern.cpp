@@ -347,7 +347,7 @@ static void checkWeightedShortestPathSupportedType(const LogicalType& type) {
 std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::RelPattern& relPattern,
     const std::vector<TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     table_catalog_entry_set_t nodeEntrySet;
     for (auto entry : entries) {
@@ -633,7 +633,7 @@ static std::vector<TableCatalogEntry*> sortEntries(const table_catalog_entry_set
 std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) { // Rewrite as all node tables in database.
@@ -655,7 +655,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
 
 TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
     auto transaction = clientContext->getTransaction();
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto useInternal = clientContext->useInternalCatalogEntry();
     if (!catalog->containsTable(transaction, name, useInternal)) {
         throw BinderException(stringFormat("Table {} does not exist.", name));
@@ -666,7 +666,7 @@ TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
 std::vector<TableCatalogEntry*> Binder::bindRelGroupEntries(
     const std::vector<std::string>& tableNames) const {
     auto transaction = clientContext->getTransaction();
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
     if (tableNames.empty()) { // Rewrite as all rel groups in database.

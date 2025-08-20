@@ -63,7 +63,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnNames.emplace_back("destination table primary key");
     columnTypes.emplace_back(LogicalType::STRING());
     const auto name = input->getLiteralVal<std::string>(0);
-    const auto catalog = context->getCatalog();
+    const auto catalog = Catalog::Get(*context);
     const auto transaction = context->getTransaction();
     std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries;
     if (catalog->containsTable(transaction, name)) {

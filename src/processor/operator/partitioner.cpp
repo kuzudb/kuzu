@@ -74,7 +74,7 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
     // If initialization is required
     if (!sharedState->srcNodeTable) {
         auto storageManager = StorageManager::Get(*clientContext);
-        auto catalog = clientContext->getCatalog();
+        auto catalog = catalog::Catalog::Get(*clientContext);
         auto transaction = clientContext->getTransaction();
         auto fromTableID =
             catalog->getTableCatalogEntry(transaction, dataInfo.fromTableName)->getTableID();

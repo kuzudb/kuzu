@@ -109,7 +109,7 @@ LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info) {
     auto& extraInfo = info->extraInfo->constCast<ExtraBoundCopyRelInfo>();
     // If the table entry doesn't exist, assume both directions
     std::vector<RelDataDirection> directions = {RelDataDirection::FWD, RelDataDirection::BWD};
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     if (catalog->containsTable(transaction, info->tableName)) {
         const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, info->tableName)

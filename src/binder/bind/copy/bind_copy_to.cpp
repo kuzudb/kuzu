@@ -26,7 +26,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     catalog::CatalogEntry* entry = nullptr;
     try {
         entry =
-            clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
+            catalog::Catalog::Get(*clientContext)->getFunctionEntry(clientContext->getTransaction(), name);
     } catch (common::CatalogException& exception) {
         throw common::RuntimeException{common::stringFormat(
             "Exporting query result to the '{}' file is currently not supported.", fileTypeStr)};

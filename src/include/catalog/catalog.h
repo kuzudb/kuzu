@@ -55,6 +55,8 @@ public:
     Catalog();
     virtual ~Catalog() = default;
 
+    static Catalog* Get(const main::ClientContext& context);
+
     // ----------------------------- Tables ----------------------------
 
     // Check if table entry exists.

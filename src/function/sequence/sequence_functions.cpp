@@ -13,7 +13,7 @@ namespace function {
 struct CurrVal {
     static void operation(common::ku_string_t& input, common::ValueVector& result, void* dataPtr) {
         auto ctx = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
-        auto catalog = ctx->getCatalog();
+        auto catalog = catalog::Catalog::Get(*ctx);
         auto sequenceName = input.getAsString();
         auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName,
             ctx->useInternalCatalogEntry());
@@ -25,7 +25,7 @@ struct NextVal {
     static void operation(common::ku_string_t& input, common::ValueVector& result, void* dataPtr) {
         auto ctx = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
         auto cnt = reinterpret_cast<FunctionBindData*>(dataPtr)->count;
-        auto catalog = ctx->getCatalog();
+        auto catalog = catalog::Catalog::Get(*ctx);
         auto sequenceName = input.getAsString();
         auto sequenceEntry = catalog->getSequenceEntry(ctx->getTransaction(), sequenceName,
             ctx->useInternalCatalogEntry());

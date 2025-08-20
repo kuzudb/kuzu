@@ -19,7 +19,7 @@ namespace processor {
 std::vector<RelTable*> getFwdRelTables(table_id_t nodeTableID, const main::ClientContext* context) {
     std::vector<RelTable*> result;
     for (const auto entry :
-        context->getCatalog()->getRelGroupEntries(context->getTransaction(), false)) {
+        Catalog::Get(*context)->getRelGroupEntries(context->getTransaction(), false)) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
             const auto srcTableID = relEntryInfo.nodePair.srcTableID;
@@ -35,7 +35,7 @@ std::vector<RelTable*> getFwdRelTables(table_id_t nodeTableID, const main::Clien
 std::vector<RelTable*> getBwdRelTables(table_id_t nodeTableID, const main::ClientContext* context) {
     std::vector<RelTable*> result;
     for (const auto entry :
-        context->getCatalog()->getRelGroupEntries(context->getTransaction(), false)) {
+        Catalog::Get(*context)->getRelGroupEntries(context->getTransaction(), false)) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
             const auto dstTableID = relEntryInfo.nodePair.dstTableID;

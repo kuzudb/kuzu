@@ -71,7 +71,7 @@ std::unique_ptr<TableFuncBindData> QueryHNSWIndexBindData::copy() const {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto transaction = context->getTransaction();
     context->setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto tableOrGraphName = input->getLiteralVal<std::string>(0);
@@ -288,7 +288,7 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
         hnswBindData->nodeTableEntry->getTableID(), hnswBindData->indexEntry->getIndexName());
     auto lowerRelTableName = HNSWIndexUtils::getLowerGraphTableName(
         hnswBindData->nodeTableEntry->getTableID(), hnswBindData->indexEntry->getIndexName());
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto upperRelTableEntry =
         catalog->getTableCatalogEntry(context->getTransaction(), upperRelTableName, true)
             ->ptrCast<RelGroupCatalogEntry>();

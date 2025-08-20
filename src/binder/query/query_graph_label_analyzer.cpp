@@ -50,7 +50,7 @@ struct Candidates {
 };
 
 void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression& node) const {
-    auto catalog = clientContext.getCatalog();
+    auto catalog = Catalog::Get(clientContext);
     for (auto i = 0u; i < graph.getNumQueryRels(); ++i) {
         auto queryRel = graph.getQueryRel(i);
         if (queryRel->isRecursive()) {

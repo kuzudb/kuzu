@@ -157,7 +157,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
         throw BinderException{"Only export to csv can have options."};
     }
     auto exportData =
-        getExportInfo(*clientContext->getCatalog(), clientContext, this, fileTypeInfo);
+        getExportInfo(*Catalog::Get(*clientContext), clientContext, this, fileTypeInfo);
     auto boundFilePath =
         clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),

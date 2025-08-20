@@ -132,7 +132,7 @@ static std::string getFromToStr(const NodeTableIDPair& pair, const Catalog* cata
 
 std::string RelGroupCatalogEntry::toCypher(const ToCypherInfo& info) const {
     auto relGroupInfo = info.constCast<RelGroupToCypherInfo>();
-    auto catalog = relGroupInfo.context->getCatalog();
+    auto catalog = Catalog::Get(*relGroupInfo.context);
     auto transaction = relGroupInfo.context->getTransaction();
     std::stringstream ss;
     ss << stringFormat("CREATE REL TABLE `{}` (", getName());

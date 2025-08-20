@@ -118,7 +118,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
     auto finalizeFuncEntry =
-        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
+        catalog::Catalog::Get(*clientContext)->getFunctionEntry(clientContext->getTransaction(),
             InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
         finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
@@ -148,7 +148,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
     const auto storageManager = storage::StorageManager::Get(*clientContext);
-    const auto catalog = clientContext->getCatalog();
+    const auto catalog = catalog::Catalog::Get(*clientContext);
     const auto transaction = clientContext->getTransaction();
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
@@ -252,7 +252,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     const auto hnswSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
-    const auto catalog = clientContext->getCatalog();
+    const auto catalog = catalog::Catalog::Get(*clientContext);
     const auto nodeTableID = bindData->tableEntry->getTableID();
     auto& upperTableEntry =
         catalog

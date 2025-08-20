@@ -25,7 +25,7 @@ static void throwTableNotExist(const std::string& tableName) {
 
 std::unique_ptr<BoundStatement> Binder::bindLegacyCopyRelGroupFrom(const Statement& statement) {
     auto& copyFrom = statement.constCast<CopyFrom>();
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     auto tableName = copyFrom.getTableName();
     auto tableNameParts = common::StringUtils::split(tableName, "_");
@@ -48,7 +48,7 @@ std::unique_ptr<BoundStatement> Binder::bindLegacyCopyRelGroupFrom(const Stateme
 std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& statement) {
     auto& copyStatement = statement.constCast<CopyFrom>();
     auto tableName = copyStatement.getTableName();
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     if (!catalog->containsTable(transaction, tableName)) {
         return bindLegacyCopyRelGroupFrom(statement);
@@ -147,7 +147,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     NodeTableCatalogEntry& nodeTableEntry) {
     auto& copyStatement = statement.constCast<CopyFrom>();
     // Check extension secondary index loaded
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeTableEntry.getTableID())) {
         if (!indexEntry->isLoaded()) {
@@ -237,7 +237,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
             stringFormat("Copy by column is not supported for relationship table."));
     }
     // Bind from to tables
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     auto fromTable =
         catalog->getTableCatalogEntry(transaction, fromTableName)->ptrCast<NodeTableCatalogEntry>();
