@@ -92,18 +92,15 @@ struct BetweennessCentralityState {
 
 // Stores information to populate when preforming a forward traversal.
 struct BCFwdData {
-    // pathScore is weight of the path from the source.
     struct PathData {
-        std::atomic<uint64_t> numPaths = 0;
-        std::atomic<double> pathScore = INF;
+        uint32_t numPaths = 0;
+        uint32_t level = 0;
+        double pathScore = INF;
         static constexpr double INF = std::numeric_limits<double>::max();
     };
-    // LevelData stores the iteration at which node was found.
-    // After the forward traversal is complete, a backwards traversal must be
-    // done from the furthest nodes (nodes with the greatest level).
     struct LevelData {
-        uint64_t level = 0;
         offset_t node = 0;
+        uint32_t level = 0;
         auto operator<=>(const LevelData& rhs) const { return level <=> rhs.level; }
     };
 
@@ -114,17 +111,12 @@ struct BCFwdData {
     void init(const offset_t sourceNode) {
         // The fill parts may be done in parallel.
         for (auto& path : nodePathData) {
-            path.numPaths.store(PathData{}.numPaths);
-            path.pathScore.store(PathData{}.pathScore);
+            path.store(PathData{});
         }
-        for (auto i = 0u; i < levels.size(); ++i) {
-            levels[i] = LevelData{.level = LevelData{}.level, .node = i};
-        }
-        nodePathData[sourceNode].numPaths.store(1);
-        nodePathData[sourceNode].pathScore.store(0);
+        nodePathData[sourceNode].store(PathData{.numPaths = 1, .level = 0, .pathScore = 0});
     }
     // Collection of PathData and LevelData indexed by vertex.
-    ku_vector_t<PathData> nodePathData;
+    ku_vector_t<std::atomic<PathData>> nodePathData;
     ku_vector_t<LevelData> levels;
 };
 
@@ -146,32 +138,71 @@ struct BCBwdData {
 
 /**Compute**/
 
+class WeightedFwdTraverse : public EdgeCompute {
+public:
+    explicit WeightedFwdTraverse(BCFwdData& fwdData) : fwdData{fwdData} {}
+
+    std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
+        bool) override {
+        auto curScore = fwdData.nodePathData[boundNodeID.offset].load().pathScore;
+        auto curPaths = fwdData.nodePathData[boundNodeID.offset].load().numPaths;
+        auto curLevel = fwdData.nodePathData[boundNodeID.offset].load().level;
+        std::vector<nodeID_t> result;
+        chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
+            auto nbrNodeID = neighbors[i];
+            auto nbrPathData = fwdData.nodePathData[nbrNodeID.offset].load();
+            const auto weight = propertyVectors[0]->template getValue<double>(i);
+            if (weight <= 0) {
+                throw RuntimeException(stringFormat("Betweenness Centrality does not work on non-positive weights. Got {}", weight));
+            }
+            // We find a better path.
+            while(nbrPathData.pathScore > curScore+weight) {
+                if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths, .level = curLevel+1, .pathScore = curScore+weight})) {
+                    result.push_back(nbrNodeID);
+                    return;
+                }
+            }
+            // We find an equivalent path.
+            while (nbrPathData.pathScore == curScore + weight) {
+                if(fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths+nbrPathData.numPaths, .level = std::max(curLevel+1, nbrPathData.level), .pathScore = curScore+weight})) {
+                    return;
+                }
+            }
+        });
+        return result;
+    }
+
+    std::unique_ptr<EdgeCompute> copy() override {
+        return std::make_unique<WeightedFwdTraverse>(fwdData);
+    }
+
+private:
+    BCFwdData& fwdData;
+};
+
 class UnweightedFwdTraverse : public EdgeCompute {
 public:
     explicit UnweightedFwdTraverse(BCFwdData& fwdData) : fwdData{fwdData} {}
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
-        auto curDistance = fwdData.nodePathData[boundNodeID.offset].pathScore.load();
-        auto curPaths = fwdData.nodePathData[boundNodeID.offset].numPaths.load();
+        auto curScore = fwdData.nodePathData[boundNodeID.offset].load().pathScore;
+        auto curPaths = fwdData.nodePathData[boundNodeID.offset].load().numPaths;
+        auto curLevel = fwdData.nodePathData[boundNodeID.offset].load().level;
         std::vector<nodeID_t> result;
         chunk.forEach([&](auto neighbors, auto, auto i) {
             auto nbrNodeID = neighbors[i];
-            auto nbrDistance = BCFwdData::PathData::INF;
+            auto nbrPathData = BCFwdData::PathData{};
             // We see the node for the first time.
-            if (fwdData.nodePathData[nbrNodeID.offset].pathScore.compare_exchange_strong(
-                    nbrDistance, curDistance + 1)) {
-                // init level.
-                fwdData.levels[nbrNodeID.offset].level =
-                    fwdData.levels[boundNodeID.offset].level + 1;
-                fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curPaths,
-                    std::memory_order_relaxed);
+            if (fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths, .level = curLevel+1, .pathScore = curScore+1})) {
                 result.push_back(nbrNodeID);
+                return;
             }
-            // Reaching here means CAS failed, so nbrDistance is correct.
-            else if (nbrDistance == curDistance + 1) {
-                fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curPaths,
-                    std::memory_order_relaxed);
+            // Reaching here means CAS failed, so nbrPathData is up to date.
+            while (nbrPathData.pathScore == curScore + 1) {
+                if(fwdData.nodePathData[nbrNodeID.offset].compare_exchange_strong(nbrPathData, BCFwdData::PathData{.numPaths = curPaths+nbrPathData.numPaths, .level = curLevel+1, .pathScore = curScore+1})) {
+                    return;
+                }
             }
         });
         return result;
@@ -192,16 +223,15 @@ public:
 
     std::vector<nodeID_t> edgeCompute(nodeID_t boundNodeID, graph::NbrScanState::Chunk& chunk,
         bool) override {
-        auto curDistance = fwdData.nodePathData[boundNodeID.offset].pathScore.load();
-        auto curPaths = fwdData.nodePathData[boundNodeID.offset].numPaths.load();
+        auto curDistance = fwdData.nodePathData[boundNodeID.offset].load().pathScore;
+        auto curPaths = fwdData.nodePathData[boundNodeID.offset].load().numPaths;
         auto curScore = bwdData.dependencyScores[boundNodeID.offset].load();
-        chunk.forEach([&](auto neighbors, auto, auto i) {
+        chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             auto nbrNodeID = neighbors[i];
-            auto nbrDistance = fwdData.nodePathData[nbrNodeID.offset].pathScore.load();
-            // Must change for weighted graphs
-            const auto weight = 1;
+            auto nbrDistance = fwdData.nodePathData[nbrNodeID.offset].load().pathScore;
+            const auto weight = propertyVectors.empty() ? 1 : propertyVectors[0]->template getValue<double>(i);
             if (nbrDistance + weight == curDistance) {
-                auto nbrPaths = fwdData.nodePathData[nbrNodeID.offset].numPaths.load();
+                auto nbrPaths = fwdData.nodePathData[nbrNodeID.offset].load().numPaths;
                 auto scoreToAdd = ((double)nbrPaths / curPaths) * (1 + curScore);
                 bwdData.dependencyScores[nbrNodeID.offset].fetch_add(scoreToAdd);
             }
@@ -218,6 +248,25 @@ public:
 private:
     BCFwdData& fwdData;
     BCBwdData& bwdData;
+};
+
+class PopulateLevels : public GDSVertexCompute {
+public:
+    PopulateLevels(NodeOffsetMaskMap* nodeMask, BCFwdData& fwdData)
+        : GDSVertexCompute{nodeMask}, fwdData{fwdData} {}
+
+    void beginOnTableInternal(table_id_t) override {}
+    void vertexCompute(offset_t startOffset, offset_t endOffset, table_id_t) override {
+        for (auto i = startOffset; i < endOffset; ++i) {
+            fwdData.levels[i] = BCFwdData::LevelData{.node = i, .level = fwdData.nodePathData[i].load().level};
+        }
+    }
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<PopulateLevels>(nodeMask, fwdData);
+    }
+
+private:
+    BCFwdData& fwdData;
 };
 
 class UpdateBC : public GDSVertexCompute {
@@ -340,15 +389,22 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph,
             FRONTIER_UNVISITED);
         computeState.frontierPair->addNodeToNextFrontier(i);
-        computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
+        if (relProps.empty()) {
+            computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
+        }
+        else {
+            computeState.edgeCompute = std::make_unique<WeightedFwdTraverse>(fwdData);
+        }
         computeState.frontierPair->setActiveNodesForNextIter();
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
-            undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations);
+            undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
         // Backward Traverse
         bwdData.init();
 
-        std::sort(fwdData.levels.begin(), fwdData.levels.end(),
-            std::greater<BCFwdData::LevelData>{});
+
+        const auto populateLevels = std::make_unique<PopulateLevels>(sharedState->getGraphNodeMaskMap(), fwdData);
+        GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *populateLevels);
+        std::sort(fwdData.levels.begin(), fwdData.levels.end(), std::greater<BCFwdData::LevelData>{});
 
         auto maxLevel = fwdData.levels.front().level;
         for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
