@@ -31,7 +31,8 @@ void UninstallExtension::executeInternal(ExecutionContext* context) {
                 errCode.message())};
         // LCOV_EXCL_STOP
     }
-    appendMessage(stringFormat("Extension: {} has been uninstalled", path), storage::MemoryManager::Get(*clientContext));
+    appendMessage(stringFormat("Extension: {} has been uninstalled", path),
+        storage::MemoryManager::Get(*clientContext));
 }
 
 } // namespace processor

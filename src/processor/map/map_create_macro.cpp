@@ -16,8 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateMacro(
     auto createMacroInfo =
         CreateMacroInfo(logicalCreateMacro.getMacroName(), logicalCreateMacro.getMacro());
     auto printInfo = std::make_unique<CreateMacroPrintInfo>(createMacroInfo.macroName);
-    auto messageTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(storage::MemoryManager::Get(*clientContext));
+    auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(
+        storage::MemoryManager::Get(*clientContext));
     return std::make_unique<CreateMacro>(std::move(createMacroInfo), std::move(messageTable),
         getOperatorID(), std::move(printInfo));
 }

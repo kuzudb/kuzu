@@ -597,8 +597,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
         return handleFailedExecution(queryID, e);
     }
     const auto memoryManager = storage::MemoryManager::Get(*this);
-    memoryManager->getBufferManager()->getSpillerOrSkip(
-        [](auto& spiller) { spiller.clearFile(); });
+    memoryManager->getBufferManager()->getSpillerOrSkip([](auto& spiller) { spiller.clearFile(); });
     executingTimer.stop();
     auto columnNames = cachedStatement->getColumnNames();
     auto columnTypes = cachedStatement->getColumnTypes();
@@ -619,8 +618,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
 std::unique_ptr<QueryResult> ClientContext::handleFailedExecution(std::optional<uint64_t> queryID,
     const std::exception& e) const {
     const auto memoryManager = storage::MemoryManager::Get(*this);
-    memoryManager->getBufferManager()->getSpillerOrSkip(
-        [](auto& spiller) { spiller.clearFile(); });
+    memoryManager->getBufferManager()->getSpillerOrSkip([](auto& spiller) { spiller.clearFile(); });
     if (queryID.has_value()) {
         progressBar->endProgress(queryID.value());
     }

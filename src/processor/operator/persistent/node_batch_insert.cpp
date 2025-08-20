@@ -108,7 +108,7 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
         const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
         evaluateExpressions(numTuples);
         copyToNodeGroup(clientContext->getTransaction(), MemoryManager::Get(*clientContext)),
-        nodeLocalState->columnState->setSelVector(originalSelVector);
+            nodeLocalState->columnState->setSelVector(originalSelVector);
     }
     if (nodeLocalState->chunkedGroup->getNumRows() > 0) {
         appendIncompleteNodeGroup(clientContext->getTransaction(),

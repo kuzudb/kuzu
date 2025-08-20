@@ -59,9 +59,9 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(main::ClientContext* cont
             for (auto& partition : globalPartitions) {
                 std::vector<LogicalType> keyTypes(1);
                 keyTypes[0] = distinctKeyType.copy();
-                auto hashTable = std::make_unique<AggregateHashTable>(*mm,
-                    std::move(keyTypes), std::vector<LogicalType>{} /*payloadTypes*/,
-                    std::vector<AggregateFunction>{}, std::vector<LogicalType>{}, 0, schema.copy());
+                auto hashTable = std::make_unique<AggregateHashTable>(*mm, std::move(keyTypes),
+                    std::vector<LogicalType>{} /*payloadTypes*/, std::vector<AggregateFunction>{},
+                    std::vector<LogicalType>{}, 0, schema.copy());
                 auto queue = std::make_unique<HashTableQueue>(mm,
                     AggregateHashTableUtils::getTableSchemaForKeys(std::vector<LogicalType>{},
                         aggInfos[funcIdx].distinctAggKeyType));

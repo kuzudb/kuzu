@@ -24,7 +24,8 @@ void ProcessorTask::run() {
     }
     auto taskRoot = sink->copy();
     lck.unlock();
-    auto resultSet = sink->getResultSet(storage::MemoryManager::Get(*executionContext->clientContext));
+    auto resultSet =
+        sink->getResultSet(storage::MemoryManager::Get(*executionContext->clientContext));
     taskRoot->ptrCast<Sink>()->execute(resultSet.get(), executionContext);
 }
 

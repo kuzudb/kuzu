@@ -18,7 +18,8 @@ std::string CreateTypePrintInfo::toString() const {
 void CreateType::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     clientContext->getCatalog()->createType(clientContext->getTransaction(), name, type.copy());
-    appendMessage(stringFormat("Type {}({}) has been created.", name, type.toString()), storage::MemoryManager::Get(*clientContext));
+    appendMessage(stringFormat("Type {}({}) has been created.", name, type.toString()),
+        storage::MemoryManager::Get(*clientContext));
 }
 
 } // namespace processor

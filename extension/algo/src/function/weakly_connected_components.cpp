@@ -75,7 +75,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto componentIDsPair = ComponentIDsPair(componentIDs);
     auto auxiliaryState = std::make_unique<WCCAuxiliaryState>(componentIDsPair);
     auto edgeCompute = std::make_unique<WCCEdgeCompute>(componentIDsPair);
-    auto vertexCompute = std::make_unique<ComponentIDsOutputVertexCompute>(mm, sharedState, componentIDs);
+    auto vertexCompute =
+        std::make_unique<ComponentIDsOutputVertexCompute>(mm, sharedState, componentIDs);
     auto computeState =
         GDSComputeState(std::move(frontierPair), std::move(edgeCompute), std::move(auxiliaryState));
     auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()

@@ -24,8 +24,8 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(AccumulateTyp
             LogicalTypeUtils::getRowLayoutSize(LogicalType::BOOL()));
         tableSchema.appendColumn(std::move(columnSchema));
     }
-    auto table =
-        std::make_shared<FactorizedTable>(storage::MemoryManager::Get(*clientContext), tableSchema.copy());
+    auto table = std::make_shared<FactorizedTable>(storage::MemoryManager::Get(*clientContext),
+        tableSchema.copy());
     auto sharedState = std::make_shared<ResultCollectorSharedState>(std::move(table));
     auto opInfo = ResultCollectorInfo(accumulateType, std::move(tableSchema), payloadsPos);
     auto printInfo = std::make_unique<ResultCollectorPrintInfo>(expressions, accumulateType);

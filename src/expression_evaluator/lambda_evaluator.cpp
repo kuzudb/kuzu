@@ -35,10 +35,11 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
         // For list_reduce:
         // We should create two vectors for each lambda variable resultVector since we are going to
         // update the list elements during execution.
-        evaluator->resultVector = listLambdaType != ListLambdaType::LIST_REDUCE ?
-                                      ListVector::getSharedDataVector(listInputVector) :
-                                      std::make_shared<ValueVector>(
-                                          ListType::getChildType(listInputVector->dataType).copy(), memoryManager);
+        evaluator->resultVector =
+            listLambdaType != ListLambdaType::LIST_REDUCE ?
+                ListVector::getSharedDataVector(listInputVector) :
+                std::make_shared<ValueVector>(
+                    ListType::getChildType(listInputVector->dataType).copy(), memoryManager);
         evaluator->resultVector->state = lambdaVarState;
         lambdaParamEvaluators.push_back(evaluator->ptrCast<LambdaParamEvaluator>());
     }

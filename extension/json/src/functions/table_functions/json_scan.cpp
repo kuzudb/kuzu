@@ -837,7 +837,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             JSONScanSharedState sharedState(*context,
                 scanInput->fileScanInfo.getFilePath(JsonExtension::JSON_SCAN_FILE_IDX),
                 scanConfig.format);
-            JSONScanLocalState localState(*storage::MemoryManager::Get(*context), sharedState, context);
+            JSONScanLocalState localState(*storage::MemoryManager::Get(*context), sharedState,
+                context);
             localState.readNext();
             scanConfig.format = sharedState.jsonReader->getFormat();
         }

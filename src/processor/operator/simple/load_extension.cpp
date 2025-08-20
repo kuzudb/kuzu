@@ -19,7 +19,8 @@ std::string LoadExtensionPrintInfo::toString() const {
 void LoadExtension::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     clientContext->getExtensionManager()->loadExtension(path, clientContext);
-    appendMessage(stringFormat("Extension: {} has been loaded.", path), storage::MemoryManager::Get(*clientContext));
+    appendMessage(stringFormat("Extension: {} has been loaded.", path),
+        storage::MemoryManager::Get(*clientContext));
 }
 
 } // namespace processor

@@ -236,7 +236,8 @@ std::unique_ptr<PhysicalOperator> GDSFunction::getPhysicalPlan(PlanMapper* planM
     auto bindData = logicalCall->getBindData()->copy();
     auto columns = bindData->columns;
     auto tableSchema = PlanMapper::createFlatFTableSchema(columns, *logicalCall->getSchema());
-    auto table = std::make_shared<FactorizedTable>(storage::MemoryManager::Get(*planMapper->clientContext), tableSchema.copy());
+    auto table = std::make_shared<FactorizedTable>(
+        storage::MemoryManager::Get(*planMapper->clientContext), tableSchema.copy());
     bindData->cast<GDSBindData>().setResultFTable(table);
     auto info = TableFunctionCallInfo();
     info.function = logicalCall->getTableFunc();

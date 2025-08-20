@@ -122,7 +122,8 @@ private:
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), MemoryManager::Get(*clientContext));
+            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
+            MemoryManager::Get(*clientContext));
         std::unique_ptr<GDSComputeState> gdsState;
         visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPPathsEdgeCompute<T>>(bfsGraph.get());

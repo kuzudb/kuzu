@@ -13,8 +13,10 @@ NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* conte
     common::LogicalTypeID pkType, storage::NodeTable* nodeTable, bool ignoreErrors,
     std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx)
     : nodeTable(nodeTable), context(context),
-      keyVector(std::make_shared<ValueVector>(pkType, storage::MemoryManager::Get(*context->clientContext))),
-      offsetVector(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID, storage::MemoryManager::Get(*context->clientContext))),
+      keyVector(std::make_shared<ValueVector>(pkType,
+          storage::MemoryManager::Get(*context->clientContext))),
+      offsetVector(std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID,
+          storage::MemoryManager::Get(*context->clientContext))),
       baseErrorHandler(context, ignoreErrors, sharedErrorCounter, sharedErrorCounterMtx) {
     keyVector->state = DataChunkState::getSingleValueDataChunkState();
     offsetVector->state = DataChunkState::getSingleValueDataChunkState();

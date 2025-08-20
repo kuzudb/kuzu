@@ -164,8 +164,8 @@ struct ExportCSVLocalState final : public ExportFuncLocalState {
             castFuncs[i] = function::CastFunction::bindCastFunction("cast",
                 exportCSVBindData.types[i], LogicalType::STRING())
                                ->execFunc;
-            auto castVector =
-                std::make_unique<ValueVector>(LogicalTypeID::STRING, storage::MemoryManager::Get(context));
+            auto castVector = std::make_unique<ValueVector>(LogicalTypeID::STRING,
+                storage::MemoryManager::Get(context));
             castVectors.push_back(castVector.get());
             if (isFlatVec[i]) {
                 flatCastDataChunk->insert(numInsertedFlatVector, std::move(castVector));

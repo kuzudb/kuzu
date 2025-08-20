@@ -62,8 +62,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto nodePayloads =
             ExpressionUtil::excludeExpressions(nodeBuildSchema->getExpressionsInScope(), nodeKeys);
         auto nodeBuildInfo = createHashBuildInfo(*nodeBuildSchema, nodeKeys, nodePayloads);
-        auto nodeHashTable = std::make_unique<JoinHashTable>(*storage::MemoryManager::Get(*clientContext),
-            std::move(nodeKeyTypes), nodeBuildInfo.tableSchema.copy());
+        auto nodeHashTable =
+            std::make_unique<JoinHashTable>(*storage::MemoryManager::Get(*clientContext),
+                std::move(nodeKeyTypes), nodeBuildInfo.tableSchema.copy());
         nodeBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(nodeHashTable));
         nodeBuild = make_unique<HashJoinBuild>(PhysicalOperatorType::HASH_JOIN_BUILD,
             nodeBuildSharedState, std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator),
@@ -88,8 +89,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
         auto relPayloads =
             ExpressionUtil::excludeExpressions(relBuildSchema->getExpressionsInScope(), relKeys);
         auto relBuildInfo = createHashBuildInfo(*relBuildSchema, relKeys, relPayloads);
-        auto relHashTable = std::make_unique<JoinHashTable>(*storage::MemoryManager::Get(*clientContext),
-            std::move(relKeyTypes), relBuildInfo.tableSchema.copy());
+        auto relHashTable =
+            std::make_unique<JoinHashTable>(*storage::MemoryManager::Get(*clientContext),
+                std::move(relKeyTypes), relBuildInfo.tableSchema.copy());
         relBuildSharedState = std::make_shared<HashJoinSharedState>(std::move(relHashTable));
         relBuild = std::make_unique<HashJoinBuild>(PhysicalOperatorType::HASH_JOIN_BUILD,
             relBuildSharedState, std::move(relBuildInfo), std::move(relBuildPrvOperator),

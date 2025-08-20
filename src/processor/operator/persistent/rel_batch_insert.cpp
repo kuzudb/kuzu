@@ -51,7 +51,8 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     relLocalState->dummyAllNullDataChunk = std::make_unique<DataChunk>(relInfo->columnTypes.size());
     for (auto i = 0u; i < relInfo->columnTypes.size(); i++) {
-        auto valueVector = std::make_shared<ValueVector>(relInfo->columnTypes[i].copy(), MemoryManager::Get(*context->clientContext));
+        auto valueVector = std::make_shared<ValueVector>(relInfo->columnTypes[i].copy(),
+            MemoryManager::Get(*context->clientContext));
         valueVector->setAllNull();
         relLocalState->dummyAllNullDataChunk->insert(i, std::move(valueVector));
     }

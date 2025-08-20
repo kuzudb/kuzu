@@ -123,7 +123,8 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
                 propertyNames);
             auto writer = function->getOutputWriter(context, bindData, *computeState, sourceNodeID,
                 sharedState.get());
-            auto vertexCompute = std::make_unique<RJVertexCompute>(storage::MemoryManager::Get(*clientContext), sharedState.get(), writer->copy(),
+            auto vertexCompute = std::make_unique<RJVertexCompute>(
+                storage::MemoryManager::Get(*clientContext), sharedState.get(), writer->copy(),
                 bindData.nodeOutput->constCast<NodeExpression>().getTableIDsSet());
             GDSUtils::runVertexCompute(context, computeState->frontierPair->getState(), graph,
                 *vertexCompute);

@@ -29,7 +29,8 @@ void ResultCollector::initNecessaryLocalState(ResultSet* resultSet, ExecutionCon
         payloadAndMarkVectors.push_back(vec);
     }
     if (info.accumulateType == AccumulateType::OPTIONAL_) {
-        markVector = std::make_unique<ValueVector>(LogicalType::BOOL(), MemoryManager::Get(*context->clientContext));
+        markVector = std::make_unique<ValueVector>(LogicalType::BOOL(),
+            MemoryManager::Get(*context->clientContext));
         markVector->state = DataChunkState::getSingleValueDataChunkState();
         markVector->setValue<bool>(0, true);
         payloadAndMarkVectors.push_back(markVector.get());
@@ -38,7 +39,8 @@ void ResultCollector::initNecessaryLocalState(ResultSet* resultSet, ExecutionCon
 
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     initNecessaryLocalState(resultSet, context);
-    localTable = std::make_unique<FactorizedTable>(MemoryManager::Get(*context->clientContext), info.tableSchema.copy());
+    localTable = std::make_unique<FactorizedTable>(MemoryManager::Get(*context->clientContext),
+        info.tableSchema.copy());
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {

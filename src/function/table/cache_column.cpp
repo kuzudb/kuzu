@@ -157,9 +157,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& scanState = *localState->scanState;
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
         auto numRows = table.getNumTuplesInNodeGroup(i);
-        auto data = storage::ColumnChunkFactory::createColumnChunkData(*storage::MemoryManager::Get(*context),
-            columnType.copy(), false /*enableCompression*/, numRows,
-            storage::ResidencyState::IN_MEMORY, true /*hasNullData*/, false /*initializeToZero*/);
+        auto data = storage::ColumnChunkFactory::createColumnChunkData(
+            *storage::MemoryManager::Get(*context), columnType.copy(), false /*enableCompression*/,
+            numRows, storage::ResidencyState::IN_MEMORY, true /*hasNullData*/,
+            false /*initializeToZero*/);
         if (columnType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
             auto arrayTypeInfo = columnType.getExtraTypeInfo()->constPtrCast<ArrayTypeInfo>();
             data->cast<storage::ListChunkData>().getDataColumnChunk()->resize(

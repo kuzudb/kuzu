@@ -25,7 +25,8 @@ static void validateQueryResult(main::QueryResult* queryResult) {
 void ImportDB::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     if (query.empty()) { // Export empty database.
-        appendMessage("Imported database successfully.", storage::MemoryManager::Get(*clientContext));
+        appendMessage("Imported database successfully.",
+            storage::MemoryManager::Get(*clientContext));
         return;
     }
     // TODO(Guodong): this is special for "Import database". Should refactor after we support

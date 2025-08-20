@@ -11,7 +11,8 @@ namespace processor {
 void UseDatabase::executeInternal(ExecutionContext* context) {
     auto dbManager = main::DatabaseManager::Get(*context->clientContext);
     dbManager->setDefaultDatabase(dbName);
-    appendMessage("Used database successfully.", storage::MemoryManager::Get(*context->clientContext));
+    appendMessage("Used database successfully.",
+        storage::MemoryManager::Get(*context->clientContext));
 }
 
 std::string UseDatabasePrintInfo::toString() const {
