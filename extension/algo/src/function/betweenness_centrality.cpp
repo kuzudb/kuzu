@@ -147,7 +147,7 @@ struct BCBwdData {
     void init() {
         // This can be done in parallel.
         for (auto& dep : dependencyScores) {
-            dep = double{};
+            dep.store(double{});
         }
     }
 
