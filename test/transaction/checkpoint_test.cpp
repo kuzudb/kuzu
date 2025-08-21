@@ -168,7 +168,7 @@ public:
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
         shadowFile.flushAll();
-        auto wal = clientContext.getWAL();
+        auto wal = WAL::Get(clientContext);
         // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
         // files (snapshots of catalog and metadata) have been written to disk. The part that is not
         // done is to replace them with the original pages or catalog and metadata files. If the
@@ -201,7 +201,7 @@ public:
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
         shadowFile.flushAll();
-        auto wal = clientContext.getWAL();
+        auto wal = WAL::Get(clientContext);
         // Log the checkpoint to the WAL and flush WAL. This indicates that all shadow pages and
         // files (snapshots of catalog and metadata) have been written to disk. The part that is not
         // done is to replace them with the original pages or catalog and metadata files. If the

@@ -25,6 +25,8 @@ public:
 
     uint64_t getFileSize();
 
+    static WAL* Get(const main::ClientContext& context);
+
 private:
     void initWriter(main::ClientContext* context);
     void addNewWALRecordNoLock(const WALRecord& walRecord);
