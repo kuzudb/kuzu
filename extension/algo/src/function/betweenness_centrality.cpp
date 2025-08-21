@@ -499,7 +499,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
         auto maxLevel = fwdData.levels.front().level.load();
         for (auto j = 0u; j < fwdData.levels.size() && maxLevel > 0;) {
-            while (j < fwdData.levels.size() && fwdData.levels[j].level == maxLevel) {
+            while (j < fwdData.levels.size() && fwdData.levels[j].level.load() == maxLevel) {
                 computeState.frontierPair->addNodeToNextFrontier(fwdData.levels[j].node);
                 ++j;
             }
