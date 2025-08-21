@@ -138,6 +138,60 @@ struct BCBwdData {
 
 /**Compute**/
 
+// We use this fcn in chunk.ForEach() during traversal.
+//NOLINTNEXTLINE
+static void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight, const offset_t i) {
+    switch (valueVector->dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
+        weight = static_cast<double>(valueVector->getValue<int64_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT32: {
+        weight = static_cast<double>(valueVector->getValue<int32_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT16: {
+        weight = static_cast<double>(valueVector->getValue<int16_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT8: {
+        weight = static_cast<double>(valueVector->getValue<int8_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT64: {
+        weight = static_cast<double>(valueVector->getValue<uint64_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT32: {
+        weight = static_cast<double>(valueVector->getValue<uint32_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT16: {
+        weight = static_cast<double>(valueVector->getValue<uint16_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT8: {
+        weight = static_cast<double>(valueVector->getValue<uint8_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT128: {
+        Int128_t::tryCast(valueVector->getValue<int128_t>(i), weight);
+        break;
+    }
+    case PhysicalTypeID::DOUBLE: {
+        weight = valueVector->getValue<double>(i);
+        break;
+    }
+    case PhysicalTypeID::FLOAT: {
+        weight = static_cast<double>(valueVector->getValue<float>(i));
+        break;
+    }
+    default:
+        KU_UNREACHABLE;
+        break;
+    }
+}
+
 class WeightedFwdTraverse : public EdgeCompute {
 public:
     explicit WeightedFwdTraverse(BCFwdData& fwdData) : fwdData{fwdData} {}
@@ -151,7 +205,8 @@ public:
         chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             auto nbrNodeID = neighbors[i];
             auto nbrPathData = fwdData.nodePathData[nbrNodeID.offset].load();
-            const auto weight = propertyVectors[0]->template getValue<double>(i);
+            double weight = 1;
+            getValueAsDouble(propertyVectors[0], weight, i);
             if (weight <= 0) {
                 throw RuntimeException(stringFormat(
                     "Betweenness Centrality does not work on non-positive weights. Got {}",
@@ -243,8 +298,10 @@ public:
         chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             auto nbrNodeID = neighbors[i];
             auto nbrDistance = fwdData.nodePathData[nbrNodeID.offset].load().pathScore;
-            const auto weight =
-                propertyVectors.empty() ? 1 : propertyVectors[0]->template getValue<double>(i);
+            double weight = 1;
+            if (!propertyVectors.empty()) {
+                getValueAsDouble(propertyVectors[0], weight, i);
+            }
             if (nbrDistance + weight == curDistance) {
                 auto nbrPaths = fwdData.nodePathData[nbrNodeID.offset].load().numPaths;
                 auto scoreToAdd = ((double)nbrPaths / curPaths) * (1 + curScore);
@@ -355,7 +412,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto graph = sharedState->graph.get();
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     const auto tableId = graph->getNodeTableIDs()[0];
-    auto mm = clientContext->getMemoryManager();
+    auto mm = storage::MemoryManager::Get(*clientContext);
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
@@ -431,7 +488,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             computeState.edgeCompute = std::make_unique<BwdTraverse>(fwdData, bwdData);
             computeState.frontierPair->setActiveNodesForNextIter();
             GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
-                undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations);
+                undirected ? ExtendDirection::BOTH : ExtendDirection::BWD, maxIterations, relProps);
             --maxLevel;
         }
         const auto vertexCompute =
