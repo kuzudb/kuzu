@@ -12,9 +12,10 @@ namespace fts_extension {
 void FTSIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation) {
+    auto catalog = catalog::Catalog::Get(context);
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+        if (catalog->containsIndex(context.getTransaction(),
                 tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
@@ -22,7 +23,7 @@ void FTSIndexUtils::validateIndexExistence(const main::ClientContext& context,
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+        if (!catalog->containsIndex(context.getTransaction(),
                 tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};

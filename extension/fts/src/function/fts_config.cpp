@@ -105,7 +105,7 @@ StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_i
         return StopWordsTableInfo{stopWords, FTSUtils::getDefaultStopWordsTableName(),
             StopWordsSource::DEFAULT};
     } else if (catalog->containsTable(context.getTransaction(), stopWords)) {
-        auto entry = catalog::Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(),
+        auto entry = catalog->getTableCatalogEntry(context.getTransaction(),
             stopWords);
         if (entry->getTableType() != common::TableType::NODE) {
             throw common::BinderException{"The stop words table must be a node table."};
