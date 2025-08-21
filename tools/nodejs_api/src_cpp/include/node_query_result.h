@@ -14,6 +14,7 @@ class NodeQueryResult : public Napi::ObjectWrap<NodeQueryResult> {
     friend class NodeQueryResultGetNextAsyncWorker;
     friend class NodeQueryResultGetColumnMetadataAsyncWorker;
     friend class NodeQueryResultGetNextQueryResultAsyncWorker;
+    friend class NodeQueryResultGetQuerySummaryAsyncWorker;
 
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
@@ -34,6 +35,8 @@ private:
     Napi::Value GetColumnDataTypesSync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnNamesAsync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnNamesSync(const Napi::CallbackInfo& info);
+    Napi::Value GetQuerySummarySync(const Napi::CallbackInfo& info);
+    Napi::Value GetQuerySummaryAsync(const Napi::CallbackInfo& info);
     void PopulateColumnNames();
     void Close(const Napi::CallbackInfo& info);
     void Close();
@@ -162,4 +165,38 @@ public:
 private:
     NodeQueryResult* currQueryResult;
     NodeQueryResult* nextQueryResult;
+};
+
+class NodeQueryResultGetQuerySummaryAsyncWorker : public Napi::AsyncWorker {
+public:
+    NodeQueryResultGetQuerySummaryAsyncWorker(Napi::Function& callback,
+        NodeQueryResult* nodeQueryResult)
+        : AsyncWorker(callback), nodeQueryResult(nodeQueryResult) {}
+
+    ~NodeQueryResultGetQuerySummaryAsyncWorker() override = default;
+
+    inline void Execute() override {
+        try {
+            auto querySummary = nodeQueryResult->queryResult->getQuerySummary();
+            result["compilingTime"] = querySummary->getCompilingTime();
+            result["executionTime"] = querySummary->getExecutionTime();
+        } catch (const std::exception& exc) {
+            SetError(std::string(exc.what()));
+        }
+    }
+
+    inline void OnOK() override {
+        auto env = Env();
+        Napi::Object nodeResult = Napi::Object::New(env);
+        for (const auto& [key, value] : result) {
+            nodeResult.Set(key, Napi::Number::New(env, value));
+        }
+        Callback().Call({env.Null(), nodeResult});
+    }
+
+    inline void OnError(Napi::Error const& error) override { Callback().Call({error.Value()}); }
+
+private:
+    NodeQueryResult* nodeQueryResult;
+    std::unordered_map<std::string, double> result;
 };

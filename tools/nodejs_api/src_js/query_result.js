@@ -191,6 +191,31 @@ class QueryResult {
   }
 
   /**
+   * Get the query summary (compiling and execution time) of the query result.
+   * @returns {Promise<Object>} a promise that resolves to the query summary of the query result. The promise is rejected if there is an error.
+   */
+  getQuerySummary() {
+    this._checkClosed();
+    return new Promise((resolve, reject) => {
+      this._queryResult.getQuerySummaryAsync((err, result) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(result);
+      });
+    });
+  }
+
+  /**
+   * Get the query summary (compiling and execution time) of the query result synchronously.
+   * @returns {Object} the query summary of the query result.
+   */
+  getQuerySummarySync() {
+    this._checkClosed();
+    return this._queryResult.getQuerySummarySync();
+  }
+
+  /**
    * Close the query result.
    */
   close() {

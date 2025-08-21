@@ -23,6 +23,8 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("getColumnDataTypesSync", &NodeQueryResult::GetColumnDataTypesSync),
             InstanceMethod("getColumnNamesAsync", &NodeQueryResult::GetColumnNamesAsync),
             InstanceMethod("getColumnNamesSync", &NodeQueryResult::GetColumnNamesSync),
+            InstanceMethod("getQuerySummaryAsync", &NodeQueryResult::GetQuerySummaryAsync),
+            InstanceMethod("getQuerySummarySync", &NodeQueryResult::GetQuerySummarySync),
             InstanceMethod("close", &NodeQueryResult::Close)});
 
     exports.Set("NodeQueryResult", t);
@@ -200,6 +202,31 @@ void NodeQueryResult::PopulateColumnNames() {
     }
     this->columnNames =
         std::make_unique<std::vector<std::string>>(this->queryResult->getColumnNames());
+}
+
+Napi::Value NodeQueryResult::GetQuerySummaryAsync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    auto callback = info[0].As<Napi::Function>();
+    auto* asyncWorker = new NodeQueryResultGetQuerySummaryAsyncWorker(callback, this);
+    asyncWorker->Queue();
+    return info.Env().Undefined();
+}
+
+Napi::Value NodeQueryResult::GetQuerySummarySync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    try {
+        Napi::Object summary = Napi::Object::New(env);
+        auto cppSummary = this->queryResult->getQuerySummary();
+        cppSummary->getCompilingTime();
+        summary.Set("compilingTime", Napi::Number::New(env, cppSummary->getCompilingTime()));
+        summary.Set("executionTime", Napi::Number::New(env, cppSummary->getExecutionTime()));
+        return summary;
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+    return env.Undefined();
 }
 
 void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
