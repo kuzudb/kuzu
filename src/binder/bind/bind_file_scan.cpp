@@ -61,7 +61,8 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
             boundFilePaths.push_back(filePath);
             continue;
         }
-        auto globbedFilePaths = VirtualFileSystem::GetUnsafe(*clientContext)->glob(clientContext, filePath);
+        auto globbedFilePaths =
+            VirtualFileSystem::GetUnsafe(*clientContext)->glob(clientContext, filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};
@@ -113,7 +114,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
 bool handleFileViaFunction(main::ClientContext* context, std::vector<std::string> filePaths) {
     bool handleFileViaFunction = false;
     if (VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(filePaths[0], context)) {
-        handleFileViaFunction = VirtualFileSystem::GetUnsafe(*context)->handleFileViaFunction(filePaths[0]);
+        handleFileViaFunction =
+            VirtualFileSystem::GetUnsafe(*context)->handleFileViaFunction(filePaths[0]);
     }
     return handleFileViaFunction;
 }

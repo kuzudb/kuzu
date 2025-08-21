@@ -24,7 +24,8 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     bool isOfficial = ExtensionUtils::isOfficialExtension(path);
     if (isOfficial) {
         auto localPathForSharedLib = ExtensionUtils::getLocalPathForSharedLib(context);
-        if (!common::VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(localPathForSharedLib)) {
+        if (!common::VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(
+                localPathForSharedLib)) {
             common::VirtualFileSystem::GetUnsafe(*context)->createDir(localPathForSharedLib);
         }
         executeExtensionLoader(context, path);

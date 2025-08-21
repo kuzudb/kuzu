@@ -172,8 +172,8 @@ void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& re
 }
 
 void ParquetReader::initMetadata() {
-    auto fileInfo =
-        VirtualFileSystem::GetUnsafe(*context)->openFile(filePath, FileOpenFlags(FileFlags::READ_ONLY), context);
+    auto fileInfo = VirtualFileSystem::GetUnsafe(*context)->openFile(filePath,
+        FileOpenFlags(FileFlags::READ_ONLY), context);
     auto proto = createThriftProtocol(fileInfo.get(), false);
     auto& transport = ku_dynamic_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();

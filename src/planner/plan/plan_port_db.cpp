@@ -38,8 +38,8 @@ std::vector<std::shared_ptr<LogicalOperator>> Planner::planExportTableData(
         auto regularQuery = exportTableData.getRegularQuery();
         KU_ASSERT(regularQuery->getStatementType() == StatementType::QUERY);
         auto tablePlan = planStatement(*regularQuery);
-        auto path = VirtualFileSystem::GetUnsafe(*clientContext)->joinPath(boundExportDatabase.getFilePath(),
-            exportTableData.fileName);
+        auto path = VirtualFileSystem::GetUnsafe(*clientContext)
+                        ->joinPath(boundExportDatabase.getFilePath(), exportTableData.fileName);
         function::ExportFuncBindInput bindInput{exportTableData.columnNames, std::move(path),
             boundExportDatabase.getExportOptions()};
         auto copyTo = std::make_shared<LogicalCopyTo>(exportFunc.bind(bindInput), exportFunc,
