@@ -1,6 +1,6 @@
 [package]
 name = "kuzu"
-version = "0.11.1"
+version = "0.11.2"
 description = "An in-process property graph database management system built for query speed and scalability"
 keywords = ["database", "graph", "ffi"]
 readme = "kuzu-src/README.md"
