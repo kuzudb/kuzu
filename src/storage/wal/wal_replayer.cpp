@@ -251,7 +251,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
     auto storageManager = StorageManager::Get(clientContext);
     auto ownedAlterInfo = alterEntryRecord.ownedAlterInfo.get();
     catalog->alterTableEntry(transaction, *ownedAlterInfo);
-    auto& pageAllocator = *StorageManager::Get(clientContext)->getDataFH()->getPageManager();
+    auto& pageAllocator = *PageManager::Get(clientContext);
     switch (ownedAlterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
         const auto exprBinder = binder.getExpressionBinder();

@@ -89,10 +89,7 @@ void LocalStorage::rollback() {
         optimisticAllocator->rollback();
     }
     auto* bufferManager = mm->getBufferManager();
-    StorageManager::Get(clientContext)
-        ->getDataFH()
-        ->getPageManager()
-        ->clearEvictedBMEntriesIfNeeded(bufferManager);
+    PageManager::Get(clientContext)->clearEvictedBMEntriesIfNeeded(bufferManager);
 }
 
 } // namespace storage
