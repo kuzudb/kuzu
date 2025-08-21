@@ -11,6 +11,7 @@
 #include "common/types/timestamp_t.h"
 #include "common/types/types.h"
 #include "common/types/uuid.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace common {
@@ -279,6 +280,59 @@ public:
             return func(uint8_t());
         default:
             KU_UNREACHABLE;
+        }
+    }
+
+    template<typename OUT_TYPE>
+    static inline void getNumericalValueAs(const std::shared_ptr<common::ValueVector>& valueVector, OUT_TYPE& outVal, const offset_t i) {
+        switch (valueVector->dataType.getPhysicalType()) {
+            case PhysicalTypeID::INT64: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<int64_t>(i));
+                break;
+            }
+            case PhysicalTypeID::INT32: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<int32_t>(i));
+                break;
+            }
+            case PhysicalTypeID::INT16: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<int16_t>(i));
+                break;
+            }
+            case PhysicalTypeID::INT8: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<int8_t>(i));
+                break;
+            }
+            case PhysicalTypeID::UINT64: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<uint64_t>(i));
+                break;
+            }
+            case PhysicalTypeID::UINT32: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<uint32_t>(i));
+                break;
+            }
+            case PhysicalTypeID::UINT16: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<uint16_t>(i));
+                break;
+            }
+            case PhysicalTypeID::UINT8: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<uint8_t>(i));
+                break;
+            }
+            case PhysicalTypeID::INT128: {
+                Int128_t::tryCast(valueVector->getValue<int128_t>(i), outVal);
+                break;
+            }
+            case PhysicalTypeID::DOUBLE: {
+                outVal = valueVector->getValue<OUT_TYPE>(i);
+                break;
+            }
+            case PhysicalTypeID::FLOAT: {
+                outVal = static_cast<OUT_TYPE>(valueVector->getValue<float>(i));
+                break;
+            }
+            default:
+                KU_UNREACHABLE;
+                break;
         }
     }
 };
