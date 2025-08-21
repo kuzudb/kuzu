@@ -124,7 +124,6 @@ public:
 
     common::TaskScheduler* getTaskScheduler() const;
     extension::ExtensionManager* getExtensionManager() const;
-    storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine() const;
