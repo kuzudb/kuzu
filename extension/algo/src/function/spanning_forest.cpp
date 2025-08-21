@@ -151,7 +151,8 @@ private:
     // component.
     void mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId);
 
-    void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight, const offset_t i) const;
+    void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight,
+        const offset_t i) const;
 
     const offset_t numNodes;
     // Stores the edges being processed.
@@ -249,7 +250,8 @@ void KruskalCompute::mergeComponents(const offset_t& srcCompId, const offset_t& 
     }
 }
 
-void KruskalCompute::getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight, const offset_t i) const {
+void KruskalCompute::getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector,
+    double& weight, const offset_t i) const {
     switch (valueVector->dataType.getPhysicalType()) {
     case PhysicalTypeID::INT64: {
         weight = static_cast<double>(valueVector->getValue<int64_t>(i));
@@ -300,7 +302,6 @@ void KruskalCompute::getValueAsDouble(const std::shared_ptr<common::ValueVector>
         break;
     }
 }
-
 
 /** RESULTS **/
 
