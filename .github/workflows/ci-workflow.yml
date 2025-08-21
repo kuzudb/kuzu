@@ -1006,7 +1006,8 @@ jobs:
           ENABLE_DESER_DEBUG: 1
           # don't run any tests that use existing serialized data
           # or any tests that serializing debugging info would make too slow
-          GTEST_FILTER: e2e_test*-*binary_demo*
+          # also skip FSM-related tests as the debugging info can mess with database sizes
+          GTEST_FILTER: "*~*-*binary_demo*:*hash_leak*:*Reclaim*"
         run: |
           make test
 
