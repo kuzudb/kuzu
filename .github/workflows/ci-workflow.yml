@@ -18,7 +18,6 @@ on:
       buffer_pool_size:
         description: 'Database config - buffer pool size'
         required: false
-        default: 67108864
         type: number
 
       max_num_threads:
