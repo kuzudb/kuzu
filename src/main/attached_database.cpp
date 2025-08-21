@@ -20,7 +20,7 @@ void AttachedDatabase::invalidateCache() {
 }
 
 static void validateEmptyWAL(const std::string& path, ClientContext* context) {
-    auto vfs = context->getVFSUnsafe();
+    auto vfs = common::VirtualFileSystem::GetUnsafe(*context);
     auto walFilePath = storage::StorageUtils::getWALFilePath(path);
     if (vfs->fileOrPathExists(walFilePath, context)) {
         auto walFile = vfs->openFile(walFilePath,
@@ -36,7 +36,7 @@ static void validateEmptyWAL(const std::string& path, ClientContext* context) {
 AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbName,
     std::string dbType, ClientContext* clientContext)
     : AttachedDatabase{std::move(dbName), std::move(dbType), nullptr /* catalog */} {
-    auto vfs = clientContext->getVFSUnsafe();
+    auto vfs = common::VirtualFileSystem::GetUnsafe(*clientContext);
     if (DBConfig::isDBPathInMemory(dbPath)) {
         throw common::RuntimeException("Cannot attach an in-memory Kuzu database. Please give a "
                                        "path to an on-disk Kuzu database directory.");

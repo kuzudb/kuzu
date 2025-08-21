@@ -81,7 +81,7 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) {
         throw RuntimeException("Couldn't replay shadow pages under read-only mode. Please re-open "
                                "the database with read-write mode to replay shadow pages.");
     }
-    auto vfs = context.getVFSUnsafe();
+    auto vfs = VirtualFileSystem::GetUnsafe(context);
     auto shadowFilePath = StorageUtils::getShadowFilePath(context.getDatabasePath());
     auto shadowFileInfo = vfs->openFile(shadowFilePath, FileOpenFlags(FileFlags::READ_ONLY));
     ShadowFileHeader header;

@@ -237,7 +237,7 @@ TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
     case FileType::CSV: {
         bool containCompressedCSV = std::any_of(fileScanInfo.filePaths.begin(),
             fileScanInfo.filePaths.end(), [&](const auto& file) {
-                return clientContext->getVFSUnsafe()->isCompressedFile(file);
+                return VirtualFileSystem::GetUnsafe(*clientContext)->isCompressedFile(file);
             });
         auto csvConfig = CSVReaderConfig::construct(fileScanInfo.options);
         // Parallel CSV scanning is only allowed:

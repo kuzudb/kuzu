@@ -75,7 +75,7 @@ static void exportDatabaseCollectParallelFlags(const std::unique_ptr<DummySimple
 std::unique_ptr<PhysicalOperator> PlanMapper::mapExportDatabase(
     const LogicalOperator* logicalOperator) {
     auto exportDatabase = logicalOperator->constPtrCast<LogicalExportDatabase>();
-    auto fs = clientContext->getVFSUnsafe();
+    auto fs = VirtualFileSystem::GetUnsafe(*clientContext);
     auto boundFileInfo = exportDatabase->getBoundFileInfo();
     KU_ASSERT(boundFileInfo->filePaths.size() == 1);
     auto filePath = boundFileInfo->filePaths[0];

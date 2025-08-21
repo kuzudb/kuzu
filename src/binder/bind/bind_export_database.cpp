@@ -159,7 +159,7 @@ std::unique_ptr<BoundStatement> Binder::bindExportDatabaseClause(const Statement
     auto exportData =
         getExportInfo(*Catalog::Get(*clientContext), clientContext, this, fileTypeInfo);
     auto boundFilePath =
-        clientContext->getVFSUnsafe()->expandPath(clientContext, exportDB.getFilePath());
+        VirtualFileSystem::GetUnsafe(*clientContext)->expandPath(clientContext, exportDB.getFilePath());
     return std::make_unique<BoundExportDatabase>(boundFilePath, fileTypeInfo, std::move(exportData),
         std::move(parsedOptions), exportSchemaOnly);
 }
