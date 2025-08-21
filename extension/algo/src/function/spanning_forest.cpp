@@ -151,9 +151,6 @@ private:
     // component.
     void mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId);
 
-    void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight,
-        const offset_t i) const;
-
     const offset_t numNodes;
     // Stores the edges being processed.
     ku_vector_t<weightedEdge> edges;
