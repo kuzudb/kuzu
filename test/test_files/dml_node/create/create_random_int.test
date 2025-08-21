@@ -1,7 +1,7 @@
 -DATASET CSV empty
 --
 
--CASE TSSeedRandomInt64Insertions
+-CASE TSSeedRandomIntInsertions
 -SKIP_WASM
 -STATEMENT CREATE NODE TABLE test(id SERIAL, prop INT64, PRIMARY KEY(id));
 ---- ok
@@ -9,7 +9,7 @@
 -LOG seed: ${seed}
 -SET _ random.set_seed(${seed})
 -LOOP i 1 1000
--SET val random.randInt64(1000000)
+-SET val random.randInt32(1000000)
 -STATEMENT CREATE (t:test {prop: ${val}});
 ---- ok
 -ENDLOOP
@@ -17,7 +17,7 @@
 ---- 1
 1000
 
--CASE FixedSeedRandomInt64Insertions
+-CASE FixedSeedRandomIntInsertions
 -SKIP_WASM
 -STATEMENT CREATE NODE TABLE test(id SERIAL, prop INT64, PRIMARY KEY(id));
 ---- ok
@@ -25,7 +25,7 @@
 -LOG seed: ${seed}
 -SET _ random.set_seed(${seed})
 -LOOP i 1 1000
--SET val random.randInt64(1000000)
+-SET val random.randInt32(1000000)
 -STATEMENT CREATE (t:test {prop: ${val}});
 ---- ok
 -ENDLOOP

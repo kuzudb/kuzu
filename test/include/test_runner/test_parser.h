@@ -160,6 +160,7 @@ private:
 
     std::string getParam(int paramIdx) { return currentToken.params[paramIdx]; }
 
+    bool shouldSkip(TokenType type);
     TestStatement parseStatement(const std::string& testCaseName);
 
 private:
