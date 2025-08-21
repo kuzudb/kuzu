@@ -1004,6 +1004,9 @@ jobs:
       - name: Test with deserializer debugging info
         env:
           ENABLE_DESER_DEBUG: 1
+          # don't run any tests that use existing serialized data
+          # or any tests that serializing debugging info would make too slow
+          GTEST_FILTER: e2e_test*-*binary_demo*
         run: |
           make test
 
