@@ -219,7 +219,6 @@ Napi::Value NodeQueryResult::GetQuerySummarySync(const Napi::CallbackInfo& info)
     try {
         Napi::Object summary = Napi::Object::New(env);
         auto cppSummary = this->queryResult->getQuerySummary();
-        cppSummary->getCompilingTime();
         summary.Set("compilingTime", Napi::Number::New(env, cppSummary->getCompilingTime()));
         summary.Set("executionTime", Napi::Number::New(env, cppSummary->getExecutionTime()));
         return summary;
