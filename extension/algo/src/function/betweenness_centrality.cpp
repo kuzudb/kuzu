@@ -229,8 +229,9 @@ public:
                     "Betweenness Centrality does not work on non-positive weights. Got {}",
                     weight));
             }
-            while(nbrDistance > curDistance + weight) {
-                if (fwdData.nodePathData[nbrNodeID.offset].pathScore.compare_exchange_strong(nbrDistance, curDistance+weight)) {
+            while (nbrDistance > curDistance + weight) {
+                if (fwdData.nodePathData[nbrNodeID.offset].pathScore.compare_exchange_strong(
+                        nbrDistance, curDistance + weight)) {
                     result.push_back(nbrNodeID);
                     return;
                 }
@@ -266,7 +267,8 @@ public:
             KU_ASSERT_UNCONDITIONAL(weight > 0);
             if (curDistance + weight == nbrDistance) {
                 fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curNumPaths);
-                while(!fwdData.levels[nbrNodeID.offset].level.compare_exchange_strong(nbrLevel, std::max(nbrLevel, curLevel+1))) {}
+                while (!fwdData.levels[nbrNodeID.offset].level.compare_exchange_strong(nbrLevel,
+                    std::max(nbrLevel, curLevel + 1))) {}
                 result.push_back(nbrNodeID);
             }
         });
@@ -295,9 +297,10 @@ public:
             auto nbrNodeID = neighbors[i];
             auto nbrPathDistance = BCFwdData::PathData::INF;
             // We see the node for the first time.
-            if (fwdData.nodePathData[nbrNodeID.offset].pathScore.compare_exchange_strong(nbrPathDistance, curDistance+1)) {
+            if (fwdData.nodePathData[nbrNodeID.offset].pathScore.compare_exchange_strong(
+                    nbrPathDistance, curDistance + 1)) {
                 fwdData.nodePathData[nbrNodeID.offset].numPaths.fetch_add(curPaths);
-                fwdData.levels[nbrNodeID.offset].level.store(curLevel+1);
+                fwdData.levels[nbrNodeID.offset].level.store(curLevel + 1);
                 result.push_back(nbrNodeID);
             }
             // Reaching here means CAS failed, so nbrPathDistance is up to date.
@@ -476,15 +479,18 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         if (relProps.empty()) {
             computeState.edgeCompute = std::make_unique<UnweightedFwdTraverse>(fwdData);
             computeState.frontierPair->setActiveNodesForNextIter();
-            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
+            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
+                undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
         } else {
             computeState.edgeCompute = std::make_unique<ComputeSPWeightedFwdTraverse>(fwdData);
             computeState.frontierPair->setActiveNodesForNextIter();
-            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
+            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
+                undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
             computeState.frontierPair->addNodeToNextFrontier(i);
             computeState.edgeCompute = std::make_unique<CountSPWeightedFwdTraverse>(fwdData);
             computeState.frontierPair->setActiveNodesForNextIter();
-            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
+            GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph,
+                undirected ? ExtendDirection::BOTH : ExtendDirection::FWD, maxIterations, relProps);
         }
         // Backward Traverse
         bwdData.init();
