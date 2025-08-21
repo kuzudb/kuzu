@@ -18,7 +18,8 @@ static FreeSpaceManager::sorted_free_list_t& getFreeList(
     return freeLists[level];
 }
 
-FreeSpaceManager::FreeSpaceManager() : freeLists{}, numEntries(0), needClearEvictedEntries(false){};
+FreeSpaceManager::FreeSpaceManager()
+    : freeLists{}, numEntries(0), needClearEvictedEntries(false) {};
 
 common::idx_t FreeSpaceManager::getLevel(common::page_idx_t numPages) {
     // level is exponent of largest power of 2 that is <= numPages
@@ -199,6 +200,10 @@ void FreeSpaceManager::finalizeCheckpoint(FileHandle* fileHandle) {
 
     mergePageRanges(std::move(uncheckpointedFreePageRanges), fileHandle);
     uncheckpointedFreePageRanges.clear();
+}
+
+void FreeSpaceManager::mergeFreePages(FileHandle* fileHandle) {
+    mergePageRanges(std::move(uncheckpointedFreePageRanges), fileHandle);
 }
 
 void FreeSpaceManager::resetFreeLists() {

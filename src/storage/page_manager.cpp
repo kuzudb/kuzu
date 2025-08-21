@@ -43,6 +43,14 @@ void PageManager::freeImmediatelyRewritablePageRange(FileHandle* fileHandle, Pag
     }
 }
 
+void PageManager::mergeFreePages(FileHandle* fileHandle) {
+    if constexpr (ENABLE_FSM) {
+        common::UniqLock lck{mtx};
+        freeSpaceManager->mergeFreePages(fileHandle);
+        ++version;
+    }
+}
+
 void PageManager::serialize(common::Serializer& serializer) {
     freeSpaceManager->serialize(serializer);
 }
