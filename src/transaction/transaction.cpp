@@ -74,8 +74,11 @@ void Transaction::commit(storage::WAL* wal) {
 }
 
 void Transaction::rollback(storage::WAL*) {
-    localStorage->rollback();
+    // Rolling back the local storage will free + evict all optimistically-allocated pages
+    // Since the undo buffer may do some scanning (e.g. to delete inserted keys from the hash index)
+    // this must be rolled back first
     undoBuffer->rollback(clientContext);
+    localStorage->rollback();
     hasCatalogChanges = false;
 }
 
