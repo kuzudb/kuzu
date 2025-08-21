@@ -151,6 +151,8 @@ private:
     // component.
     void mergeComponents(const offset_t& srcCompId, const offset_t& dstCompId);
 
+    void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight, const offset_t i) const;
+
     const offset_t numNodes;
     // Stores the edges being processed.
     ku_vector_t<weightedEdge> edges;
@@ -183,8 +185,10 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                auto weight = weightProperty ? propertyVectors[1]->template getValue<double>(i) :
-                                               DEFAULT_WEIGHT;
+                auto weight = DEFAULT_WEIGHT;
+                if (weightProperty) {
+                    KruskalCompute::getValueAsDouble(propertyVectors[1], weight, i);
+                }
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
@@ -244,6 +248,59 @@ void KruskalCompute::mergeComponents(const offset_t& srcCompId, const offset_t& 
         parents[dstCompId] = srcCompId;
     }
 }
+
+void KruskalCompute::getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight, const offset_t i) const {
+    switch (valueVector->dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
+        weight = static_cast<double>(valueVector->getValue<int64_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT32: {
+        weight = static_cast<double>(valueVector->getValue<int32_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT16: {
+        weight = static_cast<double>(valueVector->getValue<int16_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT8: {
+        weight = static_cast<double>(valueVector->getValue<int8_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT64: {
+        weight = static_cast<double>(valueVector->getValue<uint64_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT32: {
+        weight = static_cast<double>(valueVector->getValue<uint32_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT16: {
+        weight = static_cast<double>(valueVector->getValue<uint16_t>(i));
+        break;
+    }
+    case PhysicalTypeID::UINT8: {
+        weight = static_cast<double>(valueVector->getValue<uint8_t>(i));
+        break;
+    }
+    case PhysicalTypeID::INT128: {
+        Int128_t::tryCast(valueVector->getValue<int128_t>(i), weight);
+        break;
+    }
+    case PhysicalTypeID::DOUBLE: {
+        weight = valueVector->getValue<double>(i);
+        break;
+    }
+    case PhysicalTypeID::FLOAT: {
+        weight = static_cast<double>(valueVector->getValue<float>(i));
+        break;
+    }
+    default:
+        KU_UNREACHABLE;
+        break;
+    }
+}
+
 
 /** RESULTS **/
 

@@ -82,7 +82,7 @@ KUZU_API bool operator>=(const int128_t& lhs, const int128_t& rhs);
 KUZU_API bool operator<(const int128_t& lhs, const int128_t& rhs);
 KUZU_API bool operator<=(const int128_t& lhs, const int128_t& rhs);
 
-class Int128_t {
+class KUZU_API Int128_t {
 public:
     static std::string ToString(int128_t input);
 
