@@ -139,8 +139,9 @@ struct BCBwdData {
 /**Compute**/
 
 // We use this fcn in chunk.ForEach() during traversal.
-//NOLINTNEXTLINE
-static void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector, double& weight, const offset_t i) {
+// NOLINTNEXTLINE
+static void getValueAsDouble(const std::shared_ptr<common::ValueVector>& valueVector,
+    double& weight, const offset_t i) {
     switch (valueVector->dataType.getPhysicalType()) {
     case PhysicalTypeID::INT64: {
         weight = static_cast<double>(valueVector->getValue<int64_t>(i));
