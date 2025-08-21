@@ -223,7 +223,7 @@ private:
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
-    auto mm = clientContext->getMemoryManager();
+    auto mm = MemoryManager::Get(*clientContext);
     auto graph = sharedState->graph.get();
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     auto tableID = graph->getNodeTableIDs()[0];

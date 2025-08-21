@@ -18,7 +18,7 @@ LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
-    auto& mm = *clientContext.getMemoryManager();
+    auto& mm = *MemoryManager::Get(clientContext);
     if (!tables.contains(tableID)) {
         switch (table.getTableType()) {
         case TableType::NODE: {
@@ -81,7 +81,7 @@ void LocalStorage::commit() {
 }
 
 void LocalStorage::rollback() {
-    auto mm = clientContext.getMemoryManager();
+    auto mm = MemoryManager::Get(clientContext);
     for (auto& [_, localTable] : tables) {
         localTable->clear(*mm);
     }

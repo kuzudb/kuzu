@@ -1,8 +1,8 @@
 #include "processor/operator/order_by/order_by.h"
 
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 
@@ -19,7 +19,7 @@ std::string OrderByPrintInfo::toString() const {
 
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     localState = SortLocalState();
-    localState.init(info, *sharedState, context->clientContext->getMemoryManager());
+    localState.init(info, *sharedState, storage::MemoryManager::Get(*context->clientContext));
     for (auto& dataPos : info.payloadsPos) {
         payloadVectors.push_back(resultSet->getValueVector(dataPos).get());
     }

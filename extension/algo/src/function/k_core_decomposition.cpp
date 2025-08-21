@@ -167,7 +167,7 @@ private:
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
-    auto mm = clientContext->getMemoryManager();
+    auto mm = MemoryManager::Get(*clientContext);
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto graph = sharedState->graph.get();
     auto transaction = clientContext->getTransaction();
@@ -216,8 +216,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         coreValue++;
     }
     // Write output
-    auto vertexCompute =
-        KCoreResultVertexCompute(clientContext->getMemoryManager(), sharedState, coreValues);
+    auto vertexCompute = KCoreResultVertexCompute(mm, sharedState, coreValues);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, vertexCompute);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

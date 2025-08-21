@@ -297,11 +297,11 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     std::vector<LogicalType> vectorTypes;
     vectorTypes.push_back(LogicalType::INTERNAL_ID());
     vectorTypes.push_back(LogicalType::UINT64());
-    auto dataChunk = Table::constructDataChunk(context.getMemoryManager(), std::move(vectorTypes));
+    auto dataChunk = Table::constructDataChunk(MemoryManager::Get(context), std::move(vectorTypes));
     dataChunk.state->getSelVectorUnsafe().setSelSize(1);
     auto nodeIDVector = &dataChunk.getValueVectorMutable(0);
     auto dfVector = &dataChunk.getValueVectorMutable(1);
-    auto termsVector = ValueVector(LogicalType::STRING(), context.getMemoryManager());
+    auto termsVector = ValueVector(LogicalType::STRING(), MemoryManager::Get(context));
     termsVector.state = dataChunk.state;
     auto nodeTableScanState =
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
@@ -403,7 +403,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         {TERM_FREQUENCY_PROP_NAME});
 
     // Do vertex compute to calculate the score for doc with the length property.
-    auto mm = clientContext.getMemoryManager();
+    auto mm = MemoryManager::Get(clientContext);
     auto numUniqueTerms = getNumUniqueTerms(queryTerms);
     auto writer =
         std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData, numUniqueTerms, *sharedState);

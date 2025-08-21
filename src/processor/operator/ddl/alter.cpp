@@ -215,7 +215,7 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
     const BoundAlterInfo& alterInfo) {
     auto catalog = clientContext->getCatalog();
     auto transaction = clientContext->getTransaction();
-    auto memoryManager = clientContext->getMemoryManager();
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     auto tableName = entry.getName();
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY: {

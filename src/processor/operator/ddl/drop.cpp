@@ -7,6 +7,7 @@
 #include "common/string_format.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -31,7 +32,7 @@ void Drop::executeInternal(ExecutionContext* context) {
 void Drop::dropSequence(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
-    auto memoryManager = context->getMemoryManager();
+    auto memoryManager = storage::MemoryManager::Get(*context);
     if (!catalog->containsSequence(transaction, dropInfo.name)) {
         auto message = stringFormat("Sequence {} does not exist.", dropInfo.name);
         switch (dropInfo.conflictAction) {
@@ -53,7 +54,7 @@ void Drop::dropSequence(const main::ClientContext* context) {
 void Drop::dropTable(const main::ClientContext* context) {
     auto catalog = context->getCatalog();
     auto transaction = context->getTransaction();
-    auto memoryManager = context->getMemoryManager();
+    auto memoryManager = storage::MemoryManager::Get(*context);
     if (!catalog->containsTable(transaction, dropInfo.name, context->useInternalCatalogEntry())) {
         auto message = stringFormat("Table {} does not exist.", dropInfo.name);
         switch (dropInfo.conflictAction) {

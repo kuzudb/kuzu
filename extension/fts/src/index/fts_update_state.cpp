@@ -29,7 +29,7 @@ TermsTableState::TermsTableState(const Transaction* transaction, FTSUpdateVector
 }
 
 FTSInsertState::FTSInsertState(main::ClientContext* context, FTSInternalTableInfo& tableInfo)
-    : updateVectors{context->getMemoryManager()},
+    : updateVectors{MemoryManager::Get(*context)},
       docTableInsertState{updateVectors.idVector, updateVectors.int64PKVector,
           std::vector<ValueVector*>{&updateVectors.int64PKVector, &updateVectors.uint64PropVector}},
       termsTableState{context->getTransaction(), updateVectors, tableInfo},
@@ -78,8 +78,8 @@ FTSDeleteState::FTSDeleteState(MemoryManager* mm, const Transaction* transaction
 FTSUpdateState::FTSUpdateState(main::ClientContext* context, FTSInternalTableInfo& tableInfo,
     std::vector<common::column_id_t> columnIDs, common::column_id_t colIdxWithUpdate)
     : dataChunkState{DataChunkState::getSingleValueDataChunkState()},
-      nodeIDVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunkState},
-      indexTableState{context->getMemoryManager(), context->getTransaction(), tableInfo, columnIDs,
+      nodeIDVector{LogicalType::INTERNAL_ID(), MemoryManager::Get(*context), dataChunkState},
+      indexTableState{MemoryManager::Get(*context), context->getTransaction(), tableInfo, columnIDs,
           nodeIDVector, dataChunkState},
       columnIdxWithUpdate{UINT32_MAX} {
     for (auto i = 0u; i < columnIDs.size(); i++) {

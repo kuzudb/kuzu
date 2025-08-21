@@ -194,7 +194,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto nodeMask = sharedState->getGraphNodeMaskMap();
-    auto mm = clientContext->getMemoryManager();
+    auto mm = MemoryManager::Get(*clientContext);
     auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
     auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()

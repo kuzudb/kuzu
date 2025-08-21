@@ -49,7 +49,8 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
                 dataFH->getPageManager()->allocatePage();
                 // Write a dummy database header page.
                 static const auto defaultHeader = DatabaseHeader{{}, {}};
-                auto headerWriter = std::make_shared<InMemFileWriter>(*context->getMemoryManager());
+                auto headerWriter =
+                    std::make_shared<InMemFileWriter>(*MemoryManager::Get(*context));
                 Serializer headerSerializer(headerWriter);
                 defaultHeader.serialize(headerSerializer);
                 dataFH->getFileInfo()->writeFile(headerWriter->getPage(0).data(), KUZU_PAGE_SIZE,

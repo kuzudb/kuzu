@@ -303,7 +303,7 @@ static std::unique_ptr<HNSWIndexEmbeddings> constructEmbeddingsColumn(
             table.getTableID(), columnID);
     } else {
         return std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
-            context->getMemoryManager(),
+            MemoryManager::Get(*context),
             common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()}, table,
             columnID);
     }
@@ -339,11 +339,11 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
     lowerGraphSelectionMap = std::make_unique<NodeToHNSWGraphOffsetMap>(numNodes);
     upperGraphSelectionMap =
         std::make_unique<NodeToHNSWGraphOffsetMap>(numNodes, upperLayerSelectionMask.get());
-    lowerLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
+    lowerLayer = std::make_unique<InMemHNSWLayer>(MemoryManager::Get(*context),
         InMemHNSWLayerInfo{numNodes, embeddings.get(), this->metricFunc,
             getDegreeThresholdToShrink(this->config.ml), this->config.ml, this->config.alpha,
             this->config.efc, *lowerGraphSelectionMap});
-    upperLayer = std::make_unique<InMemHNSWLayer>(context->getMemoryManager(),
+    upperLayer = std::make_unique<InMemHNSWLayer>(MemoryManager::Get(*context),
         InMemHNSWLayerInfo{upperLayerSelectionMask->countNulls(), embeddings.get(),
             this->metricFunc, getDegreeThresholdToShrink(this->config.mu), this->config.mu,
             this->config.alpha, this->config.efc, *upperGraphSelectionMap});
@@ -409,10 +409,10 @@ HNSWSearchState::HNSWSearchState(main::ClientContext* context,
     catalog::TableCatalogEntry* nodeTableEntry, catalog::TableCatalogEntry* upperRelTableEntry,
     catalog::TableCatalogEntry* lowerRelTableEntry, NodeTable& nodeTable,
     common::column_id_t columnID, common::offset_t numNodes, uint64_t k, QueryHNSWConfig config)
-    : visited{numNodes},
-      embeddings{std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
-          context->getMemoryManager(), getArrayTypeInfo(nodeTable, columnID), nodeTable, columnID)},
-      embeddingScanState{context->getTransaction(), context->getMemoryManager(), nodeTable,
+    : visited{numNodes}, embeddings{std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
+                             MemoryManager::Get(*context), getArrayTypeInfo(nodeTable, columnID),
+                             nodeTable, columnID)},
+      embeddingScanState{context->getTransaction(), MemoryManager::Get(*context), nodeTable,
           columnID, embeddings->getDimension()},
       k{k}, config{config}, semiMask{nullptr}, upperRelTableEntry{upperRelTableEntry},
       lowerRelTableEntry{lowerRelTableEntry}, searchType{SearchType::UNFILTERED},
@@ -434,12 +434,12 @@ OnDiskHNSWIndex::HNSWInsertState::HNSWInsertState(main::ClientContext* context,
     std::vector<common::LogicalType> insertTypes;
     insertTypes.push_back(common::LogicalType::INTERNAL_ID());
     insertTypes.push_back(common::LogicalType::INTERNAL_ID());
-    insertChunk = Table::constructDataChunk(context->getMemoryManager(), std::move(insertTypes));
+    insertChunk = Table::constructDataChunk(MemoryManager::Get(*context), std::move(insertTypes));
     insertChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
     std::vector<common::LogicalType> srcNodeIDTypes;
     srcNodeIDTypes.push_back(common::LogicalType::INTERNAL_ID());
     srcNodeIDChunk =
-        Table::constructDataChunk(context->getMemoryManager(), std::move(srcNodeIDTypes));
+        Table::constructDataChunk(MemoryManager::Get(*context), std::move(srcNodeIDTypes));
     srcNodeIDChunk.state->getSelVectorUnsafe().setToUnfiltered(1);
     std::vector dataVectors{&insertChunk.getValueVectorMutable(1)};
     relInsertState = std::make_unique<RelTableInsertState>(srcNodeIDChunk.getValueVectorMutable(0),
@@ -456,7 +456,7 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(const main::ClientContext* context, IndexInfo i
           getArrayTypeInfo(
               context->getStorageManager()->getTable(indexInfo.tableID)->cast<NodeTable>(),
               indexInfo.columnIDs[0])},
-      mm{context->getMemoryManager()},
+      mm{MemoryManager::Get(*context)},
       nodeTable{context->getStorageManager()->getTable(indexInfo.tableID)->cast<NodeTable>()} {
     KU_ASSERT(this->indexInfo.columnIDs.size() == 1);
     KU_ASSERT(nodeTable.getColumn(this->indexInfo.columnIDs[0]).getDataType().getLogicalTypeID() ==

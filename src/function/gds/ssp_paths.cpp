@@ -78,7 +78,7 @@ private:
         auto frontierPair = std::make_unique<SPFrontierPair>(std::move(frontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
+            storage::MemoryManager::Get(*clientContext));
         auto edgeCompute =
             std::make_unique<SSPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

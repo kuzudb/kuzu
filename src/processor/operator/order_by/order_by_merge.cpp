@@ -3,8 +3,8 @@
 #include <thread>
 
 #include "common/constants.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 
@@ -33,7 +33,7 @@ void OrderByMerge::executeInternal(ExecutionContext* /*context*/) {
 
 void OrderByMerge::initGlobalStateInternal(ExecutionContext* context) {
     // TODO(Ziyi): directly feed sharedState to merger and dispatcher.
-    sharedDispatcher->init(context->clientContext->getMemoryManager(),
+    sharedDispatcher->init(storage::MemoryManager::Get(*context->clientContext),
         sharedState->getSortedKeyBlocks(), sharedState->getPayloadTables(),
         sharedState->getStrKeyColInfo(), sharedState->getNumBytesPerTuple());
 }

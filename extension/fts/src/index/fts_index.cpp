@@ -141,7 +141,7 @@ std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContex
         std::make_unique<FTSUpdateState>(context, internalTableInfo, indexInfo.columnIDs, columnID);
     ftsUpdateState->ftsInsertState = initInsertState(context, isVisible);
     ftsUpdateState->ftsDeleteState =
-        initDeleteState(context->getTransaction(), context->getMemoryManager(), isVisible);
+        initDeleteState(context->getTransaction(), MemoryManager::Get(*context), isVisible);
     return ftsUpdateState;
 }
 
@@ -208,8 +208,8 @@ void FTSIndex::finalize(main::ClientContext* context) {
     }
     auto transaction = context->getTransaction();
     auto dataChunk = DataChunkState::getSingleValueDataChunkState();
-    ValueVector idVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunk};
-    IndexTableState indexTableState{context->getMemoryManager(), transaction, internalTableInfo,
+    ValueVector idVector{LogicalType::INTERNAL_ID(), MemoryManager::Get(*context), dataChunk};
+    IndexTableState indexTableState{MemoryManager::Get(*context), transaction, internalTableInfo,
         indexInfo.columnIDs, idVector, dataChunk};
     internalID_t insertedNodeID = {INVALID_OFFSET, internalTableInfo.table->getTableID()};
     for (auto offset = ftsStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {

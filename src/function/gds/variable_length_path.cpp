@@ -119,7 +119,7 @@ private:
         auto clientContext = context->clientContext;
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
+            storage::MemoryManager::Get(*clientContext));
         auto currentDenseFrontier =
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto nextDenseFrontier =

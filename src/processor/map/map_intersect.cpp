@@ -1,9 +1,9 @@
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_intersect.h"
 #include "processor/operator/intersect/intersect.h"
 #include "processor/operator/intersect/intersect_build.h"
 #include "processor/plan_mapper.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -28,8 +28,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(const LogicalOperator
         auto payloadExpressions =
             ExpressionUtil::excludeExpressions(buildSchema->getExpressionsInScope(), keys);
         auto buildInfo = createHashBuildInfo(*buildSchema, keys, payloadExpressions);
-        auto globalHashTable = std::make_unique<JoinHashTable>(*clientContext->getMemoryManager(),
-            ExpressionUtil::getDataTypes(keys), buildInfo.tableSchema.copy());
+        auto globalHashTable =
+            std::make_unique<JoinHashTable>(*storage::MemoryManager::Get(*clientContext),
+                ExpressionUtil::getDataTypes(keys), buildInfo.tableSchema.copy());
         auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
         auto printInfo = std::make_unique<IntersectBuildPrintInfo>(keys, payloadExpressions);

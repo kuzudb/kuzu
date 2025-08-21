@@ -47,7 +47,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     const auto outFSchema = copyFrom.getSchema();
     auto prevOperator = mapOperator(copyFrom.getChild(0).get());
     auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+        FactorizedTableUtils::getSingleStringColumnFTable(MemoryManager::Get(*clientContext));
 
     auto sharedState = std::make_shared<NodeBatchInsertSharedState>(fTable);
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
@@ -102,7 +102,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
         extraInfo.toTableName, LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.columnEvaluateTypes);
     auto sharedState =
-        std::make_shared<CopyPartitionerSharedState>(*clientContext->getMemoryManager());
+        std::make_shared<CopyPartitionerSharedState>(*MemoryManager::Get(*clientContext));
     expression_vector expressions;
     for (auto& info : partitionerInfo.infos) {
         expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);
@@ -134,7 +134,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
         warningColumnTypes.push_back(column->getDataType().copy());
     }
     auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+        FactorizedTableUtils::getSingleStringColumnFTable(MemoryManager::Get(*clientContext));
     auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
     // If the table entry doesn't exist, assume both directions
     std::vector directions = {RelDataDirection::FWD, RelDataDirection::BWD};

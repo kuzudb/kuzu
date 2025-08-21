@@ -59,7 +59,7 @@ void ScanRelTableInfo::initScanState(TableScanState& scanState,
     const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
     auto transaction = context->getTransaction();
     scanState.setToTable(transaction, table, columnIDs, copyVector(columnPredicates), direction);
-    initScanStateVectors(scanState, outVectors, context->getMemoryManager());
+    initScanStateVectors(scanState, outVectors, MemoryManager::Get(*context));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -67,7 +67,7 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
     auto clientContext = context->clientContext;
     auto boundNodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
     auto nbrNodeIDVector = outVectors[0];
-    scanState = std::make_unique<RelTableScanState>(*clientContext->getMemoryManager(),
+    scanState = std::make_unique<RelTableScanState>(*MemoryManager::Get(*clientContext),
         boundNodeIDVector, outVectors, nbrNodeIDVector->state);
     tableInfo.initScanState(*scanState, outVectors, clientContext);
 }

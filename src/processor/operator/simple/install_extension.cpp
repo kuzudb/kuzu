@@ -1,8 +1,8 @@
 #include "processor/operator/simple/install_extension.h"
 
 #include "common/string_format.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace processor {
@@ -34,7 +34,7 @@ void InstallExtension::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     ExtensionInstaller installer{info, *clientContext};
     bool installResult = installer.install();
-    setOutputMessage(installResult, clientContext->getMemoryManager());
+    setOutputMessage(installResult, storage::MemoryManager::Get(*clientContext));
     if (info.forceInstall) {
         KU_ASSERT(installResult);
     }

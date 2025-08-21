@@ -841,7 +841,7 @@ void EmbeddedShell::printHelp() {
 
 std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) const {
     auto& jsonPrinter = printer->constCast<JsonPrinter>();
-    return jsonPrinter.print(queryResult, *conn->getClientContext()->getMemoryManager());
+    return jsonPrinter.print(queryResult, *storage::MemoryManager::Get(*conn->getClientContext()));
 }
 
 std::string escapeHtmlString(const std::string& str) {

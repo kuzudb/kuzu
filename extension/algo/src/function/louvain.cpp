@@ -574,7 +574,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     const auto clientContext = input.context->clientContext;
     const auto transaction = clientContext->getTransaction();
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
-    auto mm = clientContext->getMemoryManager();
+    auto mm = MemoryManager::Get(*clientContext);
     const auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);

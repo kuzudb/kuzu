@@ -124,7 +124,6 @@ public:
 
     common::TaskScheduler* getTaskScheduler() const;
     storage::StorageManager* getStorageManager() const;
-    storage::MemoryManager* getMemoryManager() const;
     extension::ExtensionManager* getExtensionManager() const;
     storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;

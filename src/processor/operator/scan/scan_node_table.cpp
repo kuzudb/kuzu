@@ -77,7 +77,7 @@ void ScanNodeTableInfo::initScanState(TableScanState& scanState,
     const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
     auto transaction = context->getTransaction();
     scanState.setToTable(transaction, table, columnIDs, copyVector(columnPredicates));
-    initScanStateVectors(scanState, outVectors, context->getMemoryManager());
+    initScanStateVectors(scanState, outVectors, MemoryManager::Get(*context));
 }
 
 void ScanNodeTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {

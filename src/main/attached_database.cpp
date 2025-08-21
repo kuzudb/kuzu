@@ -53,7 +53,8 @@ AttachedKuzuDatabase::AttachedKuzuDatabase(std::string dbPath, std::string dbNam
     catalog = std::make_unique<catalog::Catalog>();
     validateEmptyWAL(path, clientContext);
     storageManager = std::make_unique<storage::StorageManager>(path, true /* isReadOnly */,
-        *clientContext->getMemoryManager(), clientContext->getDBConfig()->enableCompression, vfs);
+        *storage::MemoryManager::Get(*clientContext),
+        clientContext->getDBConfig()->enableCompression, vfs);
     transactionManager =
         std::make_unique<transaction::TransactionManager>(storageManager->getWAL());
 
