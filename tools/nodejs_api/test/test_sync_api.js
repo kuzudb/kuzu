@@ -70,6 +70,19 @@ describe("Query result", function () {
     const columnDataTypes = queryResult.getColumnDataTypesSync();
     assert.deepEqual(columnDataTypes, ["INT64", "STRING"]);
   });
+
+  it("should get query summary of a query result synchronously", function () {
+    const queryResult = conn.querySync(
+      "MATCH (a:person) RETURN a.ID, a.fName ORDER BY a.ID"
+    );
+    const querySummary = queryResult.getQuerySummarySync();
+    assert.isTrue(querySummary.hasOwnProperty("compilingTime"));
+    assert.isTrue(querySummary.hasOwnProperty("executionTime"));
+    assert.isNumber(querySummary.executionTime);
+    assert.isNumber(querySummary.compilingTime);
+    assert.isTrue(querySummary.executionTime >= 0);
+    assert.isTrue(querySummary.compilingTime >= 0);
+  });
 });
 
 describe("Synchronous initialization", function () {

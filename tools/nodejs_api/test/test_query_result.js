@@ -196,6 +196,21 @@ describe("Get column data types", function () {
   });
 });
 
+describe("Get query summary", function () {
+  it("should get query summary of a query result", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:person) RETURN a.ID, a.fName ORDER BY a.ID"
+    );
+    const querySummary = await queryResult.getQuerySummary();
+    assert.isTrue(querySummary.hasOwnProperty("compilingTime"));
+    assert.isTrue(querySummary.hasOwnProperty("executionTime"));
+    assert.isNumber(querySummary.executionTime);
+    assert.isNumber(querySummary.compilingTime);
+    assert.isTrue(querySummary.executionTime >= 0);
+    assert.isTrue(querySummary.compilingTime >= 0);
+  });
+});
+
 describe("Close", function () {
   it("should close the query result", async function () {
     const queryResult = await conn.query(
