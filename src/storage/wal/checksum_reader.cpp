@@ -42,4 +42,8 @@ void ChecksumReader::finishEntry() {
     }
 }
 
+common::Reader* ChecksumReader::getReader() {
+    return deserializer->getReader();
+}
+
 } // namespace kuzu::storage
