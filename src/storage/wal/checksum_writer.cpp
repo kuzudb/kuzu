@@ -15,7 +15,7 @@ ChecksumWriter::ChecksumWriter(std::shared_ptr<common::Writer> writer, MemoryMan
 void ChecksumWriter::write(const uint8_t* data, uint64_t size) {
     KU_ASSERT(currentEntrySize.has_value());
     KU_ASSERT(*currentEntrySize + size <= ENTRY_BUFFER_SIZE);
-    std::memcpy(entryBuffer->getData(), data, size);
+    std::memcpy(entryBuffer->getData() + *currentEntrySize, data, size);
     *currentEntrySize += size;
 }
 

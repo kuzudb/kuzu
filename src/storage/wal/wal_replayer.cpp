@@ -131,13 +131,19 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
                 // If we reach a checkpoint record, we can stop replaying.
                 isLastRecordCheckpoint = true;
                 finishedDeserializing = true;
-                offsetDeserialized =
-                    deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+                offsetDeserialized = deserializer.getReader()
+                                         ->cast<ChecksumReader>()
+                                         ->getReader()
+                                         ->cast<BufferedFileReader>()
+                                         ->getReadOffset();
             } break;
             case WALRecordType::COMMIT_RECORD: {
                 // Update the offset to the end of the last commit record.
-                offsetDeserialized =
-                    deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+                offsetDeserialized = deserializer.getReader()
+                                         ->cast<ChecksumReader>()
+                                         ->getReader()
+                                         ->cast<BufferedFileReader>()
+                                         ->getReadOffset();
             } break;
             default: {
                 // DO NOTHING.
