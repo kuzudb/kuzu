@@ -1,7 +1,5 @@
 #include "processor/operator/persistent/rel_batch_insert.h"
 
-#include <iostream>
-
 #include "catalog/catalog.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
