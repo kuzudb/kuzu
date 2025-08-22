@@ -20,6 +20,8 @@ public:
     // Computes + verifies the checksum for the entry that has just been read
     void finishEntry();
 
+    Reader* getReader();
+
 private:
     std::unique_ptr<common::Deserializer> deserializer;
 

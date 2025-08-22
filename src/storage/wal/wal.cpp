@@ -89,7 +89,7 @@ void WAL::initWriter(main::ClientContext* context) {
     // contain records not replayed. This can happen if checkpoint is not triggered before the
     // Database is closed last time.
     writer->setFileOffset(fileInfo->getFileSize());
-    checksumWriter = std::make_shared<ChecksumWriter>(writer, MemoryManager::Get(*context));
+    checksumWriter = std::make_shared<ChecksumWriter>(writer, *MemoryManager::Get(*context));
     serializer = std::make_unique<Serializer>(checksumWriter);
 }
 

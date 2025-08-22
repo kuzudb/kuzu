@@ -77,7 +77,7 @@ void WALReplayer::replay() const {
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
             Deserializer deserializer(
                 std::make_unique<ChecksumReader>(std::make_unique<BufferedFileReader>(*fileInfo),
-                    *clientContext.getMemoryManager()));
+                    *MemoryManager::Get(clientContext)));
 
             // Make sure the WAL file is for the current database
             ku_uuid_t walDatabaseID{};
@@ -86,8 +86,11 @@ void WALReplayer::replay() const {
                 StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
                 walDatabaseID);
 
-            while (deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset() <
-                   offsetDeserialized) {
+            while (deserializer.getReader()
+                       ->cast<ChecksumReader>()
+                       ->getReader()
+                       ->cast<BufferedFileReader>()
+                       ->getReadOffset() < offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
                 auto walRecord = WALRecord::deserialize(deserializer, clientContext);
                 replayWALRecord(*walRecord);
@@ -113,7 +116,7 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
     bool isLastRecordCheckpoint = false;
     try {
         Deserializer deserializer(std::make_unique<ChecksumReader>(
-            std::make_unique<BufferedFileReader>(fileInfo), *clientContext.getMemoryManager()));
+            std::make_unique<BufferedFileReader>(fileInfo), *MemoryManager::Get(clientContext)));
 
         ku_uuid_t walDatabaseID{};
         deserializer.deserializeValue(walDatabaseID);
