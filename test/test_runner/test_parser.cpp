@@ -138,7 +138,7 @@ bool TestParser::shouldSkip(TokenType type) {
     } break;
     case TokenType::SKIP_STATIC_LINK: {
 #ifdef __STATIC_LINK_EXTENSION_TEST__
-        testCaseName = "DISABLED_" + testCaseName;
+        return true;
 #endif
     } break;
     default: {
