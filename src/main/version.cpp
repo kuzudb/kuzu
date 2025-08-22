@@ -11,5 +11,9 @@ const char* Version::getVersion() {
 uint64_t Version::getStorageVersion() {
     return storage::StorageVersionInfo::getStorageVersion();
 }
+
+std::unordered_map<std::string, uint64_t> Version::getStorageVersionInfo() {
+    return storage::StorageVersionInfo::getStorageVersionInfo();
+}
 } // namespace main
 } // namespace kuzu

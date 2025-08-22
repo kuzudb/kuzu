@@ -17,6 +17,8 @@ public:
 
     static uint64_t getStorageVersion();
 
+    static std::unordered_map<std::string, uint64_t> getStorageVersionInfo();
+
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
         uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize,
         bool autoCheckpoint, int64_t checkpointThreshold);
