@@ -126,21 +126,51 @@ static void exportLoadedExtensions(stringstream& ss, const ClientContext* client
     }
 }
 
+struct EntryAndType {
+    const CatalogEntry* entry = nullptr;
+    CatalogEntryType type = CatalogEntryType::DUMMY_ENTRY;
+};
+
 std::string getSchemaCypher(ClientContext* clientContext) {
     stringstream ss;
     exportLoadedExtensions(ss, clientContext);
     const auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
+
+    auto nodeTableEntries = catalog->getNodeTableEntries(transaction, false);
+    auto relGroupEntries = catalog->getRelGroupEntries(transaction, false);
     ToCypherInfo toCypherInfo;
-    for (const auto& nodeTableEntry :
-        catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
-        ss << nodeTableEntry->toCypher(toCypherInfo) << std::endl;
-    }
     RelGroupToCypherInfo relTableToCypherInfo{clientContext};
-    for (const auto& entry : catalog->getRelGroupEntries(transaction, false /* useInternal */)) {
-        ss << entry->toCypher(relTableToCypherInfo) << std::endl;
-    }
     RelGroupToCypherInfo relGroupToCypherInfo{clientContext};
+
+    std::vector<EntryAndType> allEntries;
+    for (auto* e : nodeTableEntries) {
+        allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::NODE_TABLE_ENTRY});
+    }
+    for (auto* e : relGroupEntries) {
+        allEntries.push_back({e->constPtrCast<CatalogEntry>(), CatalogEntryType::REL_GROUP_ENTRY});
+    }
+    std::sort(allEntries.begin(), allEntries.end(),
+        [](const EntryAndType& a, const EntryAndType& b) {
+            return a.entry->getOID() < b.entry->getOID();
+        });
+
+    for (const auto& entryWithType : allEntries) {
+        switch (entryWithType.type) {
+        case CatalogEntryType::NODE_TABLE_ENTRY:
+            ss << entryWithType.entry->constPtrCast<NodeTableCatalogEntry>()->toCypher(toCypherInfo)
+               << std::endl;
+            break;
+        case CatalogEntryType::REL_GROUP_ENTRY:
+            ss << entryWithType.entry->constPtrCast<RelGroupCatalogEntry>()->toCypher(
+                      relTableToCypherInfo)
+               << std::endl;
+            break;
+        default:
+            KU_UNREACHABLE;
+            break;
+        }
+    }
     for (const auto sequenceEntry : catalog->getSequenceEntries(transaction)) {
         ss << sequenceEntry->toCypher(relGroupToCypherInfo) << std::endl;
     }
