@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/types.h"
