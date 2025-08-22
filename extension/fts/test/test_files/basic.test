@@ -344,5 +344,13 @@ title3
 Binder exception: Cannot delete node table Documents because it is referenced by index documents_index.
 -STATEMENT CALL DROP_FTS_INDEX('Documents', 'documents_index');
 ---- ok
+# Re-create the index
+-STATEMENT CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english');
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *;
+---- 1
+Documents|documents_index|FTS|[text]|True|CALL CREATE_FTS_INDEX('Documents', 'documents_index', ['text'], stemmer := 'english', stopWords := 'default');
+-STATEMENT CALL DROP_FTS_INDEX('Documents', 'documents_index');
+---- ok
 -STATEMENT DROP TABLE Documents;
 ---- ok
