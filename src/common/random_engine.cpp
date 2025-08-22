@@ -13,6 +13,11 @@ RandomEngine::RandomEngine(uint64_t seed, uint64_t stream) : randomState(RandomS
     randomState.pcg.seed(seed, stream);
 }
 
+void RandomEngine::setSeed(uint64_t seed) {
+    std::unique_lock xLck{mtx};
+    randomState.pcg.seed(seed);
+}
+
 uint32_t RandomEngine::nextRandomInteger() {
     std::unique_lock xLck{mtx};
     return randomState.pcg();

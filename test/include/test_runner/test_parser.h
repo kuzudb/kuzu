@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "common/exception/test.h"
+#include "common/random_engine.h"
 #include "test_helper/test_helper.h"
 #include "test_runner/test_group.h"
 
@@ -58,7 +59,11 @@ enum class TokenType {
 
     // Special tokens for testing exporting database
     IMPORT_DATABASE,
-    REMOVE_FILE
+    REMOVE_FILE,
+
+    // Loop control tokens
+    LOOP,
+    ENDLOOP
 };
 
 const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", TokenType::DATASET},
@@ -87,7 +92,8 @@ const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", Token
     {"-END_CONCURRENT_EXECUTION", TokenType::END_CONCURRENT_EXECUTION},
     {"-CREATE_DATASET_SCHEMA", TokenType::CREATE_DATASET_SCHEMA},
     {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW},
-    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}};
+    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}, {"-LOOP", TokenType::LOOP},
+    {"-ENDLOOP", TokenType::ENDLOOP}};
 
 class LogicToken {
 public:
@@ -101,37 +107,35 @@ public:
     static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
     static constexpr uint64_t STANDARD_PAGE_SIZE_LOG_2 = 12;
 
-    explicit TestParser(std::string path)
-        : path{std::move(path)}, testGroup{std::make_unique<TestGroup>()}, currentToken{} {}
+    explicit TestParser(std::string path);
     std::unique_ptr<TestGroup> parseTestFile();
 
 private:
-    std::string path;
-    std::ifstream fileStream;
-    std::streampos previousFilePosition;
-    std::string line;
-    std::string logMessage;
-    std::unique_ptr<TestGroup> testGroup;
     std::string extractTextBeforeNextStatement(bool ignoreLineBreak = false);
-    std::string parseCommand();
-    std::string parseCommandArange() const;
-    std::string parseCommandRepeat();
-    LogicToken currentToken;
+    common::Value parseAndEvaluateFunction();
+    common::Value evaluateARange() const;
+    common::Value evaluateRepeat();
+    static common::Value evaluateCurrentTimestamp();
+    common::Value evaluateRandom(const std::string& funcCall);
+    common::Value evaluateRandomDotFunction(const std::string& funcCall);
 
     void openFile();
     void tokenize();
     void genGroupName() const;
     void parseHeader();
     void parseBody();
-    void extractExpectedResults(TestStatement* statement);
+    void parseLoop(const std::string& testCaseName);
+    void extractExpectedResults(TestStatement& statement);
     TestQueryResult extractExpectedResultFromToken();
     void extractStatementBlock();
     void extractDataset();
     void addStatementBlock(const std::string& blockName, const std::string& testCaseName) const;
     void replaceVariables(std::string& str) const;
-    static void extractConnName(std::string& query, TestStatement* statement);
+    static void extractConnName(std::string& query, TestStatement& statement);
 
     void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
+    void setToPosition(uint64_t position) { fileStream.seekg(position); }
+    uint64_t getFilePosition() { return fileStream.tellg(); }
 
     bool nextLine() {
         previousFilePosition = fileStream.tellg();
@@ -156,17 +160,30 @@ private:
 
     std::string getParam(int paramIdx) { return currentToken.params[paramIdx]; }
 
-    TestStatement* extractStatement(TestStatement* statement, const std::string& testCaseName);
-    TestStatement* addNewStatement(const std::string& testGroupName) const;
+    static bool shouldSkip(TokenType type);
+    TestStatement parseStatement(const std::string& testCaseName);
 
+private:
     const std::string exportDBPath = TestHelper::getTempDir("export_db");
+    const std::string REPEAT_FUNC = "REPEAT";
+    const std::string ARANGE_FUNC = "ARANGE";
+    const std::string CURRENT_TIMESTAMP_FUNC = "current_timestamp()";
+    const std::string RANDOM_FUNC = "RANDOM";
     // Any value here will be replaced inside the .test files
     // in queries/statements and expected error message.
     // Example: ${KUZU_ROOT_DIRECTORY} will be replaced by
     // KUZU_ROOT_DIRECTORY
-    std::unordered_map<std::string, std::string> variableMap = {
-        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}, {"KUZU_VERSION", common::KUZU_VERSION},
-        {"KUZU_EXPORT_DB_DIRECTORY", exportDBPath}};
+    std::unordered_map<std::string, common::Value> variableMap;
+
+private:
+    std::string path;
+    std::ifstream fileStream;
+    std::streampos previousFilePosition;
+    std::string line;
+    std::string logMessage;
+    std::unique_ptr<TestGroup> testGroup;
+    LogicToken currentToken;
+    common::RandomEngine randomEngine;
 };
 
 } // namespace testing

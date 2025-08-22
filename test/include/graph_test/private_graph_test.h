@@ -18,16 +18,16 @@ protected:
     static transaction::TransactionManager* getTransactionManager(main::Database& database) {
         return database.getTransactionManager();
     }
-    static transaction::TransactionMode getTransactionMode(main::Connection& connection) {
+    static transaction::TransactionMode getTransactionMode(const main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getTransactionMode();
     }
-    static transaction::Transaction* getActiveTransaction(main::Connection& connection) {
+    static transaction::Transaction* getActiveTransaction(const main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getActiveTransaction();
     }
-    static uint64_t getActiveTransactionID(main::Connection& connection) {
+    static uint64_t getActiveTransactionID(const main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->getActiveTransaction()->getID();
     }
-    static bool hasActiveTransaction(main::Connection& connection) {
+    static bool hasActiveTransaction(const main::Connection& connection) {
         return connection.clientContext->getTransactionContext()->hasActiveTransaction();
     }
 };
@@ -52,16 +52,16 @@ public:
         }
     }
     void reset() { statements.clear(); }
-    void addStatement(TestStatement* statement) { statements.emplace_back(statement); }
+    void addStatement(TestStatement& statement) { statements.emplace_back(statement); }
 
 private:
-    void runStatements();
+    void runStatements() const;
 
     bool& connectionPaused;
     main::Connection& connection;
     std::string databasePath;
     std::thread connThread;
-    std::vector<TestStatement*> statements;
+    std::vector<std::reference_wrapper<TestStatement>> statements;
 };
 
 // This class starts database in on-disk mode.
@@ -75,7 +75,7 @@ public:
     void createDB(uint64_t checkpointWaitTimeout);
     void createNewDB();
 
-    void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
+    void runTest(std::vector<TestStatement>& statements,
         uint64_t checkpointWaitTimeout = common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_IN_MICROS,
         std::set<std::string> connNames = std::set<std::string>());
 

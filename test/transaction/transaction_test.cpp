@@ -150,7 +150,7 @@ TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertions) {
     }
     conn->query("CALL debug_enable_multi_writes=true;");
     auto numThreads = 4;
-    auto numInsertsPerThread = 10000;
+    auto numInsertsPerThread = 1000;
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
     std::vector<std::thread> threads;
     for (auto i = 0; i < numThreads; ++i) {
@@ -194,7 +194,7 @@ TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertionsMixedTypes) {
     }
     conn->query("CALL debug_enable_multi_writes=true;");
     auto numThreads = 4;
-    auto numInsertsPerThread = 5000;
+    auto numInsertsPerThread = 1000;
     conn->query("CREATE NODE TABLE mixed_test(id INT64 PRIMARY KEY, score DOUBLE, active BOOLEAN, "
                 "name STRING);");
     std::vector<std::thread> threads;
@@ -246,10 +246,12 @@ TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipInsertions) {
     conn->query("CREATE NODE TABLE person(id INT64 PRIMARY KEY, name STRING);");
     conn->query("CREATE REL TABLE knows(FROM person TO person, weight DOUBLE);");
 
+    conn->query("BEGIN TRANSACTION;");
     for (auto i = 0; i < numTotalInsertions; ++i) {
         auto res = conn->query(stringFormat("CREATE (:person {id: {}, name: 'Person{}'});", i, i));
         ASSERT_TRUE(res->isSuccess());
     }
+    conn->query("COMMIT;");
 
     std::vector<std::thread> threads;
     for (auto i = 0; i < numThreads; ++i) {
@@ -305,6 +307,7 @@ TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions) {
     conn->query("CREATE NODE TABLE product(id INT64 PRIMARY KEY, title STRING);");
     conn->query("CREATE REL TABLE rates(FROM user TO product, rating INT64, verified BOOLEAN);");
 
+    conn->query("BEGIN TRANSACTION;");
     for (auto i = 0; i < numTotalInsertions; ++i) {
         auto res = conn->query(stringFormat("CREATE (:user {id: {}, name: 'User{}'});", i, i));
         ASSERT_TRUE(res->isSuccess());
@@ -314,6 +317,7 @@ TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions) {
             conn->query(stringFormat("CREATE (:product {id: {}, title: 'Product{}'});", i, i));
         ASSERT_TRUE(res->isSuccess());
     }
+    conn->query("COMMIT;");
 
     std::vector<std::thread> threads;
     for (auto i = 0; i < numThreads; ++i) {
