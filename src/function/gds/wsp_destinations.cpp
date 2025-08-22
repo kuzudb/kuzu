@@ -1,9 +1,9 @@
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
+#include "function/gds/weight_utils.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
-#include "wsp_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -191,7 +191,7 @@ public:
         chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             auto nbrNodeID = neighbors[i];
             auto weight = propertyVectors[0]->template getValue<T>(i);
-            checkWeight(weight);
+            WeightUtils::checkWeight(WeightedSPDestinationsFunction::name, weight);
             if (costsPair->update(boundNodeID.offset, nbrNodeID.offset,
                     static_cast<double>(weight))) {
                 result.push_back(nbrNodeID);
@@ -311,11 +311,12 @@ private:
         auto costPairPtr = costsPair.get();
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(std::move(costsPair));
         std::unique_ptr<GDSComputeState> gdsState;
-        visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
-            auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costPairPtr);
-            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-                std::move(edgeCompute), std::move(auxiliaryState));
-        });
+        WeightUtils::visit(WeightedSPDestinationsFunction::name,
+            bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+                auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costPairPtr);
+                gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                    std::move(edgeCompute), std::move(auxiliaryState));
+            });
         return gdsState;
     }
 
