@@ -28,10 +28,10 @@ struct WeightProperty {
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
 };
 
-struct SFConfig final : public GDSConfig {
+struct BCConfig final : public GDSConfig {
     std::string direction = Direction::DEFAULT_VALUE;
     std::string weightProperty;
-    SFConfig() = default;
+    BCConfig() = default;
 };
 
 } // namespace function
