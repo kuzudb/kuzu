@@ -1,7 +1,8 @@
 #pragma once
 #include <cstdint>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
+
 #include "common/api.h"
 namespace kuzu {
 namespace main {
@@ -22,7 +23,8 @@ public:
 
     /**
      * @brief Get the storage version information of the Kuzu library.
-     * @return std::unordered_map<std::string, uint64_t> The mapping from library version to the corresponding storage version.
+     * @return std::unordered_map<std::string, uint64_t> The mapping from library version to the
+     * corresponding storage version.
      */
     KUZU_API static std::unordered_map<std::string, uint64_t> getStorageVersionInfo();
 };
