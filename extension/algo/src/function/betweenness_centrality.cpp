@@ -81,6 +81,9 @@ namespace algo_extension {
 //             dep[p] += (numSP[p] / numSP[u]) * (1 + dep[u])
 //       * If u != s, add dep[u] to BC[u]
 
+// Currently not matching neo4j and NX (do Epinions benchmark). This needs to be
+// resolved or explained before merging.
+
 /**CONFIG**/
 
 struct BetweennessCentralityOptionalParams final : public MaxIterationOptionalParams {
