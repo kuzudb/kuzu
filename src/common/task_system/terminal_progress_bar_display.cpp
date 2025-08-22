@@ -1,5 +1,6 @@
-#include "common/assert.h"
 #include "common/task_system/terminal_progress_bar_display.h"
+
+#include "common/assert.h"
 
 namespace kuzu {
 namespace common {
