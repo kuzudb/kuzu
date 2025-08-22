@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/rel_batch_insert.h"
 
+#include <iostream>
+
 #include "catalog/catalog.h"
 #include "common/exception/copy.h"
 #include "common/exception/message.h"
@@ -13,8 +15,6 @@
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table.h"
-
-#include <iostream>
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
