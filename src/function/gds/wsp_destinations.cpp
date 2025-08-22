@@ -191,7 +191,7 @@ public:
         chunk.forEach([&](auto neighbors, auto propertyVectors, auto i) {
             auto nbrNodeID = neighbors[i];
             auto weight = propertyVectors[0]->template getValue<T>(i);
-            WeightUtils::checkWeight(weight);
+            WeightUtils::checkWeight(WeightedSPDestinationsFunction::name, weight);
             if (costsPair->update(boundNodeID.offset, nbrNodeID.offset,
                     static_cast<double>(weight))) {
                 result.push_back(nbrNodeID);
@@ -311,7 +311,7 @@ private:
         auto costPairPtr = costsPair.get();
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(std::move(costsPair));
         std::unique_ptr<GDSComputeState> gdsState;
-        WeightUtils::visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+        WeightUtils::visit(WeightedSPDestinationsFunction::name, bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costPairPtr);
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
                 std::move(edgeCompute), std::move(auxiliaryState));

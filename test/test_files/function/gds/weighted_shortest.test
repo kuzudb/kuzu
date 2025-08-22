@@ -265,11 +265,11 @@ F|112.000000|[A,B,D,E,F]|[2,40,30,40]
 -STATEMENT MATCH (a)-[e* WSHORTEST(cost1) ]->(b)
            RETURN a.ID, b.ID, cost(e)
 ---- error
-Runtime exception: Found negative weight -1. This is not supported in weighted shortest path.
+Runtime exception: Found negative weight -1. This is not a supported weight for WEIGHTED_SP_DESTINATIONS
 -STATEMENT MATCH p=(a)-[e* WSHORTEST(cost1) ]->(b)
            RETURN p
 ---- error
-Runtime exception: Found negative weight -1. This is not supported in weighted shortest path.
+Runtime exception: Found negative weight -1. This is not a supported weight for WEIGHTED_SP_PATHS
 -STATEMENT MATCH p=(a)-[e*]->(b)
            RETURN cost(e)
 ---- error

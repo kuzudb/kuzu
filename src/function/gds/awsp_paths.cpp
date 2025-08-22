@@ -29,7 +29,7 @@ public:
             auto nbrNodeID = neighbors[i];
             auto edgeID = propertyVectors[0]->template getValue<relID_t>(i);
             auto weight = propertyVectors[1]->template getValue<T>(i);
-            WeightUtils::checkWeight(weight);
+            WeightUtils::checkWeight(AllWeightedSPPathsFunction::name, weight);
             if (!block->hasSpace()) {
                 block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
@@ -153,7 +153,7 @@ private:
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         std::unique_ptr<GDSComputeState> gdsState;
-        WeightUtils::visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+        WeightUtils::visit(AllWeightedSPPathsFunction::name, bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraph.get());
             auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),

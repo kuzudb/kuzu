@@ -329,9 +329,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalCompute compute(mm, numNodes);
-    WeightUtils::visit(propertyType, [&]<typename T>(T) {
-        compute.initEdges<T>(graph, tableId, scanState.get(),
-            !config.weightProperty.getParamVal().empty());
+    WeightUtils::visit(SpanningForest::name, propertyType, [&]<typename T>(T) {
+         compute.initEdges<T>(graph, tableId, scanState.get(), !config.weightProperty.getParamVal().empty());
     });
     compute.sortEdges(config.variant.getParamVal());
     compute.run();

@@ -9,17 +9,17 @@ namespace function {
 
 struct WeightUtils {
     template<typename... Fs>
-    static auto visit(const common::LogicalType& dataType, Fs... funcs);
+    static auto visit(const std::string& fcn, const common::LogicalType& dataType, Fs... funcs);
 
     template<typename... Fs>
-    static auto visit(const common::LogicalTypeID& dataType, Fs... funcs);
+    static auto visit(const std::string& fcn, const common::LogicalTypeID& dataType, Fs... funcs);
 
     template<typename T>
-    static void checkWeight(T weight);
+    static void checkWeight(const std::string& fcn, T weight);
 };
 
 template<typename... Fs>
-auto WeightUtils::visit(const common::LogicalType& dataType, Fs... funcs) {
+auto WeightUtils::visit(const std::string& fcn, const common::LogicalType& dataType, Fs... funcs) {
     auto func = common::overload(funcs...);
     switch (dataType.getLogicalTypeID()) {
     /* NOLINTBEGIN(bugprone-branch-clone)*/
@@ -49,12 +49,12 @@ auto WeightUtils::visit(const common::LogicalType& dataType, Fs... funcs) {
     }
     // LCOV_EXCL_START
     throw common::RuntimeException(common::stringFormat(
-        "{} weight type is not supported for weighted shortest path.", dataType.toString()));
+        "{} weight type is not supported for {}.", dataType.toString(), fcn));
     // LCOV_EXCL_STOP
 }
 
 template<typename... Fs>
-auto WeightUtils::visit(const common::LogicalTypeID& dataType, Fs... funcs) {
+auto WeightUtils::visit(const std::string& fcn, const common::LogicalTypeID& dataType, Fs... funcs) {
     auto func = common::overload(funcs...);
     switch (dataType) {
     /* NOLINTBEGIN(bugprone-branch-clone)*/
@@ -83,17 +83,16 @@ auto WeightUtils::visit(const common::LogicalTypeID& dataType, Fs... funcs) {
         break;
     }
     // LCOV_EXCL_START
-    throw common::RuntimeException(
-        common::stringFormat("{} weight type is not supported for weighted shortest path.",
-            common::LogicalType(dataType).toString()));
+    throw common::RuntimeException(common::stringFormat(
+        "{} weight type is not supported for {}.", common::LogicalType(dataType).toString(), fcn));
     // LCOV_EXCL_STOP
 }
 
 template<typename T>
-void WeightUtils::checkWeight(T weight) {
+void WeightUtils::checkWeight(const std::string& fcn, T weight) {
     if (weight < 0) {
         [[unlikely]] throw common::RuntimeException(common::stringFormat(
-            "Found negative weight {}. This is not a supported weight.", weight));
+            "Found negative weight {}. This is not a supported weight for {}", weight, fcn));
     }
 }
 
