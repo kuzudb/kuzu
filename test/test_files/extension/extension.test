@@ -36,7 +36,7 @@ You can install it by: install httpfs.
 ---- ok
 -STATEMENT UNINSTALL fts;
 ---- error
-Runtime exception: Can not uninstall extension: duckdb since it has not been installed.
+Runtime exception: Can not uninstall extension: fts since it has not been installed.
 -STATEMENT INSTALL vector;
 ---- ok
 -STATEMENT UNINSTALL vector;
