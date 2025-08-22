@@ -73,7 +73,7 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
     const auto clientContext = context->clientContext;
     // If initialization is required
     if (!sharedState->srcNodeTable) {
-        auto storageManager = clientContext->getStorageManager();
+        auto storageManager = StorageManager::Get(*clientContext);
         auto catalog = clientContext->getCatalog();
         auto transaction = clientContext->getTransaction();
         auto fromTableID =

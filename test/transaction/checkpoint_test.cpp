@@ -138,7 +138,7 @@ public:
         : Checkpointer(context) {}
 
     void logCheckpointAndApplyShadowPages() override {
-        const auto storageManager = clientContext.getStorageManager();
+        const auto storageManager = StorageManager::Get(clientContext);
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
         shadowFile.flushAll();
@@ -164,7 +164,7 @@ public:
         : Checkpointer(context) {}
 
     void logCheckpointAndApplyShadowPages() override {
-        const auto storageManager = clientContext.getStorageManager();
+        const auto storageManager = StorageManager::Get(clientContext);
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
         shadowFile.flushAll();
@@ -197,7 +197,7 @@ public:
         : Checkpointer(context) {}
 
     void logCheckpointAndApplyShadowPages() override {
-        const auto storageManager = clientContext.getStorageManager();
+        const auto storageManager = StorageManager::Get(clientContext);
         auto& shadowFile = storageManager->getShadowFile();
         // Flush the shadow file.
         shadowFile.flushAll();

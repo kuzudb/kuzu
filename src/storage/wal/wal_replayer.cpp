@@ -187,7 +187,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
 void WALReplayer::replayCreateCatalogEntryRecord(WALRecord& walRecord) const {
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
-    auto storageManager = clientContext.getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     auto& record = walRecord.cast<CreateCatalogEntryRecord>();
     switch (record.ownedCatalogEntry->getType()) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -248,10 +248,10 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
-    auto storageManager = clientContext.getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     auto ownedAlterInfo = alterEntryRecord.ownedAlterInfo.get();
     catalog->alterTableEntry(transaction, *ownedAlterInfo);
-    auto& pageAllocator = *clientContext.getStorageManager()->getDataFH()->getPageManager();
+    auto& pageAllocator = *PageManager::Get(clientContext);
     switch (ownedAlterInfo->alterType) {
     case AlterType::ADD_PROPERTY: {
         const auto exprBinder = binder.getExpressionBinder();
@@ -265,7 +265,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
         const auto entry = catalog->getTableCatalogEntry(transaction, ownedAlterInfo->tableName);
         const auto& addedProp = entry->getProperty(addInfo->propertyDefinition.getName());
         TableAddColumnState state{addedProp, *defaultValueEvaluator};
-        KU_ASSERT(clientContext.getStorageManager());
+        KU_ASSERT(StorageManager::Get(clientContext));
         switch (entry->getTableType()) {
         case TableType::REL: {
             for (auto& relEntryInfo : entry->cast<RelGroupCatalogEntry>().getRelEntryInfos()) {
@@ -313,7 +313,7 @@ void WALReplayer::replayTableInsertionRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const {
     const auto& insertionRecord = walRecord.constCast<TableInsertionRecord>();
     const auto tableID = insertionRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<NodeTable>();
     KU_ASSERT(!insertionRecord.ownedVectors.empty());
     const auto anchorState = insertionRecord.ownedVectors[0]->state;
     const auto numNodes = anchorState->getSelVector().getSelSize();
@@ -342,7 +342,7 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
 void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
     const auto& insertionRecord = walRecord.constCast<TableInsertionRecord>();
     const auto tableID = insertionRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<RelTable>();
     KU_ASSERT(!insertionRecord.ownedVectors.empty());
     const auto anchorState = insertionRecord.ownedVectors[0]->state;
     const auto numRels = anchorState->getSelVector().getSelSize();
@@ -372,7 +372,7 @@ void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayNodeDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<NodeDeletionRecord>();
     const auto tableID = deletionRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<NodeTable>();
     const auto anchorState = deletionRecord.ownedPKVector->state;
     KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
@@ -388,7 +388,7 @@ void WALReplayer::replayNodeDeletionRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
     const auto& updateRecord = walRecord.constCast<NodeUpdateRecord>();
     const auto tableID = updateRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<NodeTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<NodeTable>();
     const auto anchorState = updateRecord.ownedPropertyVector->state;
     KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto nodeIDVector = std::make_unique<ValueVector>(LogicalType::INTERNAL_ID());
@@ -404,7 +404,7 @@ void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<RelDeletionRecord>();
     const auto tableID = deletionRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<RelTable>();
     const auto anchorState = deletionRecord.ownedRelIDVector->state;
     KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto deleteState =
@@ -417,7 +417,7 @@ void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
 void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<RelDetachDeleteRecord>();
     const auto tableID = deletionRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<RelTable>();
     KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
     const auto anchorState = deletionRecord.ownedSrcNodeIDVector->state;
     KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
@@ -435,7 +435,7 @@ void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) cons
 void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
     const auto& updateRecord = walRecord.constCast<RelUpdateRecord>();
     const auto tableID = updateRecord.tableID;
-    auto& table = clientContext.getStorageManager()->getTable(tableID)->cast<RelTable>();
+    auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<RelTable>();
     const auto anchorState = updateRecord.ownedRelIDVector->state;
     KU_ASSERT(anchorState == updateRecord.ownedSrcNodeIDVector->state &&
               anchorState == updateRecord.ownedSrcNodeIDVector->state &&
@@ -471,7 +471,7 @@ void WALReplayer::removeWALAndShadowFiles() const {
 }
 
 void WALReplayer::removeFileIfExists(const std::string& path) const {
-    if (clientContext.getStorageManager()->isReadOnly()) {
+    if (StorageManager::Get(clientContext)->isReadOnly()) {
         return;
     }
     auto vfs = clientContext.getVFSUnsafe();
@@ -482,7 +482,7 @@ void WALReplayer::removeFileIfExists(const std::string& path) const {
 
 std::unique_ptr<FileInfo> WALReplayer::openWALFile() const {
     auto flag = FileFlags::READ_ONLY;
-    if (!clientContext.getStorageManager()->isReadOnly()) {
+    if (!StorageManager::Get(clientContext)->isReadOnly()) {
         flag |= FileFlags::WRITE; // The write flag here is to ensure the file is opened with O_RDWR
                                   // so that we can sync it.
     }
@@ -490,14 +490,14 @@ std::unique_ptr<FileInfo> WALReplayer::openWALFile() const {
 }
 
 void WALReplayer::syncWALFile(const FileInfo& fileInfo) const {
-    if (clientContext.getStorageManager()->isReadOnly()) {
+    if (StorageManager::Get(clientContext)->isReadOnly()) {
         return;
     }
     fileInfo.syncFile();
 }
 
 void WALReplayer::truncateWALFile(FileInfo& fileInfo, uint64_t size) const {
-    if (clientContext.getStorageManager()->isReadOnly()) {
+    if (StorageManager::Get(clientContext)->isReadOnly()) {
         return;
     }
     if (fileInfo.getFileSize() > size) {

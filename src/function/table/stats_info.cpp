@@ -69,7 +69,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         columnNames.push_back(propDef.getName() + "_distinct_count");
         columnTypes.push_back(LogicalType::INT64());
     }
-    const auto storageManager = context->getStorageManager();
+    const auto storageManager = storage::StorageManager::Get(*context);
     auto table = storageManager->getTable(tableEntry->getTableID());
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);

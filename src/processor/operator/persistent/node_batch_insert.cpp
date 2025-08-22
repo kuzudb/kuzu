@@ -43,11 +43,11 @@ void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
         clientContext->getCatalog()
             ->getTableCatalogEntry(clientContext->getTransaction(), info->tableName)
             ->ptrCast<NodeTableCatalogEntry>();
-    auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
+    auto nodeTable = StorageManager::Get(*clientContext)->getTable(nodeTableEntry->getTableID());
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     // Init info
-    info->compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    info->compressionEnabled = StorageManager::Get(*clientContext)->compressionEnabled();
     auto dataColumnIdx = 0u;
     for (auto& property : nodeTableEntry->getProperties()) {
         info->columnTypes.push_back(property.getType().copy());

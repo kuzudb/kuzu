@@ -123,9 +123,7 @@ public:
     AttachedKuzuDatabase* getAttachedDatabase() const;
 
     common::TaskScheduler* getTaskScheduler() const;
-    storage::StorageManager* getStorageManager() const;
     extension::ExtensionManager* getExtensionManager() const;
-    storage::WAL* getWAL() const;
     catalog::Catalog* getCatalog() const;
     common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine() const;

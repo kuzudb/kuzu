@@ -46,7 +46,7 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
 }
 
 PageAllocator* LocalStorage::addOptimisticAllocator() {
-    auto* dataFH = clientContext.getStorageManager()->getDataFH();
+    auto* dataFH = StorageManager::Get(clientContext)->getDataFH();
     if (dataFH->isInMemoryMode()) {
         return dataFH->getPageManager();
     }
@@ -59,7 +59,7 @@ PageAllocator* LocalStorage::addOptimisticAllocator() {
 void LocalStorage::commit() {
     auto catalog = clientContext.getCatalog();
     auto transaction = clientContext.getTransaction();
-    auto storageManager = clientContext.getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
             const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
@@ -89,8 +89,7 @@ void LocalStorage::rollback() {
         optimisticAllocator->rollback();
     }
     auto* bufferManager = mm->getBufferManager();
-    clientContext.getStorageManager()->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(
-        bufferManager);
+    PageManager::Get(clientContext)->clearEvictedBMEntriesIfNeeded(bufferManager);
 }
 
 } // namespace storage

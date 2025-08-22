@@ -46,7 +46,7 @@ static offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput& 
     auto& context = *input.context;
     context.clientContext->getCatalog()->dropIndex(input.context->clientContext->getTransaction(),
         ftsBindData.tableID, ftsBindData.indexName);
-    context.clientContext->getStorageManager()
+    storage::StorageManager::Get(*context.clientContext)
         ->getTable(ftsBindData.tableID)
         ->cast<storage::NodeTable>()
         .dropIndex(ftsBindData.indexName);

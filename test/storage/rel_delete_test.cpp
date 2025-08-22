@@ -34,8 +34,7 @@ void RelDeleteTest::detachDeleteNode(std::string_view nodeTable, std::string_vie
             ->getTableCatalogEntry(conn->getClientContext()->getTransaction(),
                 std::string{relTable})
             ->constCast<catalog::RelGroupCatalogEntry>();
-    auto& knowsTable = conn->getClientContext()
-                           ->getStorageManager()
+    auto& knowsTable = storage::StorageManager::Get(*conn->getClientContext())
                            ->getTable(knowsTableEntry.getRelEntryInfos()[0].oid)
                            ->cast<storage::RelTable>();
 

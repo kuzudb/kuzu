@@ -27,7 +27,7 @@ namespace vector_extension {
 
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
-      nodeTable{bindData.context->getStorageManager()
+      nodeTable{storage::StorageManager::Get(*bindData.context)
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
@@ -48,7 +48,8 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
         HNSWIndexUtils::IndexOperation::CREATE);
     const auto tableID = tableEntry->getTableID();
     HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
-    const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
+    const auto& table =
+        storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = HNSWIndexConfig{input->optionalParams};
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
@@ -146,7 +147,7 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
-    const auto storageManager = clientContext->getStorageManager();
+    const auto storageManager = storage::StorageManager::Get(*clientContext);
     const auto catalog = clientContext->getCatalog();
     const auto transaction = clientContext->getTransaction();
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
@@ -280,7 +281,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
         index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->numRows);
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,
         std::move(storageInfo), bindData->config.copy());
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = storage::StorageManager::Get(*clientContext);
     auto nodeTable = storageManager->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     nodeTable->addIndex(std::move(onDiskIndex));
     index->moveToPartitionState(*hnswSharedState->partitionerSharedState);

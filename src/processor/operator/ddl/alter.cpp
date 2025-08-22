@@ -292,7 +292,7 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
     }
 
     // Handle storage changes
-    const auto storageManager = clientContext->getStorageManager();
+    const auto storageManager = storage::StorageManager::Get(*clientContext);
     catalog->alterTableEntry(transaction, alterInfo);
     // We don't use an optimistic allocator in this case since rollback of new columns is already
     // handled by checkpoint

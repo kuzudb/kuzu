@@ -42,7 +42,7 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     default:
         KU_UNREACHABLE;
     }
-    clientContext->getStorageManager()->createTable(entry->ptrCast<TableCatalogEntry>());
+    storage::StorageManager::Get(*clientContext)->createTable(entry->ptrCast<TableCatalogEntry>());
     appendMessage(stringFormat("Table {} has been created.", info.tableName), memoryManager);
     sharedState->tableCreated = true;
 }

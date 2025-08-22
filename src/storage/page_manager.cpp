@@ -2,6 +2,7 @@
 
 #include "common/uniq_lock.h"
 #include "storage/file_handle.h"
+#include "storage/storage_manager.h"
 
 namespace kuzu::storage {
 static constexpr bool ENABLE_FSM = true;
@@ -57,4 +58,9 @@ void PageManager::finalizeCheckpoint() {
 void PageManager::clearEvictedBMEntriesIfNeeded(BufferManager* bufferManager) {
     freeSpaceManager->clearEvictedBufferManagerEntriesIfNeeded(bufferManager);
 }
+
+PageManager* PageManager::Get(const main::ClientContext& context) {
+    return StorageManager::Get(context)->getDataFH()->getPageManager();
+}
+
 } // namespace kuzu::storage

@@ -17,7 +17,7 @@ namespace fts_extension {
 using namespace extension;
 
 static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catalog) {
-    auto storageManager = context->getStorageManager();
+    auto storageManager = storage::StorageManager::Get(*context);
     for (auto& indexEntry : catalog.getIndexEntries(context->getTransaction())) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {

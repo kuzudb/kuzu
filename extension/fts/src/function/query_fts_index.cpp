@@ -289,7 +289,7 @@ static constexpr char DOC_ID_PROP_NAME[] = "docID";
 static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
     processor::ExecutionContext* executionContext, graph::Graph* graph,
     catalog::TableCatalogEntry* termsEntry, std::vector<std::string>& queryTerms) {
-    auto storageManager = context.getStorageManager();
+    auto storageManager = StorageManager::Get(context);
     auto tableID = termsEntry->getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
     auto tx = context.getTransaction();
@@ -391,7 +391,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::move(nextFrontier));
     auto termsTableID = termsEntry->getTableID();
     initFrontier(*frontierPair, termsTableID, dfs);
-    auto storageManager = clientContext.getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     frontierPair->setActiveNodesForNextIter();
 
     node_id_map_t<ScoreInfo> scores;
@@ -470,7 +470,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto scoreColumn = input->binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
     columns.push_back(scoreColumn);
     auto nodeTable =
-        context->getStorageManager()->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
+        StorageManager::Get(*context)->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
     auto index = nodeTable->getIndex(indexName);
     KU_ASSERT(index.has_value());
     auto& ftsIndex = index.value()->cast<FTSIndex>();

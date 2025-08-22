@@ -112,7 +112,7 @@ void Checkpointer::writeCheckpoint() {
     // This function will evict all pages that were freed during this checkpoint
     // It must be called before we remove all evicted candidates from the BM
     // Or else the evicted pages may end up appearing multiple times in the eviction queue
-    auto storageManager = clientContext.getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     storageManager->finalizeCheckpoint();
     // When a page is freed by the FSM, it evicts it from the BM. However, if the page is freed,
     // then reused over and over, it can be appended to the eviction queue multiple times. To
@@ -129,14 +129,14 @@ void Checkpointer::writeCheckpoint() {
 }
 
 bool Checkpointer::checkpointStorage() {
-    const auto storageManager = clientContext.getStorageManager();
+    const auto storageManager = StorageManager::Get(clientContext);
     auto pageAllocator = storageManager->getDataFH()->getPageManager();
     return storageManager->checkpoint(&clientContext, *pageAllocator);
 }
 
 void Checkpointer::serializeCatalogAndMetadata(DatabaseHeader& databaseHeader,
     bool hasStorageChanges) {
-    const auto storageManager = clientContext.getStorageManager();
+    const auto storageManager = StorageManager::Get(clientContext);
     const auto catalog = clientContext.getCatalog();
     auto* dataFH = storageManager->getDataFH();
 
@@ -164,7 +164,7 @@ void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
     header.serialize(headerSerializer);
     auto headerPage = headerWriter->getPage(0);
 
-    const auto storageManager = clientContext.getStorageManager();
+    const auto storageManager = StorageManager::Get(clientContext);
     auto dataFH = storageManager->getDataFH();
     auto& shadowFile = storageManager->getShadowFile();
     auto shadowHeader = ShadowUtils::createShadowVersionIfNecessaryAndPinPage(
@@ -175,7 +175,7 @@ void Checkpointer::writeDatabaseHeader(const DatabaseHeader& header) {
 }
 
 void Checkpointer::logCheckpointAndApplyShadowPages() {
-    const auto storageManager = clientContext.getStorageManager();
+    const auto storageManager = StorageManager::Get(clientContext);
     auto& shadowFile = storageManager->getShadowFile();
     // Flush the shadow file.
     shadowFile.flushAll();
@@ -197,7 +197,7 @@ void Checkpointer::rollback() {
     if (isInMemory) {
         return;
     }
-    const auto storageManager = clientContext.getStorageManager();
+    const auto storageManager = StorageManager::Get(clientContext);
     auto catalog = clientContext.getCatalog();
     // Any pages freed during the checkpoint are no longer freed
     storageManager->rollbackCheckpoint(*catalog);
@@ -268,7 +268,7 @@ static DatabaseHeader readDatabaseHeader(common::Deserializer& deSer) {
 
 DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
     static const auto defaultHeader = DatabaseHeader{{}, {}};
-    auto dataFileInfo = clientContext.getStorageManager()->getDataFH()->getFileInfo();
+    auto dataFileInfo = StorageManager::Get(clientContext)->getDataFH()->getFileInfo();
     if (dataFileInfo->getFileSize() < common::KUZU_PAGE_SIZE) {
         // If the data file hasn't been written to there is no existing database header
         return defaultHeader;
@@ -285,11 +285,11 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
 }
 
 void Checkpointer::readCheckpoint() {
-    auto storageManager = clientContext.getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     storageManager->initDataFileHandle(clientContext.getVFSUnsafe(), &clientContext);
     if (!isInMemory && storageManager->getDataFH()->getNumPages() > 0) {
         readCheckpoint(&clientContext, clientContext.getCatalog(),
-            clientContext.getStorageManager());
+            StorageManager::Get(clientContext));
     }
     clientContext.getExtensionManager()->autoLoadLinkedExtensions(&clientContext);
 }

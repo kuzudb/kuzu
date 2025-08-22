@@ -66,7 +66,7 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
     // Init info
-    info->compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    info->compressionEnabled = StorageManager::Get(*clientContext)->compressionEnabled();
     auto dataColumnIdx = 0u;
     // Handle internal id column
     info->columnTypes.push_back(LogicalType::INTERNAL_ID());

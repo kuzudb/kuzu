@@ -28,7 +28,7 @@ static common::offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/,
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
-    auto numPages = context->getStorageManager()->getDataFH()->getNumPages();
+    auto numPages = storage::StorageManager::Get(*context)->getDataFH()->getNumPages();
     std::vector<common::LogicalType> returnTypes;
     returnTypes.emplace_back(common::LogicalType::UINT64());
     auto returnColumnNames = std::vector<std::string>{"num_pages"};

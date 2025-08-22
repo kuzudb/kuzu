@@ -4,7 +4,9 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/in_mem_file_writer.h"
+#include "main/attached_database.h"
 #include "main/client_context.h"
+#include "main/database.h"
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
@@ -283,6 +285,14 @@ void StorageManager::deserialize(main::ClientContext* context, const Catalog* ca
                 info.nodePair.dstTableID, this, &memoryManager);
             tables.at(info.oid)->deserialize(context, this, deSer);
         }
+    }
+}
+
+StorageManager* StorageManager::Get(const main::ClientContext& context) {
+    if (context.getAttachedDatabase()) {
+        return context.getAttachedDatabase()->getStorageManager();
+    } else {
+        return context.getDatabase()->getStorageManager();
     }
 }
 

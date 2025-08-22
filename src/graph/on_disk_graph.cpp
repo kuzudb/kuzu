@@ -116,7 +116,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
         relPredicateEvaluator = mapper.getEvaluator(predicate);
         relPredicateEvaluator->init(resultSet, context);
     }
-    auto table = context->getStorageManager()->getTable(relTableID)->ptrCast<RelTable>();
+    auto table = StorageManager::Get(*context)->getTable(relTableID)->ptrCast<RelTable>();
     for (auto dataDirection : entry.constCast<RelGroupCatalogEntry>().getRelDataDirections()) {
         auto columnIDs = getColumnIDs(predicateProps, entry, relPropertyColumnIDs);
         std::vector outVectors{dstNodeIDVector.get()};
@@ -136,7 +136,7 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
 
 OnDiskGraph::OnDiskGraph(ClientContext* context, NativeGraphEntry entry)
     : context{context}, graphEntry{std::move(entry)} {
-    auto storage = context->getStorageManager();
+    auto storage = StorageManager::Get(*context);
     for (const auto& nodeInfo : graphEntry.nodeInfos) {
         auto id = nodeInfo.entry->getTableID();
         nodeIDToNodeTable.insert({id, storage->getTable(id)->ptrCast<NodeTable>()});
@@ -291,7 +291,7 @@ bool OnDiskGraphNbrScanState::next() {
 OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
     const TableCatalogEntry* tableEntry, const std::vector<std::string>& propertyNames)
     : context{context}, nodeTable{ku_dynamic_cast<const NodeTable&>(
-                            *context.getStorageManager()->getTable(tableEntry->getTableID()))},
+                            *StorageManager::Get(context)->getTable(tableEntry->getTableID()))},
       numNodesToScan{0}, currentOffset{0}, endOffsetExclusive{0} {
     std::vector<column_id_t> propertyColumnIDs;
     propertyColumnIDs.reserve(propertyNames.size());
@@ -310,7 +310,7 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
     }
     tableScanState =
         std::make_unique<NodeTableScanState>(nodeIDVector.get(), outVectors, propertyVectors.state);
-    auto table = context.getStorageManager()->getTable(tableEntry->getTableID());
+    auto table = StorageManager::Get(context)->getTable(tableEntry->getTableID());
     tableScanState->setToTable(context.getTransaction(), table, propertyColumnIDs);
 }
 

@@ -120,7 +120,7 @@ TEST_F(BufferManagerTest, TestBMEvictionSlowRead) {
     if (inMemMode) {
         GTEST_SKIP();
     }
-    auto* fh = getClientContext(*conn)->getStorageManager()->getDataFH();
+    auto* fh = StorageManager::Get(*getClientContext(*conn))->getDataFH();
 
     auto* page = fh->pinPage(0, PageReadPolicy::READ_PAGE);
     *page = 112;

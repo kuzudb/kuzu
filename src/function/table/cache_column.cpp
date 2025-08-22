@@ -85,7 +85,7 @@ struct CacheArrayColumnSharedState final : public SimpleTableFuncSharedState {
 static std::unique_ptr<TableFuncSharedState> initSharedState(
     const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<CacheArrayColumnBindData>();
-    auto& table = input.context->clientContext->getStorageManager()
+    auto& table = storage::StorageManager::Get(*input.context->clientContext)
                       ->getTable(bindData->tableEntry->getTableID())
                       ->cast<storage::NodeTable>();
     return std::make_unique<CacheArrayColumnSharedState>(table, table.getNumCommittedNodeGroups(),
@@ -96,7 +96,8 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
     CacheArrayColumnLocalState(const main::ClientContext& context, table_id_t tableID,
         column_id_t columnID)
         : dataChunk{2, std::make_shared<DataChunkState>()} {
-        auto& table = context.getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
+        auto& table =
+            storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>();
         dataChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
         dataChunk.insert(1,
             std::make_shared<ValueVector>(table.getColumn(columnID).getDataType().copy()));

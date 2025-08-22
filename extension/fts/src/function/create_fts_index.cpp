@@ -297,7 +297,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::make_unique<FTSIndexAuxInfo>(ftsConfig));
     catalog->createIndex(transaction, std::move(indexEntry));
 
-    auto storageManager = context.clientContext->getStorageManager();
+    auto storageManager = storage::StorageManager::Get(*context.clientContext);
     auto nodeTable = storageManager->getTable(bindData.tableID)->ptrCast<storage::NodeTable>();
     auto tableEntry = catalog->getTableCatalogEntry(transaction, bindData.tableID);
     std::vector<column_id_t> columnIDs;

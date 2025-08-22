@@ -93,7 +93,7 @@ void IndexHolder::load(main::ClientContext* context, StorageManager* storageMana
     }
     KU_ASSERT(!index);
     KU_ASSERT(storageInfoBuffer);
-    auto indexTypeOptional = context->getStorageManager()->getIndexType(indexInfo.indexType);
+    auto indexTypeOptional = StorageManager::Get(*context)->getIndexType(indexInfo.indexType);
     if (!indexTypeOptional.has_value()) {
         throw common::RuntimeException("No index type with name: " + indexInfo.indexType);
     }

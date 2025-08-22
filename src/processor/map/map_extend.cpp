@@ -73,7 +73,7 @@ static std::vector<ScanRelTableInfo> populateRelTableCollectionScanner(table_id_
     ExtendDirection extendDirection, bool shouldScanNbrID, const expression_vector& properties,
     const std::vector<ColumnPredicateSet>& columnPredicates, main::ClientContext* clientContext) {
     std::vector<ScanRelTableInfo> scanInfos;
-    const auto storageManager = clientContext->getStorageManager();
+    const auto storageManager = StorageManager::Get(*clientContext);
     for (auto& info : entry.getRelEntryInfos()) {
         auto srcTableID = info.nodePair.srcTableID;
         auto dstTableID = info.nodePair.dstTableID;
@@ -136,7 +136,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(const LogicalOperator* l
     }
     auto scanInfo = ScanOpInfo(inNodeIDPos, outVectorsPos);
     std::vector<std::string> tableNames;
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*clientContext);
     for (auto entry : rel->getEntries()) {
         tableNames.push_back(entry->getName());
     }
