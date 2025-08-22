@@ -120,7 +120,7 @@ static void writeCopyRelStatement(stringstream& ss, const ClientContext* context
 }
 
 static void exportLoadedExtensions(stringstream& ss, const ClientContext* clientContext) {
-    auto extensionCypher = clientContext->getExtensionManager()->toCypher();
+    auto extensionCypher = extension::ExtensionManager::Get(*clientContext)->toCypher();
     if (!extensionCypher.empty()) {
         ss << extensionCypher << std::endl;
     }

@@ -99,5 +99,9 @@ void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
     trxContext->commit();
 }
 
+ExtensionManager* ExtensionManager::Get(const main::ClientContext& context) {
+    return context.getDatabase()->getExtensionManager();
+}
+
 } // namespace extension
 } // namespace kuzu

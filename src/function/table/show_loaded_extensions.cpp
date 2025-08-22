@@ -66,7 +66,7 @@ static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
-    auto loadedExtensions = context->getExtensionManager()->getLoadedExtensions();
+    auto loadedExtensions = extension::ExtensionManager::Get(*context)->getLoadedExtensions();
     std::vector<LoadedExtensionInfo> loadedExtensionInfo;
     for (auto& loadedExtension : loadedExtensions) {
         loadedExtensionInfo.emplace_back(loadedExtension.getExtensionName(),

@@ -214,10 +214,6 @@ TaskScheduler* ClientContext::getTaskScheduler() const {
     return localDatabase->queryProcessor->getTaskScheduler();
 }
 
-extension::ExtensionManager* ClientContext::getExtensionManager() const {
-    return localDatabase->extensionManager.get();
-}
-
 Catalog* ClientContext::getCatalog() const {
     if (remoteDatabase == nullptr) {
         return localDatabase->catalog.get();

@@ -147,6 +147,8 @@ public:
 
     storage::MemoryManager* getMemoryManager() { return memoryManager.get(); }
 
+    extension::ExtensionManager* getExtensionManager() { return extensionManager.get(); }
+
 private:
     using construct_bm_func_t =
         std::function<std::unique_ptr<storage::BufferManager>(const Database&)>;
