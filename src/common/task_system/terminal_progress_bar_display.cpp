@@ -1,3 +1,4 @@
+#include "common/assert.h"
 #include "common/task_system/terminal_progress_bar_display.h"
 
 namespace kuzu {
@@ -5,6 +6,7 @@ namespace common {
 
 void TerminalProgressBarDisplay::updateProgress(uint64_t /*queryID*/, double newPipelineProgress,
     uint32_t newNumPipelinesFinished) {
+    KU_ASSERT(newPipelineProgress <= 1.0);
 
     // There can still be data races as the comparison + update of cur/old progress is not done
     // atomically
