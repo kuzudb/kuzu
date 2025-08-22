@@ -592,3 +592,22 @@ Copy exception: Unable to find primary key value 1.
 -STATEMENT match (a:Test1), (b:Test2) create (a)-[e:Xyz]->(b);
 ---- error
 Binder exception: Cannot find a valid label in e that connects Test1 and Test2.
+
+-CASE 5893
+
+-STATEMENT create node table Account(id serial primary key, service string, name string);
+---- ok
+-STATEMENT create (a:Account {service: 'A', name: 'alice'});
+---- ok
+-STATEMENT create (a:Account {service: 'A', name: null});
+---- ok
+-STATEMENT create (a:Account {service: 'B', name: null});
+---- ok
+-STATEMENT create (a:Account {service: 'B', name: 'alice'});
+---- ok
+-STATEMENT match (a_account:Account {service: 'A'})
+    match (b_account:Account {service: 'B'})
+    where a_account.name = b_account.name
+    return a_account.name;
+---- 1
+alice

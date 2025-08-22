@@ -58,25 +58,24 @@ uint32_t ValueVector::countNonNull() const {
 bool ValueVector::discardNull(ValueVector& vector) {
     if (vector.hasNoNullsGuarantee()) {
         return true;
-    } else {
-        auto selectedPos = 0u;
-        if (vector.state->getSelVector().isUnfiltered()) {
-            auto buffer = vector.state->getSelVectorUnsafe().getMutableBuffer();
-            for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
-                buffer[selectedPos] = i;
-                selectedPos += !vector.isNull(i);
-            }
-            vector.state->getSelVectorUnsafe().setToFiltered();
-        } else {
-            for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
-                auto pos = vector.state->getSelVector()[i];
-                vector.state->getSelVectorUnsafe()[i] = pos;
-                selectedPos += !vector.isNull(pos);
-            }
-        }
-        vector.state->getSelVectorUnsafe().setSelSize(selectedPos);
-        return selectedPos > 0;
     }
+    auto selectedPos = 0u;
+    if (vector.state->getSelVector().isUnfiltered()) {
+        auto buffer = vector.state->getSelVectorUnsafe().getMutableBuffer();
+        for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
+            buffer[selectedPos] = i;
+            selectedPos += !vector.isNull(i);
+        }
+        vector.state->getSelVectorUnsafe().setToFiltered();
+    } else {
+        for (auto i = 0u; i < vector.state->getSelVector().getSelSize(); i++) {
+            auto pos = vector.state->getSelVector()[i];
+            vector.state->getSelVectorUnsafe()[selectedPos] = pos;
+            selectedPos += !vector.isNull(pos);
+        }
+    }
+    vector.state->getSelVectorUnsafe().setSelSize(selectedPos);
+    return selectedPos > 0;
 }
 
 bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
