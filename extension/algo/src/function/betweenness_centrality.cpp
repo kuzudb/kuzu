@@ -30,10 +30,10 @@ namespace algo_extension {
 // - https://snap.stanford.edu/class/cs224w-readings/brandes01centrality.pdf
 // - https://en.wikipedia.org/wiki/Betweenness_centrality
 
-// Betweenness centrality measures how often a node acts as a bridge 
+// Betweenness centrality measures how often a node acts as a bridge
 // along the shortest paths between other nodes.
 
-// The score for a vertex V is the sum of (sigma_st(V) / sigma_st) 
+// The score for a vertex V is the sum of (sigma_st(V) / sigma_st)
 // over all distinct pairs of vertices S and T (S != T, S != V, T != V),
 // where sigma_st is the number of shortest paths from S to T,
 // and sigma_st(V) is the number of those paths that pass through V.
@@ -49,7 +49,7 @@ namespace algo_extension {
 // For each source vertex s in V: <- Can do an approximation by taking a subset of V
 //   - dist[w] : distance from s to w (initialize dist[s] = 0, others = INF)
 //   - numSP[w] : number of shortest paths from s to w (initialize numSP[s] = 1, others = 0)
-//   - level[w] : BFS level (hops) of w from s 
+//   - level[w] : BFS level (hops) of w from s
 //                (for weighted graphs, take the maximum level over all shortest paths)
 //   - dep[w] : dependency score for w (initialize all = 0)
 
@@ -72,12 +72,12 @@ namespace algo_extension {
 //                     * Update numSP[w] += numSP[p]
 
 //   - Sort vertices by decreasing level (farthest first)
-//   - For each vertex u in that order (can do an iteration in parallel for vertices with matching levels):
+//   - For each vertex u in that order (can do an iteration in parallel for vertices with matching
+//   levels):
 //       * Identify parents p of u as neighbors with dist[p] + weight(p, u) == dist[u]
 //       * For each parent p:
 //             dep[p] += (numSP[p] / numSP[u]) * (1 + dep[u])
 //       * If u != s, add dep[u] to BC[u]
-
 
 /**CONFIG**/
 
@@ -286,8 +286,8 @@ public:
                     weight));
             }
             while (nbrDistance > curDistance + weight) {
-                if (fwdData.nodePathData[nbrNodeID.offset].dist.compare_exchange_strong(
-                        nbrDistance, curDistance + weight)) {
+                if (fwdData.nodePathData[nbrNodeID.offset].dist.compare_exchange_strong(nbrDistance,
+                        curDistance + weight)) {
                     result.push_back(nbrNodeID);
                     return;
                 }
@@ -357,8 +357,8 @@ public:
             auto nbrPathDistance = BCFwdData::PathData::INF;
 
             // See the node for the first time.
-            if (fwdData.nodePathData[nbrNodeID.offset].dist.compare_exchange_strong(
-                    nbrPathDistance, curDistance + 1)) {
+            if (fwdData.nodePathData[nbrNodeID.offset].dist.compare_exchange_strong(nbrPathDistance,
+                    curDistance + 1)) {
                 fwdData.nodePathData[nbrNodeID.offset].numSP.fetch_add(curPaths);
                 fwdData.levels[nbrNodeID.offset].level.store(curLevel + 1);
                 result.push_back(nbrNodeID);
@@ -513,24 +513,29 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     if (!config.weightProperty.getParamVal().empty()) {
         relProps.push_back(config.weightProperty.getParamVal());
     }
-    bool undirected = StringUtils::getLower(config.direction.getParamVal()) == Direction::UNDIRECTED;
+    bool undirected =
+        StringUtils::getLower(config.direction.getParamVal()) == Direction::UNDIRECTED;
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
     BetweennessCentralityState state{mm, numNodes};
     BCFwdData fwdData(mm, numNodes);
     BCBwdData bwdData(mm, numNodes);
-    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>().maxIterations.getParamVal();
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
+                             .maxIterations.getParamVal();
 
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
-    auto frontierPair = std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
-    auto computeState = GDSComputeState(std::move(frontierPair), nullptr, std::make_unique<EmptyGDSAuxiliaryState>());
+    auto frontierPair =
+        std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
+    auto computeState = GDSComputeState(std::move(frontierPair), nullptr,
+        std::make_unique<EmptyGDSAuxiliaryState>());
 
     for (auto i = 0u; i < numNodes; ++i) {
         // Forward Traverse
         fwdData.init(i /*sourceNode*/);
         // Reset frontier from last run (if any).
         computeState.frontierPair->resetCurrentIter();
-        computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph, FRONTIER_UNVISITED);
+        computeState.frontierPair->ptrCast<DenseFrontierPair>()->resetValue(input.context, graph,
+            FRONTIER_UNVISITED);
         // Init frontier with source vertex.
         computeState.frontierPair->addNodeToNextFrontier(i);
         // Forward traversal is different depending on if the graph is weighted.
@@ -570,7 +575,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             --maxLevel;
         }
 
-        const auto vertexCompute = std::make_unique<UpdateBC>(sharedState->getGraphNodeMaskMap(), bwdData, state, i);
+        const auto vertexCompute =
+            std::make_unique<UpdateBC>(sharedState->getGraphNodeMaskMap(), bwdData, state, i);
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
     }
     const auto vertexCompute =
