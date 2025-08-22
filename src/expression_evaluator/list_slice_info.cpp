@@ -49,7 +49,7 @@ void ListEntryTracker::updateListEntry() {
 }
 
 std::vector<std::shared_ptr<common::DataChunkState>> ListSliceInfo::overrideAndSaveParamStates(
-    std::span<evaluator::LambdaParamEvaluator*> lambdaParamEvaluators) {
+    std::span<LambdaParamEvaluator*> lambdaParamEvaluators) {
     std::vector<std::shared_ptr<common::DataChunkState>> savedStates;
 
     // The sel states of the result vectors in evaluator trees often point to the same state
