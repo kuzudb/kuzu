@@ -153,12 +153,13 @@ private:
         auto bfsGraph = std::make_unique<BFSGraphManager>(
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
         std::unique_ptr<GDSComputeState> gdsState;
-        WeightUtils::visit(AllWeightedSPPathsFunction::name, bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
-            auto edgeCompute = std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraph.get());
-            auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
-            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-                std::move(edgeCompute), std::move(auxiliaryState));
-        });
+        WeightUtils::visit(AllWeightedSPPathsFunction::name,
+            bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+                auto edgeCompute = std::make_unique<AWSPPathsEdgeCompute<T>>(bfsGraph.get());
+                auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
+                gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                    std::move(edgeCompute), std::move(auxiliaryState));
+            });
         return gdsState;
     }
 

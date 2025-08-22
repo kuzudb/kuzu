@@ -311,11 +311,12 @@ private:
         auto costPairPtr = costsPair.get();
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(std::move(costsPair));
         std::unique_ptr<GDSComputeState> gdsState;
-        WeightUtils::visit(WeightedSPDestinationsFunction::name, bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
-            auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costPairPtr);
-            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-                std::move(edgeCompute), std::move(auxiliaryState));
-        });
+        WeightUtils::visit(WeightedSPDestinationsFunction::name,
+            bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+                auto edgeCompute = std::make_unique<WSPDestinationsEdgeCompute<T>>(costPairPtr);
+                gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                    std::move(edgeCompute), std::move(auxiliaryState));
+            });
         return gdsState;
     }
 

@@ -48,13 +48,14 @@ auto WeightUtils::visit(const std::string& fcn, const common::LogicalType& dataT
         break;
     }
     // LCOV_EXCL_START
-    throw common::RuntimeException(common::stringFormat(
-        "{} weight type is not supported for {}.", dataType.toString(), fcn));
+    throw common::RuntimeException(
+        common::stringFormat("{} weight type is not supported for {}.", dataType.toString(), fcn));
     // LCOV_EXCL_STOP
 }
 
 template<typename... Fs>
-auto WeightUtils::visit(const std::string& fcn, const common::LogicalTypeID& dataType, Fs... funcs) {
+auto WeightUtils::visit(const std::string& fcn, const common::LogicalTypeID& dataType,
+    Fs... funcs) {
     auto func = common::overload(funcs...);
     switch (dataType) {
     /* NOLINTBEGIN(bugprone-branch-clone)*/
@@ -83,8 +84,8 @@ auto WeightUtils::visit(const std::string& fcn, const common::LogicalTypeID& dat
         break;
     }
     // LCOV_EXCL_START
-    throw common::RuntimeException(common::stringFormat(
-        "{} weight type is not supported for {}.", common::LogicalType(dataType).toString(), fcn));
+    throw common::RuntimeException(common::stringFormat("{} weight type is not supported for {}.",
+        common::LogicalType(dataType).toString(), fcn));
     // LCOV_EXCL_STOP
 }
 

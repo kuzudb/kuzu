@@ -330,7 +330,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     KruskalCompute compute(mm, numNodes);
     WeightUtils::visit(SpanningForest::name, propertyType, [&]<typename T>(T) {
-         compute.initEdges<T>(graph, tableId, scanState.get(), !config.weightProperty.getParamVal().empty());
+        compute.initEdges<T>(graph, tableId, scanState.get(),
+            !config.weightProperty.getParamVal().empty());
     });
     compute.sortEdges(config.variant.getParamVal());
     compute.run();
