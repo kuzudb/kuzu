@@ -28,7 +28,7 @@ void ExtensionInstaller::tryDownloadExtensionFile(const ExtensionRepoInfo& repoI
         }
     }
 
-    auto vfs = context.getVFSUnsafe();
+    auto vfs = common::VirtualFileSystem::GetUnsafe(context);
     auto fileInfo = vfs->openFile(localFilePath,
         common::FileOpenFlags(common::FileFlags::WRITE | common::FileFlags::READ_ONLY |
                               common::FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS));
@@ -46,7 +46,7 @@ bool ExtensionInstaller::install() {
 }
 
 bool ExtensionInstaller::installExtension() {
-    auto vfs = context.getVFSUnsafe();
+    auto vfs = common::VirtualFileSystem::GetUnsafe(context);
     auto localExtensionDir = context.getExtensionDir();
     if (!vfs->fileOrPathExists(localExtensionDir, &context)) {
         vfs->createDir(localExtensionDir);

@@ -17,7 +17,8 @@ bool DuckDBInstaller::install() {
         auto dependencyLibWithSuffix = extension::ExtensionUtils::appendLibSuffix(dependencyLib);
         auto localDependencyLibPath =
             extension::ExtensionUtils::getLocalPathForSharedLib(&context, dependencyLibWithSuffix);
-        if (!context.getVFSUnsafe()->fileOrPathExists(localDependencyLibPath)) {
+        if (!common::VirtualFileSystem::GetUnsafe(context)->fileOrPathExists(
+                localDependencyLibPath)) {
             auto dependencyLibRepoInfo =
                 extension::ExtensionUtils::getSharedLibRepoInfo(dependencyLibWithSuffix, info.repo);
             tryDownloadExtensionFile(dependencyLibRepoInfo, localDependencyLibPath);

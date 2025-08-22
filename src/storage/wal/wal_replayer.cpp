@@ -34,7 +34,7 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{cli
 }
 
 void WALReplayer::replay() const {
-    auto vfs = clientContext.getVFSUnsafe();
+    auto vfs = VirtualFileSystem::GetUnsafe(clientContext);
     Checkpointer checkpointer(clientContext);
     // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
     if (!vfs->fileOrPathExists(walPath, &clientContext)) {
@@ -475,7 +475,7 @@ void WALReplayer::removeFileIfExists(const std::string& path) const {
     if (StorageManager::Get(clientContext)->isReadOnly()) {
         return;
     }
-    auto vfs = clientContext.getVFSUnsafe();
+    auto vfs = VirtualFileSystem::GetUnsafe(clientContext);
     if (vfs->fileOrPathExists(path, &clientContext)) {
         vfs->removeFileIfExists(path);
     }
@@ -487,7 +487,7 @@ std::unique_ptr<FileInfo> WALReplayer::openWALFile() const {
         flag |= FileFlags::WRITE; // The write flag here is to ensure the file is opened with O_RDWR
                                   // so that we can sync it.
     }
-    return clientContext.getVFSUnsafe()->openFile(walPath, FileOpenFlags(flag));
+    return VirtualFileSystem::GetUnsafe(clientContext)->openFile(walPath, FileOpenFlags(flag));
 }
 
 void WALReplayer::syncWALFile(const FileInfo& fileInfo) const {

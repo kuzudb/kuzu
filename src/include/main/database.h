@@ -149,6 +149,8 @@ public:
 
     extension::ExtensionManager* getExtensionManager() { return extensionManager.get(); }
 
+    common::VirtualFileSystem* getVFS() { return vfs.get(); }
+
 private:
     using construct_bm_func_t =
         std::function<std::unique_ptr<storage::BufferManager>(const Database&)>;

@@ -33,7 +33,7 @@ struct ExportJSONSharedState : public ExportFuncSharedState {
     std::vector<std::string> jsonValues;
 
     void init(main::ClientContext& context, const ExportFuncBindData& bindData) override {
-        fileInfo = context.getVFSUnsafe()->openFile(bindData.fileName,
+        fileInfo = VirtualFileSystem::GetUnsafe(context)->openFile(bindData.fileName,
             FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), &context);
     }
 };

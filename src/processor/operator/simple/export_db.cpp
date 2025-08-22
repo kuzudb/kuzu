@@ -44,7 +44,7 @@ std::string ExportDBPrintInfo::toString() const {
 
 static void writeStringStreamToFile(ClientContext* context, const std::string& ssString,
     const std::string& path) {
-    const auto fileInfo = context->getVFSUnsafe()->openFile(path,
+    const auto fileInfo = VirtualFileSystem::GetUnsafe(*context)->openFile(path,
         FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_IF_NOT_EXISTS), context);
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ssString.c_str()), ssString.size(),
         0 /* offset */);

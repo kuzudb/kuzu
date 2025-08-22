@@ -286,7 +286,8 @@ DatabaseHeader Checkpointer::getCurrentDatabaseHeader() const {
 
 void Checkpointer::readCheckpoint() {
     auto storageManager = StorageManager::Get(clientContext);
-    storageManager->initDataFileHandle(clientContext.getVFSUnsafe(), &clientContext);
+    storageManager->initDataFileHandle(common::VirtualFileSystem::GetUnsafe(clientContext),
+        &clientContext);
     if (!isInMemory && storageManager->getDataFH()->getNumPages() > 0) {
         readCheckpoint(&clientContext, catalog::Catalog::Get(clientContext),
             StorageManager::Get(clientContext));

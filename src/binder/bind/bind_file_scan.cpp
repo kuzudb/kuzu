@@ -27,7 +27,7 @@ namespace binder {
 
 FileTypeInfo bindSingleFileType(const main::ClientContext* context, const std::string& filePath) {
     std::filesystem::path fileName(filePath);
-    auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
+    auto extension = VirtualFileSystem::GetUnsafe(*context)->getFileExtension(fileName);
     return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension),
         extension.substr(std::min<uint64_t>(1, extension.length()))};
 }
@@ -61,7 +61,8 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
             boundFilePaths.push_back(filePath);
             continue;
         }
-        auto globbedFilePaths = clientContext->getVFSUnsafe()->glob(clientContext, filePath);
+        auto globbedFilePaths =
+            VirtualFileSystem::GetUnsafe(*clientContext)->glob(clientContext, filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};
@@ -112,8 +113,9 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
 
 bool handleFileViaFunction(main::ClientContext* context, std::vector<std::string> filePaths) {
     bool handleFileViaFunction = false;
-    if (context->getVFSUnsafe()->fileOrPathExists(filePaths[0], context)) {
-        handleFileViaFunction = context->getVFSUnsafe()->handleFileViaFunction(filePaths[0]);
+    if (VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(filePaths[0], context)) {
+        handleFileViaFunction =
+            VirtualFileSystem::GetUnsafe(*context)->handleFileViaFunction(filePaths[0]);
     }
     return handleFileViaFunction;
 }
@@ -147,7 +149,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     fileScanInfo->options = std::move(boundOptions);
     TableFunction func;
     if (handleFileViaFunction(clientContext, filePaths)) {
-        func = clientContext->getVFSUnsafe()->getHandleFunction(filePaths[0]);
+        func = VirtualFileSystem::GetUnsafe(*clientContext)->getHandleFunction(filePaths[0]);
     } else {
         func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
     }

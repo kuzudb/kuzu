@@ -16,7 +16,7 @@ using namespace kuzu::extension;
 
 void UninstallExtension::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto vfs = clientContext->getVFSUnsafe();
+    auto vfs = VirtualFileSystem::GetUnsafe(*clientContext);
     auto localLibFilePath = ExtensionUtils::getLocalPathForExtensionLib(clientContext, path);
     if (!vfs->fileOrPathExists(localLibFilePath)) {
         throw RuntimeException{

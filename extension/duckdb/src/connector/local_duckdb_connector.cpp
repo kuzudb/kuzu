@@ -9,7 +9,7 @@ namespace duckdb_extension {
 
 void LocalDuckDBConnector::connect(const std::string& dbPath, const std::string& /*catalogName*/,
     const std::string& /*schemaName*/, main::ClientContext* context) {
-    if (!context->getVFSUnsafe()->fileOrPathExists(dbPath, context)) {
+    if (!common::VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(dbPath, context)) {
         throw common::RuntimeException{
             common::stringFormat("Given duckdb database path {} does not exist.", dbPath)};
     }

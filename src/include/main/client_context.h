@@ -123,7 +123,6 @@ public:
     AttachedKuzuDatabase* getAttachedDatabase() const;
 
     common::TaskScheduler* getTaskScheduler() const;
-    common::VirtualFileSystem* getVFSUnsafe() const;
     common::RandomEngine* getRandomEngine() const;
     const CachedPreparedStatementManager& getCachedPreparedStatementManager() const {
         return cachedPreparedStatementManager;

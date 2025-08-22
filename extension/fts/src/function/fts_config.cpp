@@ -105,8 +105,7 @@ StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_i
         return StopWordsTableInfo{stopWords, FTSUtils::getDefaultStopWordsTableName(),
             StopWordsSource::DEFAULT};
     } else if (catalog->containsTable(context.getTransaction(), stopWords)) {
-        auto entry = catalog->getTableCatalogEntry(context.getTransaction(),
-            stopWords);
+        auto entry = catalog->getTableCatalogEntry(context.getTransaction(), stopWords);
         if (entry->getTableType() != common::TableType::NODE) {
             throw common::BinderException{"The stop words table must be a node table."};
         }
@@ -119,7 +118,7 @@ StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_i
         return StopWordsTableInfo{stopWords,
             FTSUtils::getNonDefaultStopWordsTableName(tableID, indexName), StopWordsSource::TABLE};
     } else {
-        if (!context.getVFSUnsafe()->fileOrPathExists(stopWords, &context)) {
+        if (!common::VirtualFileSystem::GetUnsafe(context)->fileOrPathExists(stopWords, &context)) {
             throw common::BinderException{common::stringFormat(
                 "Given stopwords: '{}' is not a node table name nor a valid file path.",
                 stopWords)};

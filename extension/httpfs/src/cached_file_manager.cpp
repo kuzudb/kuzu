@@ -9,7 +9,8 @@ namespace httpfs_extension {
 
 using namespace common;
 
-CachedFileManager::CachedFileManager(main::ClientContext* context) : vfs{context->getVFSUnsafe()} {
+CachedFileManager::CachedFileManager(main::ClientContext* context)
+    : vfs{VirtualFileSystem::GetUnsafe(*context)} {
     cacheDir = common::stringFormat("{}/{}",
         extension::ExtensionUtils::getLocalDirForExtension(context,
             StringUtils::getLower(HttpfsExtension::EXTENSION_NAME)),

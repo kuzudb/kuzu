@@ -172,8 +172,8 @@ void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& re
 }
 
 void ParquetReader::initMetadata() {
-    auto fileInfo =
-        context->getVFSUnsafe()->openFile(filePath, FileOpenFlags(FileFlags::READ_ONLY), context);
+    auto fileInfo = VirtualFileSystem::GetUnsafe(*context)->openFile(filePath,
+        FileOpenFlags(FileFlags::READ_ONLY), context);
     auto proto = createThriftProtocol(fileInfo.get(), false);
     auto& transport = ku_dynamic_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();
@@ -605,7 +605,7 @@ static bool parquetSharedStateNext(ParquetScanLocalState& localState,
         if (sharedState.blockIdx < sharedState.readers[sharedState.fileIdx]->getNumRowsGroups()) {
             localState.reader = sharedState.readers[sharedState.fileIdx].get();
             localState.reader->initializeScan(*localState.state, {sharedState.blockIdx},
-                sharedState.context->getVFSUnsafe());
+                VirtualFileSystem::GetUnsafe(*sharedState.context));
             sharedState.blockIdx++;
             return true;
         } else {
@@ -647,7 +647,7 @@ static void bindColumns(const ExtraScanTableFuncBindInput* bindInput, uint32_t f
     main::ClientContext* context) {
     auto reader = ParquetReader(bindInput->fileScanInfo.filePaths[fileIdx], {}, context);
     auto state = std::make_unique<processor::ParquetReaderScanState>();
-    reader.initializeScan(*state, std::vector<uint64_t>{}, context->getVFSUnsafe());
+    reader.initializeScan(*state, std::vector<uint64_t>{}, VirtualFileSystem::GetUnsafe(*context));
     for (auto i = 0u; i < reader.getNumColumns(); ++i) {
         columnNames.push_back(reader.getColumnName(i));
         columnTypes.push_back(reader.getColumnType(i).copy());
