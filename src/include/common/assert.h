@@ -43,7 +43,11 @@ inline bool shouldBuggify() {
         return std::mt19937(seed);
     }();
     static thread_local std::uniform_real_distribution dis(0.0f, 1.0f);
-    return dis(gen) < 0.5f;
+    static thread_local float threshold = [] {
+        const char* threshold_env = std::getenv("BUGGIFY_THRESHOLD");
+        return threshold_env ? std::strtof(threshold_env, nullptr) : 0.01f;
+    }();
+    return dis(gen) < threshold;
 #endif
     return false;
 }
