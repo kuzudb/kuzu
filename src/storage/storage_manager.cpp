@@ -50,11 +50,11 @@ void StorageManager::initDataFileHandle(VirtualFileSystem* vfs, main::ClientCont
                 // Reserve the first page for the database header.
                 dataFH->getPageManager()->allocatePage();
                 // Write a dummy database header page.
-                static const auto defaultHeader = DatabaseHeader{{}, {}};
+                const auto* initialHeader = getOrInitDatabaseHeader(*context);
                 auto headerWriter =
                     std::make_shared<InMemFileWriter>(*MemoryManager::Get(*context));
                 Serializer headerSerializer(headerWriter);
-                defaultHeader.serialize(headerSerializer);
+                initialHeader->serialize(headerSerializer);
                 dataFH->getFileInfo()->writeFile(headerWriter->getPage(0).data(), KUZU_PAGE_SIZE,
                     StorageConstants::DB_HEADER_PAGE_IDX);
                 dataFH->getFileInfo()->syncFile();
@@ -70,12 +70,8 @@ Table* StorageManager::getTable(table_id_t tableID) {
 }
 
 void StorageManager::recover(main::ClientContext& clientContext) {
-    try {
-        const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
-        walReplayer->replay();
-    } catch (std::exception&) {
-        throw;
-    }
+    const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
+    walReplayer->replay();
 }
 
 void StorageManager::createNodeTable(NodeTableCatalogEntry* entry) {
@@ -286,6 +282,26 @@ void StorageManager::deserialize(main::ClientContext* context, const Catalog* ca
             tables.at(info.oid)->deserialize(context, this, deSer);
         }
     }
+}
+
+common::ku_uuid_t StorageManager::getOrInitDatabaseID(const main::ClientContext& clientContext) {
+    return getOrInitDatabaseHeader(clientContext)->databaseID;
+}
+
+const storage::DatabaseHeader* StorageManager::getOrInitDatabaseHeader(
+    const main::ClientContext& clientContext) {
+    if (databaseHeader == nullptr) {
+        // We should only create the database header if a persistent one doesn't exist
+        KU_ASSERT(std::nullopt == DatabaseHeader::readDatabaseHeader(*dataFH->getFileInfo()));
+        databaseHeader = std::make_unique<DatabaseHeader>(
+            DatabaseHeader::createInitialHeader(clientContext.getRandomEngine()));
+    }
+    return databaseHeader.get();
+}
+
+void StorageManager::setDatabaseHeader(std::unique_ptr<storage::DatabaseHeader> header) {
+    KU_ASSERT(!databaseHeader || header->databaseID.value == databaseHeader->databaseID.value);
+    databaseHeader = std::move(header);
 }
 
 StorageManager* StorageManager::Get(const main::ClientContext& context) {

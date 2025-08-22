@@ -10,8 +10,10 @@ add_subdirectory(wal)
 add_library(kuzu_storage
         OBJECT
         checkpointer.cpp
+        database_header.cpp
         disk_array.cpp
         disk_array_collection.cpp
+        file_db_id_utils.cpp
         file_handle.cpp
         free_space_manager.cpp
         optimistic_allocator.cpp

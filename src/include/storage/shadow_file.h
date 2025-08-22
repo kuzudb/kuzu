@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/types/uuid.h"
 #include "storage/file_handle.h"
 
 namespace kuzu {
@@ -14,8 +15,10 @@ struct ShadowPageRecord {
 };
 
 struct ShadowFileHeader {
+    common::ku_uuid_t databaseID{0};
     common::page_idx_t numShadowPages = 0;
 };
+static_assert(std::is_trivially_copyable_v<ShadowFileHeader>);
 
 class BufferManager;
 // NOTE: This class is NOT thread-safe for now, as we are not checkpointing in parallel yet.
@@ -38,7 +41,7 @@ public:
 
     void applyShadowPages(main::ClientContext& context) const;
 
-    void flushAll() const;
+    void flushAll(main::ClientContext& context) const;
     // Clear any buffer in the WAL writer. Also truncate the WAL file to 0 bytes.
     void clear(BufferManager& bm);
     // Reset the WAL writer to nullptr, and remove the WAL file if it exists.

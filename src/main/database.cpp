@@ -83,9 +83,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
 }
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
-    : dbConfig{systemConfig} {
-    initMembers(databasePath);
-}
+    : Database(databasePath, systemConfig, initBufferManager) {}
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig,
     construct_bm_func_t constructBMFunc)
