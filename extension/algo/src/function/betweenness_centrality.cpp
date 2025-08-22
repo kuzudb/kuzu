@@ -66,10 +66,12 @@ namespace algo_extension {
 //           * First pass: run Bellman-Ford to compute all dist[w]
 //             (as in Ligra: https://jshun.csail.mit.edu/ligra.pdf)
 //           * Second pass: stabilize path counts
-//               - For each vertex p, examine each neighbor w:
+//               - Start from vertex s.
+//               - For each vertex in the frontier, p, examine each neighbor w:
 //                   If dist[p] + weight(p, w) == dist[w]:
 //                     * Update level[w] = max(level[w], level[p] + 1)
 //                     * Update numSP[w] += numSP[p]
+//                     * add w to the next frontier.
 
 //   - Sort vertices by decreasing level (farthest first)
 //   - For each vertex u in that order (can do an iteration in parallel for vertices with matching
