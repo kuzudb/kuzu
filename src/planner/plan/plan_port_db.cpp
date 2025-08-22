@@ -29,7 +29,7 @@ std::vector<std::shared_ptr<LogicalOperator>> Planner::planExportTableData(
     std::string name =
         stringFormat("COPY_{}", FileTypeUtils::toString(boundExportDatabase.getFileType()));
     auto entry =
-        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(), name);
+        Catalog::Get(*clientContext)->getFunctionEntry(clientContext->getTransaction(), name);
     auto func = function::BuiltInFunctionsUtils::matchFunction(name,
         entry->ptrCast<FunctionCatalogEntry>());
     KU_ASSERT(func != nullptr);

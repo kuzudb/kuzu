@@ -68,7 +68,7 @@ void Transaction::commit(storage::WAL* wal) {
         localWAL->clear();
     }
     if (hasCatalogChanges) {
-        clientContext->getCatalog()->incrementVersion();
+        Catalog::Get(*clientContext)->incrementVersion();
         hasCatalogChanges = false;
     }
 }

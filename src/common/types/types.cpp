@@ -732,7 +732,8 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else if (context != nullptr) {
-        type = context->getCatalog()->getType(context->getTransaction(), upperDataTypeString);
+        type = catalog::Catalog::Get(*context)->getType(context->getTransaction(),
+            upperDataTypeString);
     } else {
         throw common::RuntimeException{"Invalid datatype string: " + str};
     }

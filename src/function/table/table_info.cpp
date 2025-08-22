@@ -174,7 +174,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     auto transaction = context->getTransaction();
     if (name.size() == 1) {
         auto tableName = name[0];
-        auto catalog = context->getCatalog();
+        auto catalog = Catalog::Get(*context);
         if (catalog->containsTable(transaction, tableName)) {
             auto entry = catalog->getTableCatalogEntry(transaction, tableName);
             switch (entry->getType()) {

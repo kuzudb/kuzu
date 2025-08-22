@@ -214,14 +214,6 @@ TaskScheduler* ClientContext::getTaskScheduler() const {
     return localDatabase->queryProcessor->getTaskScheduler();
 }
 
-Catalog* ClientContext::getCatalog() const {
-    if (remoteDatabase == nullptr) {
-        return localDatabase->catalog.get();
-    } else {
-        return remoteDatabase->getCatalog();
-    }
-}
-
 VirtualFileSystem* ClientContext::getVFSUnsafe() const {
     return localDatabase->vfs.get();
 }

@@ -152,7 +152,7 @@ void Binder::validateNodeTableType(const TableCatalogEntry* entry) {
 
 void Binder::validateTableExistence(const main::ClientContext& context,
     const std::string& tableName) {
-    if (!context.getCatalog()->containsTable(context.getTransaction(), tableName)) {
+    if (!Catalog::Get(context)->containsTable(context.getTransaction(), tableName)) {
         throw BinderException{stringFormat("Table {} does not exist.", tableName)};
     }
 }
@@ -265,7 +265,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateTableAs(const Statement& state
         }
         propertyDefinitions.insert(propertyDefinitions.begin(),
             PropertyDefinition(ColumnDefinition(InternalKeyword::ID, LogicalType::INTERNAL_ID())));
-        auto catalog = clientContext->getCatalog();
+        auto catalog = Catalog::Get(*clientContext);
         auto transaction = clientContext->getTransaction();
         auto fromTable =
             catalog->getTableCatalogEntry(transaction, extraInfo.srcDstTablePairs[0].first)
@@ -293,7 +293,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateType(const Statement& statemen
     auto createType = statement.constPtrCast<CreateType>();
     auto name = createType->getName();
     LogicalType type = LogicalType::convertFromString(createType->getDataType(), clientContext);
-    if (clientContext->getCatalog()->containsType(clientContext->getTransaction(), name)) {
+    if (Catalog::Get(*clientContext)->containsType(clientContext->getTransaction(), name)) {
         throw BinderException{stringFormat("Duplicated type name: {}.", name)};
     }
     return std::make_unique<BoundCreateType>(std::move(name), std::move(type));
@@ -309,8 +309,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateSequence(const Statement& stat
     int64_t maxValue = 0;
     switch (info.onConflict) {
     case ConflictAction::ON_CONFLICT_THROW: {
-        if (clientContext->getCatalog()->containsSequence(clientContext->getTransaction(),
-                sequenceName)) {
+        if (Catalog::Get(*clientContext)
+                ->containsSequence(clientContext->getTransaction(), sequenceName)) {
             throw BinderException(sequenceName + " already exists in catalog.");
         }
     } break;

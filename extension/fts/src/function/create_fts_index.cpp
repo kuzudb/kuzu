@@ -101,7 +101,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(ClientContext* context,
 static std::string createStopWordsTable(const ClientContext& context,
     const StopWordsTableInfo& info) {
     std::string query = "";
-    auto catalog = context.getCatalog();
+    auto catalog = catalog::Catalog::Get(context);
     switch (info.source) {
     case StopWordsSource::DEFAULT: {
         if (catalog->containsTable(context.getTransaction(), info.tableName)) {
@@ -150,13 +150,13 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     auto tableID = ftsBindData->tableID;
     auto indexName = ftsBindData->indexName;
     validateInternalTablesNotExist(ftsBindData->tableID, ftsBindData->indexName,
-        *context.getCatalog(), context.getTransaction());
+        *catalog::Catalog::Get(context), context.getTransaction());
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     // TODO(Ziyi): Copy statement can't be wrapped in manual transaction, so we can't wrap all
     // statements in a single transaction there.
     // Create the tokenize macro.
     std::string query = "";
-    if (!context.getCatalog()->containsMacro(context.getTransaction(),
+    if (!catalog::Catalog::Get(context)->containsMacro(context.getTransaction(),
             FTSUtils::getTokenizeMacroName(tableID, indexName))) {
         // TOKENIZE(text, tokenizer, extra_param)
         query += common::stringFormat(R"(CREATE MACRO `{}`(query) AS
@@ -179,7 +179,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
         appearsInfoTableName);
     auto tableName = ftsBindData->tableName;
     auto tableEntry =
-        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
+        catalog::Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
     for (auto& property : ftsBindData->propertyIDs) {
         auto propertyName = tableEntry->getProperty(property).getName();
         query += stringFormat("COPY `{}` FROM "
@@ -280,7 +280,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& bindData = *input.bindData->constPtrCast<CreateFTSBindData>();
     auto& context = *input.context;
     auto transaction = context.clientContext->getTransaction();
-    auto catalog = context.clientContext->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context.clientContext);
     auto docTableName = FTSUtils::getDocsTableName(bindData.tableID, bindData.indexName);
     auto docTableEntry = catalog->getTableCatalogEntry(transaction, docTableName);
     graph::NativeGraphEntry entry{{docTableEntry}, {} /* relTableEntries */};
@@ -323,14 +323,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         onDiskIndex->getInternalTableInfo().docTable->checkpoint(context.clientContext,
             docTableEntry, pageAllocator);
         auto termsTableName = FTSUtils::getTermsTableName(bindData.tableID, bindData.indexName);
-        auto termsTableEntry =
-            context.clientContext->getCatalog()->getTableCatalogEntry(transaction, termsTableName);
+        auto termsTableEntry = catalog->getTableCatalogEntry(transaction, termsTableName);
         onDiskIndex->getInternalTableInfo().termsTable->checkpoint(context.clientContext,
             termsTableEntry, pageAllocator);
         auto appearsInTableName =
             FTSUtils::getAppearsInTableName(bindData.tableID, bindData.indexName);
-        auto appearsInTableEntry = context.clientContext->getCatalog()->getTableCatalogEntry(
-            transaction, appearsInTableName);
+        auto appearsInTableEntry = catalog->getTableCatalogEntry(transaction, appearsInTableName);
         onDiskIndex->getInternalTableInfo().appearsInfoTable->checkpoint(context.clientContext,
             appearsInTableEntry, pageAllocator);
     }

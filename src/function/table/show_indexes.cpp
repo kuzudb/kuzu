@@ -83,7 +83,7 @@ static binder::expression_vector bindColumns(const TableFuncBindInput& input) {
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
     std::vector<IndexInfo> indexesInfo;
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto indexEntries = catalog->getIndexEntries(context->getTransaction());
     for (auto indexEntry : indexEntries) {
         auto tableEntry =

@@ -185,7 +185,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
 }
 
 void WALReplayer::replayCreateCatalogEntryRecord(WALRecord& walRecord) const {
-    auto catalog = clientContext.getCatalog();
+    auto catalog = Catalog::Get(clientContext);
     auto transaction = clientContext.getTransaction();
     auto storageManager = StorageManager::Get(clientContext);
     auto& record = walRecord.cast<CreateCatalogEntryRecord>();
@@ -222,13 +222,13 @@ void WALReplayer::replayCreateCatalogEntryRecord(WALRecord& walRecord) const {
 
 void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const {
     auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
-    auto catalog = clientContext.getCatalog();
+    auto catalog = Catalog::Get(clientContext);
     auto transaction = clientContext.getTransaction();
     const auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
     case CatalogEntryType::REL_GROUP_ENTRY: {
-        KU_ASSERT(clientContext.getCatalog());
+        KU_ASSERT(Catalog::Get(clientContext));
         catalog->dropTableEntry(transaction, entryID);
     } break;
     case CatalogEntryType::SEQUENCE_ENTRY: {
@@ -246,7 +246,7 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
 void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const {
     auto binder = Binder(&clientContext);
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
-    auto catalog = clientContext.getCatalog();
+    auto catalog = Catalog::Get(clientContext);
     auto transaction = clientContext.getTransaction();
     auto storageManager = StorageManager::Get(clientContext);
     auto ownedAlterInfo = alterEntryRecord.ownedAlterInfo.get();
@@ -456,7 +456,7 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
     const auto sequenceID = sequenceEntryRecord.sequenceID;
     const auto entry =
-        clientContext.getCatalog()->getSequenceEntry(clientContext.getTransaction(), sequenceID);
+        Catalog::Get(clientContext)->getSequenceEntry(clientContext.getTransaction(), sequenceID);
     entry->nextKVal(clientContext.getTransaction(), sequenceEntryRecord.kCount);
 }
 

@@ -49,7 +49,7 @@ std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& co
     FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
     auto terms = FTSUtils::tokenizeString(queryInStr, config);
     auto stopWordsTable = StorageManager::Get(context)
-                              ->getTable(context.getCatalog()
+                              ->getTable(catalog::Catalog::Get(context)
                                              ->getTableCatalogEntry(context.getTransaction(),
                                                  config.stopWordsTableName)
                                              ->getTableID())

@@ -12,7 +12,7 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     auto termsTableName = FTSUtils::getTermsTableName(tableID, indexName);
     auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
     auto storageManager = storage::StorageManager::Get(*context);
-    auto catalog = context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context);
     table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
     stopWordsTable =
         storageManager

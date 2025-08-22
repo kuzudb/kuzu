@@ -21,8 +21,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
     auto functionName = functionExpr->getFunctionName();
     std::unique_ptr<BoundReadingClause> boundReadingClause;
-    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
-        functionName);
+    auto entry = Catalog::Get(*clientContext)
+                     ->getFunctionEntry(clientContext->getTransaction(), functionName);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
         auto boundTableFunction =

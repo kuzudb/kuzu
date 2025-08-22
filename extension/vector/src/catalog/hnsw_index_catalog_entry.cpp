@@ -32,7 +32,7 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     auto& indexToCypherInfo = info.constCast<IndexToCypherInfo>();
     auto context = indexToCypherInfo.context;
     std::string cypher;
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto tableEntry =
         catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID());
     auto tableName = tableEntry->getName();

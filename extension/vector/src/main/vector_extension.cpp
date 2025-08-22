@@ -10,8 +10,8 @@ namespace kuzu {
 namespace vector_extension {
 
 static void initHNSWEntries(main::ClientContext* context) {
-    auto catalog = context->getCatalog();
     auto storageManager = storage::StorageManager::Get(*context);
+    auto catalog = catalog::Catalog::Get(*context);
     for (auto& indexEntry : catalog->getIndexEntries(context->getTransaction())) {
         if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {

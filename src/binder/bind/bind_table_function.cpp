@@ -14,8 +14,9 @@ namespace binder {
 
 BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     const parser::ParsedExpression& expr, std::vector<parser::YieldVariable> yieldVariables) {
-    auto entry = clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
-        tableFuncName, clientContext->useInternalCatalogEntry());
+    auto entry = catalog::Catalog::Get(*clientContext)
+                     ->getFunctionEntry(clientContext->getTransaction(), tableFuncName,
+                         clientContext->useInternalCatalogEntry());
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;
     optional_params_t optionalParams;

@@ -446,7 +446,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
     auto tableEntry = FTSIndexUtils::bindNodeTable(*context, inputTableName, indexName,
         FTSIndexUtils::IndexOperation::QUERY);
-    auto catalog = context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context);
     auto transaction = context->getTransaction();
     auto ftsIndexEntry = catalog->getIndex(transaction, tableEntry->getTableID(), indexName);
     auto entry = catalog->getTableCatalogEntry(transaction, inputTableName);

@@ -16,16 +16,16 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     IndexOperation indexOperation) {
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(),
-                indexName)) {
+        if (catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+                tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
         }
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(),
-                indexName)) {
+        if (!catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+                tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }
@@ -40,7 +40,7 @@ catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::Client
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
     binder::Binder::validateTableExistence(context, tableName);
     const auto tableEntry =
-        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
+        catalog::Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();

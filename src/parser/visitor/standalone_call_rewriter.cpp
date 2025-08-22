@@ -24,7 +24,8 @@ void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statem
             auto funcName = standaloneCallFunc.getFunctionExpression()
                                 ->constPtrCast<ParsedFunctionExpression>()
                                 ->getFunctionName();
-            if (!context->getCatalog()->containsFunction(context->getTransaction(), funcName) &&
+            if (!catalog::Catalog::Get(*context)->containsFunction(context->getTransaction(),
+                    funcName) &&
                 !singleStatement) {
                 throw common::ParserException{
                     funcName + " must be called in a query which doesn't have other statements."};

@@ -74,7 +74,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnNames.emplace_back("cycle");
     columnTypes.emplace_back(LogicalType::BOOL());
     std::vector<SequenceInfo> sequenceInfos;
-    for (const auto& entry : context->getCatalog()->getSequenceEntries(context->getTransaction())) {
+    for (const auto& entry :
+        Catalog::Get(*context)->getSequenceEntries(context->getTransaction())) {
         const auto sequenceData = entry->getSequenceData();
         auto sequenceInfo = SequenceInfo{entry->getName(), LOCAL_DB_NAME, sequenceData.startValue,
             sequenceData.increment, sequenceData.minValue, sequenceData.maxValue,

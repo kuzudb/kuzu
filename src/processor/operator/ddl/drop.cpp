@@ -30,7 +30,7 @@ void Drop::executeInternal(ExecutionContext* context) {
 }
 
 void Drop::dropSequence(const main::ClientContext* context) {
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto transaction = context->getTransaction();
     auto memoryManager = storage::MemoryManager::Get(*context);
     if (!catalog->containsSequence(transaction, dropInfo.name)) {
@@ -52,7 +52,7 @@ void Drop::dropSequence(const main::ClientContext* context) {
 }
 
 void Drop::dropTable(const main::ClientContext* context) {
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     auto transaction = context->getTransaction();
     auto memoryManager = storage::MemoryManager::Get(*context);
     if (!catalog->containsTable(transaction, dropInfo.name, context->useInternalCatalogEntry())) {

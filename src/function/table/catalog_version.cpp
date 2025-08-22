@@ -12,7 +12,7 @@ static common::offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/,
     const TableFuncInput& input, common::DataChunk& output) {
     auto& outputVector = output.getValueVectorMutable(0);
     auto pos = outputVector.state->getSelVector()[0];
-    outputVector.setValue(pos, input.context->clientContext->getCatalog()->getVersion());
+    outputVector.setValue(pos, catalog::Catalog::Get(*input.context->clientContext)->getVersion());
     return 1;
 }
 

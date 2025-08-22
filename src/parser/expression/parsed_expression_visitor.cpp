@@ -150,7 +150,7 @@ void ReadWriteExprAnalyzer::visitFunctionExpr(const ParsedExpression* expr) {
         return;
     }
     auto funcName = expr->constCast<ParsedFunctionExpression>().getFunctionName();
-    auto catalog = context->getCatalog();
+    auto catalog = Catalog::Get(*context);
     // Assume user cannot add function with sideeffect, i.e. all non-readonly function is
     // registered when database starts.
     auto transaction = &transaction::DUMMY_TRANSACTION;

@@ -22,7 +22,7 @@ StorageDriver::StorageDriver(Database* database) {
 StorageDriver::~StorageDriver() = default;
 
 static TableCatalogEntry* getEntry(const ClientContext& context, const std::string& tableName) {
-    return context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
+    return Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
 }
 
 static Table* getTable(const ClientContext& context, const std::string& tableName) {

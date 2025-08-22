@@ -27,7 +27,7 @@ void Alter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* conte
 
 void Alter::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     if (catalog->containsTable(transaction, info.tableName)) {
         auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
@@ -126,7 +126,7 @@ static bool checkDropPropertyConflicts(const TableCatalogEntry& tableEntry,
                 propertyName, tableEntry.getName()));
         }
         // Check secondary index constraints
-        auto catalog = context.getCatalog();
+        auto catalog = Catalog::Get(context);
         auto transaction = context.getTransaction();
         if (catalog->containsIndex(transaction, tableEntry.getTableID(), propertyID)) {
             throw BinderException(stringFormat(
@@ -149,7 +149,7 @@ static bool checkRenamePropertyConflicts(const TableCatalogEntry& tableEntry,
 
 static bool checkRenameTableConflicts(const BoundAlterInfo& info, main::ClientContext& context) {
     auto newName = info.extraInfo->constCast<BoundExtraRenameTableInfo>().newName;
-    auto catalog = context.getCatalog();
+    auto catalog = Catalog::Get(context);
     auto transaction = context.getTransaction();
     if (catalog->containsTable(transaction, newName)) {
         throw BinderException("Table " + newName + " already exists.");
@@ -169,7 +169,7 @@ static bool checkAddFromToConflicts(const TableCatalogEntry& tableEntry, const B
     auto& relGroupEntry = tableEntry.constCast<RelGroupCatalogEntry>();
     validate(info.onConflict, [&relGroupEntry, &extraInfo, &context]() {
         if (relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID)) {
-            auto catalog = context.getCatalog();
+            auto catalog = Catalog::Get(context);
             auto transaction = context.getTransaction();
             auto fromTableName =
                 catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
@@ -196,7 +196,7 @@ static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
     auto& relGroupEntry = tableEntry.constCast<RelGroupCatalogEntry>();
     validate(info.onConflict, [&relGroupEntry, &extraInfo, &context]() {
         if (!relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID)) {
-            auto catalog = context.getCatalog();
+            auto catalog = Catalog::Get(context);
             auto transaction = context.getTransaction();
             auto fromTableName =
                 catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
@@ -213,7 +213,7 @@ static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
 
 void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEntry& entry,
     const BoundAlterInfo& alterInfo) {
-    auto catalog = clientContext->getCatalog();
+    auto catalog = Catalog::Get(*clientContext);
     auto transaction = clientContext->getTransaction();
     auto memoryManager = storage::MemoryManager::Get(*clientContext);
     auto tableName = entry.getName();

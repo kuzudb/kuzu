@@ -52,7 +52,7 @@ static offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/, const Table
 static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
-    const auto catalog = context->getCatalog();
+    const auto catalog = Catalog::Get(*context);
     if (!catalog->containsTable(context->getTransaction(), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
