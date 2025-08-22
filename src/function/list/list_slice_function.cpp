@@ -30,8 +30,7 @@ struct ListSlice {
     // Note: this function takes in a 1-based begin/end index (The index of the first value in the
     // listEntry is 1).
     static void operation(list_entry_t& listEntry, int64_t& begin, int64_t& end,
-        list_entry_t& result, ValueVector& listVector,
-        ValueVector& resultVector) {
+        list_entry_t& result, ValueVector& listVector, ValueVector& resultVector) {
         auto startIdx = begin;
         auto endIdx = end;
         normalizeIndices(startIdx, endIdx, listEntry.size);
@@ -45,8 +44,8 @@ struct ListSlice {
         }
     }
 
-    static void operation(ku_string_t& str, int64_t& begin, int64_t& end,
-        ku_string_t& result, ValueVector&, ValueVector& resultValueVector) {
+    static void operation(ku_string_t& str, int64_t& begin, int64_t& end, ku_string_t& result,
+        ValueVector&, ValueVector& resultValueVector) {
         auto startIdx = begin;
         auto endIdx = end;
         normalizeIndices(startIdx, endIdx, str.len);
@@ -91,7 +90,8 @@ function_set ListSliceFunction::getFunctionSet() {
     result.push_back(std::move(func));
     // Array slice
     func = std::make_unique<ScalarFunction>(name,
-        std::vector<LogicalTypeID>{LogicalTypeID::ARRAY, LogicalTypeID::INT64, LogicalTypeID::INT64},
+        std::vector<LogicalTypeID>{LogicalTypeID::ARRAY, LogicalTypeID::INT64,
+            LogicalTypeID::INT64},
         LogicalTypeID::LIST,
         ScalarFunction::TernaryExecListStructFunction<list_entry_t, int64_t, int64_t, list_entry_t,
             ListSlice>);
