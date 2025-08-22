@@ -186,7 +186,7 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                double weight = (!weightProperty ? DEFAULT_WEIGHT : static_cast<double>(propertyVectors[1]->template getValue<T>(i)));
+                double weight = (weightProperty ? static_cast<double>(propertyVectors[1]->template getValue<T>(i)) : DEFAULT_WEIGHT);
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
