@@ -92,7 +92,18 @@ void TestRunner::testStatement(TestStatement& statement, Connection& conn,
     replaceEnv(statement.query, "GCS_SECRET_ACCESS_KEY");
     replaceEnv(statement.query, "OLLAMA_URL");
     replaceEnv(statement.query, "RUN_ID");
-    const auto actualResult = conn.query(statement.query);
+    std::unique_ptr<QueryResult> actualResult;
+    {
+        BuggifyScope scope;
+        actualResult = conn.query(statement.query);
+    }
+#ifdef KUZU_BUGGIFY
+    if (!actualResult->isSuccess() &&
+        actualResult->getErrorMessage().find("[BUGGIFY]") != std::string::npos) {
+        spdlog::info("Query failed due to buggify, rerun the query {}.", statement.query);
+        actualResult = conn.query(statement.query);
+    }
+#endif
     QueryResult* currentQueryResult = actualResult.get();
     idx_t resultIdx = 0u;
     do {

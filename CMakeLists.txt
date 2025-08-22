@@ -103,6 +103,7 @@ option(ENABLE_ADDRESS_SANITIZER "Enable address sanitizer." FALSE)
 option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(ENABLE_RUNTIME_CHECKS "Enable runtime coherency checks (e.g. asserts)" FALSE)
+option(ENABLE_BUGGIFY "Enable buggify mode, which randomly fails operations to test robustness." FALSE)
 option(ENABLE_LTO "Enable Link-Time Optimization" FALSE)
 option(ENABLE_MALLOC_BUFFER_MANAGER "Enable Buffer manager using malloc. Default option for webassembly" OFF)
 
@@ -273,6 +274,13 @@ endif()
 
 if(${ENABLE_RUNTIME_CHECKS})
     add_compile_definitions(KUZU_RUNTIME_CHECKS)
+endif()
+
+if (${ENABLE_BUGGIFY})
+    add_compile_definitions(KUZU_BUGGIFY)
+    if (NOT ENABLE_RUNTIME_CHECKS)
+        message(WARNING "Buggify mode should be enabled together with runtime checks.")
+    endif()
 endif()
 
 if (${ENABLE_DESER_DEBUG})

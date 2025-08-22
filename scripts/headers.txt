@@ -18,6 +18,7 @@ src/include/common/enums/expression_type.h
 src/include/common/enums/path_semantic.h
 src/include/common/enums/statement_type.h
 src/include/common/exception/binder.h
+src/include/common/exception/buggify.h
 src/include/common/exception/catalog.h
 src/include/common/exception/exception.h
 src/include/common/exception/internal.h
