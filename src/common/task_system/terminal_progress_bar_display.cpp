@@ -7,7 +7,7 @@ namespace common {
 
 void TerminalProgressBarDisplay::updateProgress(uint64_t /*queryID*/, double newPipelineProgress,
     uint32_t newNumPipelinesFinished) {
-    KU_ASSERT(newPipelineProgress <= 1.0);
+    KU_ASSERT(0.0 <= newPipelineProgress && newPipelineProgress <= 1.0);
 
     // There can still be data races as the comparison + update of cur/old progress is not done
     // atomically
