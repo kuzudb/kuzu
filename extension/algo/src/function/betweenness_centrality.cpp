@@ -54,22 +54,22 @@ namespace algo_extension {
 //   - dep[w] : dependency score for w (initialize all = 0)
 
 //   - Run SSSP from s
-//   - While traversing unweighted graph (BFS):
-//       * When visiting a vertex p, examine each neighbor w:
-//           - If w is discovered for the first time:
-//               * Set dist[w] = dist[p]+1
-//               * Set level[w] = dist[p]+1
-//           - If dist[w] == dist[p] + 1 (shortest path via p):
-//               * Update numSP[w] += numSP[p]
-
-//   - For weighted graphs, use two passes:
-//       * First pass: run Bellman-Ford to compute all dist[w]
-//         (as in Ligra: https://jshun.csail.mit.edu/ligra.pdf)
-//       * Second pass: stabilize path counts
-//           - For each vertex p, examine each neighbor w:
-//               If dist[p] + weight(p, w) == dist[w]:
-//                 * Update level[w] = max(level[w], level[p] + 1)
-//                 * Update numSP[w] += numSP[p]
+//       - While traversing unweighted graph (BFS):
+//           * When visiting a vertex p, examine each neighbor w:
+//               - If w is discovered for the first time:
+//                   * Set dist[w] = dist[p]+1
+//                   * Set level[w] = dist[p]+1
+//               - If dist[w] == dist[p] + 1 (shortest path via p):
+//                   * Update numSP[w] += numSP[p]
+//
+//       - For weighted graphs, use two passes:
+//           * First pass: run Bellman-Ford to compute all dist[w]
+//             (as in Ligra: https://jshun.csail.mit.edu/ligra.pdf)
+//           * Second pass: stabilize path counts
+//               - For each vertex p, examine each neighbor w:
+//                   If dist[p] + weight(p, w) == dist[w]:
+//                     * Update level[w] = max(level[w], level[p] + 1)
+//                     * Update numSP[w] += numSP[p]
 
 //   - Sort vertices by decreasing level (farthest first)
 //   - For each vertex u in that order (can do an iteration in parallel for vertices with matching levels):
