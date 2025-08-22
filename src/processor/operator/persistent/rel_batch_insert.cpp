@@ -105,11 +105,11 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     while (true) {
         relLocalState->nodeGroupIdx =
             partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
-        ++progressSharedState->partitionsDone;
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
         }
+        ++progressSharedState->partitionsDone;
         // TODO(Guodong): We need to handle the concurrency between COPY and other insertions
         // into the same node group.
         auto& nodeGroup = relTable
