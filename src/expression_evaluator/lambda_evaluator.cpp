@@ -54,7 +54,8 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
 void ListLambdaEvaluator::evaluateInternal() {
     auto* inputVector = params[0].get();
     if (resultVector->dataType.getPhysicalType() == PhysicalTypeID::LIST) {
-        ListVector::resizeDataVector(resultVector.get(), ListVector::getDataVectorSize(inputVector));
+        ListVector::resizeDataVector(resultVector.get(),
+            ListVector::getDataVectorSize(inputVector));
     }
     ListSliceInfo sliceInfo{inputVector};
     bindData.sliceInfo = &sliceInfo;
@@ -98,8 +99,7 @@ std::vector<idx_t> ListLambdaEvaluator::getParamIndices() {
         if (it != paramNames.end()) {
             index[i] = it - paramNames.begin();
         } else {
-            throw RuntimeException(
-                stringFormat("Lambda paramName {} cannot found.", paramName));
+            throw RuntimeException(stringFormat("Lambda paramName {} cannot found.", paramName));
         }
     }
     return index;
