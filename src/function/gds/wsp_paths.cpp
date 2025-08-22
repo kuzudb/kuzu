@@ -4,7 +4,7 @@
 #include "function/gds/rec_joins.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
-#include "wsp_utils.h"
+#include "function/gds/weight_utils.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -29,7 +29,7 @@ public:
             auto nbrNodeID = neighbors[i];
             auto edgeID = propertyVectors[0]->template getValue<relID_t>(i);
             auto weight = propertyVectors[1]->template getValue<T>(i);
-            checkWeight(weight);
+            WeightUtils::checkWeight(weight);
             if (!block->hasSpace()) {
                 block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
@@ -125,7 +125,7 @@ private:
             sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
             MemoryManager::Get(*clientContext));
         std::unique_ptr<GDSComputeState> gdsState;
-        visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+        WeightUtils::visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
             auto edgeCompute = std::make_unique<WSPPathsEdgeCompute<T>>(bfsGraph.get());
             auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
             gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
