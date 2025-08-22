@@ -1,9 +1,9 @@
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
+#include "function/gds/weight_utils.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
-#include "function/gds/weight_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

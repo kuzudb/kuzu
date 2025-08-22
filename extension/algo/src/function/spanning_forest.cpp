@@ -13,12 +13,12 @@
 #include "function/config/spanning_forest_config.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
+#include "function/gds/weight_utils.h"
 #include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"
-#include "function/gds/weight_utils.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -186,7 +186,9 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                double weight = (weightProperty ? static_cast<double>(propertyVectors[1]->template getValue<T>(i)) : DEFAULT_WEIGHT);
+                double weight = (weightProperty ? static_cast<double>(
+                                                      propertyVectors[1]->template getValue<T>(i)) :
+                                                  DEFAULT_WEIGHT);
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
@@ -305,8 +307,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         throw RuntimeException{
             stringFormat("Cannot find property: {}", config.weightProperty.getParamVal())};
     }
-    const auto& propertyType = (config.weightProperty.getParamVal().empty() ? LogicalTypeID::DOUBLE : nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal()).getType().getLogicalTypeID());
-    if (!config.weightProperty.getParamVal().empty() && !LogicalTypeUtils::isNumerical(propertyType)) {
+    const auto& propertyType =
+        (config.weightProperty.getParamVal().empty() ?
+                LogicalTypeID::DOUBLE :
+                nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal())
+                    .getType()
+                    .getLogicalTypeID());
+    if (!config.weightProperty.getParamVal().empty() &&
+        !LogicalTypeUtils::isNumerical(propertyType)) {
         throw RuntimeException{stringFormat("Provided weight property is not numerical: {}",
             config.weightProperty.getParamVal())};
     }
@@ -322,7 +330,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
 
     KruskalCompute compute(mm, numNodes);
     WeightUtils::visit(propertyType, [&]<typename T>(T) {
-         compute.initEdges<T>(graph, tableId, scanState.get(), !config.weightProperty.getParamVal().empty());
+        compute.initEdges<T>(graph, tableId, scanState.get(),
+            !config.weightProperty.getParamVal().empty());
     });
     compute.sortEdges(config.variant.getParamVal());
     compute.run();

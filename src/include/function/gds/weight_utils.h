@@ -7,8 +7,7 @@
 namespace kuzu {
 namespace function {
 
-struct WeightUtils
-{
+struct WeightUtils {
     template<typename... Fs>
     static auto visit(const common::LogicalType& dataType, Fs... funcs);
 
@@ -18,7 +17,6 @@ struct WeightUtils
     template<typename T>
     static void checkWeight(T weight);
 };
-
 
 template<typename... Fs>
 auto WeightUtils::visit(const common::LogicalType& dataType, Fs... funcs) {
@@ -85,8 +83,9 @@ auto WeightUtils::visit(const common::LogicalTypeID& dataType, Fs... funcs) {
         break;
     }
     // LCOV_EXCL_START
-    throw common::RuntimeException(common::stringFormat(
-        "{} weight type is not supported for weighted shortest path.", common::LogicalType(dataType).toString()));
+    throw common::RuntimeException(
+        common::stringFormat("{} weight type is not supported for weighted shortest path.",
+            common::LogicalType(dataType).toString()));
     // LCOV_EXCL_STOP
 }
 
