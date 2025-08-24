@@ -242,14 +242,18 @@
 ---- ok
 -STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
 ---- ok
--STATEMENT CALL show_tables() return *;
+-STATEMENT CALL show_indexes() return *;
 ---- 1
-0|embeddings|NODE|local(kuzu)|
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
 -STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index');
 ---- ok
--STATEMENT CALL SHOW_TABLES() RETURN *
+-STATEMENT CALL show_indexes() RETURN *
+---- 0
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index','vec', metric := 'l2');
+---- ok
+-STATEMENT CALL show_indexes() RETURN *
 ---- 1
-0|embeddings|NODE|local(kuzu)|
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'l2', alpha := 1.100000, efc := 200);
 
 -CASE EmptyTbl
 -LOAD_DYNAMIC_EXTENSION vector
