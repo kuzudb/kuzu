@@ -138,6 +138,27 @@ class Database:
         """
         return _kuzu.Database.get_storage_version()  # type: ignore[union-attr]
 
+    @staticmethod
+    def get_storage_version_info() -> dict[str, int]:
+        """
+        Get the storage version information of the database.
+
+        Returns
+        -------
+        dict[str, int]
+            The storage version information of the database.
+        """
+        raw_storage_version_info = _kuzu.Database.get_storage_version_info()  # type: ignore[union-attr]
+        storage_info = {}
+        for k, v in raw_storage_version_info.items():
+            k_parts = k.split(".")
+            version = k
+            if len(k_parts) > 3:
+                k_parts[3] = "dev" + k_parts[3]
+                version = ".".join(k_parts[:4])
+            storage_info[version] = int(v)
+        return storage_info
+
     def __getstate__(self) -> dict[str, Any]:
         state = {
             "database_path": self.database_path,

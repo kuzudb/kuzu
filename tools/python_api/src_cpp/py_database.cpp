@@ -34,7 +34,8 @@ void PyDatabase::initialize(py::handle& m) {
             py::arg("prop_name"), py::arg("indices"), py::arg("np_array"), py::arg("num_threads"))
         .def("close", &PyDatabase::close)
         .def_static("get_version", &PyDatabase::getVersion)
-        .def_static("get_storage_version", &PyDatabase::getStorageVersion);
+        .def_static("get_storage_version", &PyDatabase::getStorageVersion)
+        .def_static("get_storage_version_info", &PyDatabase::getStorageVersionInfo);
 }
 
 py::str PyDatabase::getVersion() {
@@ -43,6 +44,10 @@ py::str PyDatabase::getVersion() {
 
 uint64_t PyDatabase::getStorageVersion() {
     return Version::getStorageVersion();
+}
+
+std::unordered_map<std::string, uint64_t> PyDatabase::getStorageVersionInfo() {
+    return Version::getStorageVersionInfo();
 }
 
 PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
