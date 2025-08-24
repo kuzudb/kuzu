@@ -79,8 +79,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatFlatUnflat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         auto aPos = (*aSelVector)[0];
         auto bPos = (*bSelVector)[0];
         if (a.isNull(aPos) || b.isNull(bPos)) {
@@ -88,14 +88,16 @@ struct TernaryFunctionExecutor {
         } else if (c.hasNoNullsGuarantee()) {
             if (cSelVector->isUnfiltered()) {
                 for (auto i = 0u; i < cSelVector->getSelSize(); ++i) {
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, aPos, bPos, i, i, dataPtr);
+                        result, aPos, bPos, i, rPos, dataPtr);
                 }
             } else {
                 for (auto i = 0u; i < cSelVector->getSelSize(); ++i) {
                     auto pos = (*cSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, aPos, bPos, pos, pos, dataPtr);
+                        result, aPos, bPos, pos, rPos, dataPtr);
                 }
             }
         } else {
@@ -103,8 +105,9 @@ struct TernaryFunctionExecutor {
                 for (auto i = 0u; i < cSelVector->getSelSize(); ++i) {
                     result.setNull(i, c.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, aPos, bPos, i, i, dataPtr);
+                            c, result, aPos, bPos, i, rPos, dataPtr);
                     }
                 }
             } else {
@@ -112,8 +115,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*cSelVector)[i];
                     result.setNull(pos, c.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, aPos, bPos, pos, pos, dataPtr);
+                            c, result, aPos, bPos, pos, rPos, dataPtr);
                     }
                 }
             }
@@ -125,7 +129,7 @@ struct TernaryFunctionExecutor {
     static void executeFlatUnflatUnflat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
         [[maybe_unused]] common::SelectionVector* cSelVector, common::ValueVector& result,
-        common::SelectionVector*, void* dataPtr) {
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(bSelVector == cSelVector);
         auto aPos = (*aSelVector)[0];
         if (a.isNull(aPos)) {
@@ -139,8 +143,9 @@ struct TernaryFunctionExecutor {
             } else {
                 for (auto i = 0u; i < bSelVector->getSelSize(); ++i) {
                     auto pos = (*bSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, aPos, pos, pos, pos, dataPtr);
+                        result, aPos, pos, pos, rPos, dataPtr);
                 }
             }
         } else {
@@ -148,8 +153,9 @@ struct TernaryFunctionExecutor {
                 for (auto i = 0u; i < bSelVector->getSelSize(); ++i) {
                     result.setNull(i, b.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, aPos, i, i, i, dataPtr);
+                            c, result, aPos, i, i, rPos, dataPtr);
                     }
                 }
             } else {
@@ -157,8 +163,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*bSelVector)[i];
                     result.setNull(pos, b.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, aPos, pos, pos, pos, dataPtr);
+                            c, result, aPos, pos, pos, rPos, dataPtr);
                     }
                 }
             }
@@ -169,8 +176,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         auto aPos = (*aSelVector)[0];
         auto cPos = (*cSelVector)[0];
         if (a.isNull(aPos) || c.isNull(cPos)) {
@@ -178,14 +185,16 @@ struct TernaryFunctionExecutor {
         } else if (b.hasNoNullsGuarantee()) {
             if (bSelVector->isUnfiltered()) {
                 for (auto i = 0u; i < bSelVector->getSelSize(); ++i) {
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, aPos, i, cPos, i, dataPtr);
+                        result, aPos, i, cPos, rPos, dataPtr);
                 }
             } else {
                 for (auto i = 0u; i < bSelVector->getSelSize(); ++i) {
                     auto pos = (*bSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, aPos, pos, cPos, pos, dataPtr);
+                        result, aPos, pos, cPos, rPos, dataPtr);
                 }
             }
         } else {
@@ -193,8 +202,9 @@ struct TernaryFunctionExecutor {
                 for (auto i = 0u; i < bSelVector->getSelSize(); ++i) {
                     result.setNull(i, b.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, aPos, i, cPos, i, dataPtr);
+                            c, result, aPos, i, cPos, rPos, dataPtr);
                     }
                 }
             } else {
@@ -202,8 +212,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*bSelVector)[i];
                     result.setNull(pos, b.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, aPos, pos, cPos, pos, dataPtr);
+                            c, result, aPos, pos, cPos, rPos, dataPtr);
                     }
                 }
             }
@@ -215,19 +226,21 @@ struct TernaryFunctionExecutor {
     static void executeAllUnFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, [[maybe_unused]] common::SelectionVector* bSelVector,
         common::ValueVector& c, [[maybe_unused]] common::SelectionVector* cSelVector,
-        common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
+        common::ValueVector& result, common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(aSelVector == bSelVector && bSelVector == cSelVector);
         if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
             if (aSelVector->isUnfiltered()) {
                 for (uint64_t i = 0; i < aSelVector->getSelSize(); i++) {
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, i, i, i, i, dataPtr);
+                        result, i, i, i, rPos, dataPtr);
                 }
             } else {
                 for (uint64_t i = 0; i < aSelVector->getSelSize(); i++) {
                     auto pos = (*aSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, pos, pos, pos, pos, dataPtr);
+                        result, pos, pos, pos, rPos, dataPtr);
                 }
             }
         } else {
@@ -235,8 +248,9 @@ struct TernaryFunctionExecutor {
                 for (uint64_t i = 0; i < aSelVector->getSelSize(); i++) {
                     result.setNull(i, a.isNull(i) || b.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, i, i, i, i, dataPtr);
+                            c, result, i, i, i, rPos, dataPtr);
                     }
                 }
             } else {
@@ -244,8 +258,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*aSelVector)[i];
                     result.setNull(pos, a.isNull(pos) || b.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, pos, pos, pos, pos, dataPtr);
+                            c, result, pos, pos, pos, rPos, dataPtr);
                     }
                 }
             }
@@ -256,8 +271,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector*,
-        void* dataPtr) {
+        common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         auto bPos = (*bSelVector)[0];
         auto cPos = (*cSelVector)[0];
         if (b.isNull(bPos) || c.isNull(cPos)) {
@@ -265,14 +280,16 @@ struct TernaryFunctionExecutor {
         } else if (a.hasNoNullsGuarantee()) {
             if (aSelVector->isUnfiltered()) {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, i, bPos, cPos, i, dataPtr);
+                        result, i, bPos, cPos, rPos, dataPtr);
                 }
             } else {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
                     auto pos = (*aSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, pos, bPos, cPos, pos, dataPtr);
+                        result, pos, bPos, cPos, rPos, dataPtr);
                 }
             }
         } else {
@@ -280,8 +297,9 @@ struct TernaryFunctionExecutor {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
                     result.setNull(i, a.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, i, bPos, cPos, i, dataPtr);
+                            c, result, i, bPos, cPos, rPos, dataPtr);
                     }
                 }
             } else {
@@ -289,8 +307,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*aSelVector)[i];
                     result.setNull(pos, a.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, pos, bPos, cPos, pos, dataPtr);
+                            c, result, pos, bPos, cPos, rPos, dataPtr);
                     }
                 }
             }
@@ -302,7 +321,7 @@ struct TernaryFunctionExecutor {
     static void executeUnflatFlatUnflat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
         [[maybe_unused]] common::SelectionVector* cSelVector, common::ValueVector& result,
-        common::SelectionVector*, void* dataPtr) {
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(aSelVector == cSelVector);
         auto bPos = (*bSelVector)[0];
         if (b.isNull(bPos)) {
@@ -310,14 +329,16 @@ struct TernaryFunctionExecutor {
         } else if (a.hasNoNullsGuarantee() && c.hasNoNullsGuarantee()) {
             if (aSelVector->isUnfiltered()) {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, i, bPos, i, i, dataPtr);
+                        result, i, bPos, i, rPos, dataPtr);
                 }
             } else {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
                     auto pos = (*aSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, pos, bPos, pos, pos, dataPtr);
+                        result, pos, bPos, pos, rPos, dataPtr);
                 }
             }
         } else {
@@ -325,8 +346,9 @@ struct TernaryFunctionExecutor {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
                     result.setNull(i, a.isNull(i) || c.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, i, bPos, i, i, dataPtr);
+                            c, result, i, bPos, i, rPos, dataPtr);
                     }
                 }
             } else {
@@ -334,8 +356,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*bSelVector)[i];
                     result.setNull(pos, a.isNull(pos) || c.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, pos, bPos, pos, pos, dataPtr);
+                            c, result, pos, bPos, pos, rPos, dataPtr);
                     }
                 }
             }
@@ -347,7 +370,7 @@ struct TernaryFunctionExecutor {
     static void executeUnflatUnFlatFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, [[maybe_unused]] common::SelectionVector* bSelVector,
         common::ValueVector& c, common::SelectionVector* cSelVector, common::ValueVector& result,
-        common::SelectionVector*, void* dataPtr) {
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         KU_ASSERT(aSelVector == bSelVector);
         auto cPos = (*cSelVector)[0];
         if (c.isNull(cPos)) {
@@ -355,14 +378,16 @@ struct TernaryFunctionExecutor {
         } else if (a.hasNoNullsGuarantee() && b.hasNoNullsGuarantee()) {
             if (aSelVector->isUnfiltered()) {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, i, i, cPos, i, dataPtr);
+                        result, i, i, cPos, rPos, dataPtr);
                 }
             } else {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
                     auto pos = (*aSelVector)[i];
+                    auto rPos = (*resultSelVector)[i];
                     executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c,
-                        result, pos, pos, cPos, pos, dataPtr);
+                        result, pos, pos, cPos, rPos, dataPtr);
                 }
             }
         } else {
@@ -370,8 +395,9 @@ struct TernaryFunctionExecutor {
                 for (auto i = 0u; i < aSelVector->getSelSize(); ++i) {
                     result.setNull(i, a.isNull(i) || b.isNull(i));
                     if (!result.isNull(i)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, i, i, cPos, i, dataPtr);
+                            c, result, i, i, cPos, rPos, dataPtr);
                     }
                 }
             } else {
@@ -379,8 +405,9 @@ struct TernaryFunctionExecutor {
                     auto pos = (*aSelVector)[i];
                     result.setNull(pos, a.isNull(pos) || b.isNull(pos));
                     if (!result.isNull(pos)) {
+                        auto rPos = (*resultSelVector)[i];
                         executeOnValue<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b,
-                            c, result, pos, pos, cPos, pos, dataPtr);
+                            c, result, pos, pos, cPos, rPos, dataPtr);
                     }
                 }
             }
