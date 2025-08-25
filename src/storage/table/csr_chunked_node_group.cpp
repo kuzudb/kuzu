@@ -135,10 +135,9 @@ offset_vec_t ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps)
         const auto rightNodeOffset = std::min(region.rightNodeOffset, numNodes - 1);
         // Populate start csr offset for each node in the region.
         offset->mapValues<offset_t>(region.leftNodeOffset, rightNodeOffset,
-            [&](auto, auto nodeOffset) {
-                auto value = leftCSROffset + numRelsInRegion;
+            [&](auto& value, auto nodeOffset) {
+                value = leftCSROffset + numRelsInRegion;
                 numRelsInRegion += getCSRLength(nodeOffset);
-                return value;
             });
         // Update lastLeftCSROffset for next region.
         leftCSROffset += numRelsInRegion;
@@ -207,14 +206,15 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
-    transaction::Transaction* transaction, MemoryManager &mm, PageAllocator &pageAllocator) {
+    transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
     auto csrOffset = Column::flushChunkData(*csrHeader.offset, pageAllocator);
     auto csrLength = Column::flushChunkData(*csrHeader.length, pageAllocator);
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         getColumnChunk(i).finalize();
-        flushedChunks[i] = std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i), pageAllocator));
+        flushedChunks[i] =
+            std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
+                Column::flushChunkData(getColumnChunk(i), pageAllocator));
     }
     InMemChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
     auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
@@ -296,7 +296,7 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryMana
     return chunkedGroup;
 }
 
-ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(MemoryManager &mm, InMemChunkedCSRNodeGroup& base,
+ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(MemoryManager& mm, InMemChunkedCSRNodeGroup& base,
     const std::vector<common::column_id_t>& selectedColumns)
     : ChunkedNodeGroup{mm, base, selectedColumns},
       csrHeader{std::make_unique<ColumnChunk>(mm, true /*enableCompression*/,

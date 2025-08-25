@@ -187,7 +187,7 @@ public:
         }
     }
 
-    template<typename T, class Func>
+    template<typename T, std::invocable<T&, uint64_t> Func>
     void mapValues(uint64_t startOffset, uint64_t endOffset, Func func) {
         uint64_t startPos = 0;
         for (const auto& segment : data) {
