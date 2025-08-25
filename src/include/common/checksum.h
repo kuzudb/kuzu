@@ -1,4 +1,3 @@
-// From DuckDB
 #pragma once
 
 #include <cstddef>
