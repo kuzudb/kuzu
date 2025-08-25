@@ -33,7 +33,7 @@ void RelGroupCatalogEntry::dropFromToConnection(table_id_t srcTableID, table_id_
 
 void RelTableCatalogInfo::serialize(Serializer& ser) const {
     ser.writeDebuggingInfo("nodePair");
-    ser.serializeValue(nodePair);
+    nodePair.serialize(ser);
     ser.writeDebuggingInfo("oid");
     ser.serializeValue(oid);
 }
