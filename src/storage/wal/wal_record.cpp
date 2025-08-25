@@ -20,9 +20,8 @@ void WALRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
-    const main::ClientContext& clientContext) {
+    const main::ClientContext& clientContext, std::string_view checksumMismatchMessage) {
     auto* checksumReader = deserializer.getReader()->cast<ChecksumReader>();
-    checksumReader->startEntry();
     std::string key;
     auto type = WALRecordType::INVALID_RECORD;
     deserializer.validateDebuggingInfo(key, "type");
@@ -82,7 +81,7 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     }
     }
     walRecord->type = type;
-    checksumReader->finishEntry();
+    checksumReader->finishEntry(checksumMismatchMessage);
     return walRecord;
 }
 

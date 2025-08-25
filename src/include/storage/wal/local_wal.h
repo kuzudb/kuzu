@@ -55,9 +55,8 @@ private:
 
 private:
     std::mutex mtx;
-    std::shared_ptr<ChecksumWriter> writer;
-    std::shared_ptr<common::InMemFileWriter> localWriter;
-    std::unique_ptr<common::Serializer> serializer;
+    std::shared_ptr<common::InMemFileWriter> writer;
+    ChecksumSerializer checksumWriter;
 };
 
 } // namespace storage

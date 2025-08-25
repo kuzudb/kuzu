@@ -50,7 +50,7 @@ struct WALRecord {
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer,
-        const main::ClientContext& clientContext);
+        const main::ClientContext& clientContext, std::string_view checksumMismatchMessage);
 
     template<class TARGET>
     const TARGET& constCast() const {

@@ -40,26 +40,26 @@ hash_t checksumRemainder(void* ptr, size_t len) noexcept {
     switch (len & 7U) {
     case 7:
         h ^= static_cast<uint64_t>(data8[6]) << 48U;
-
+        [[fallthrough]];
     case 6:
         h ^= static_cast<uint64_t>(data8[5]) << 40U;
-
+        [[fallthrough]];
     case 5:
         h ^= static_cast<uint64_t>(data8[4]) << 32U;
-
+        [[fallthrough]];
     case 4:
         h ^= static_cast<uint64_t>(data8[3]) << 24U;
-
+        [[fallthrough]];
     case 3:
         h ^= static_cast<uint64_t>(data8[2]) << 16U;
-
+        [[fallthrough]];
     case 2:
         h ^= static_cast<uint64_t>(data8[1]) << 8U;
-
+        [[fallthrough]];
     case 1:
         h ^= static_cast<uint64_t>(data8[0]);
         h *= M;
-
+        [[fallthrough]];
     default:
         break;
     }

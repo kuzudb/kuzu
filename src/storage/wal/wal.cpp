@@ -30,7 +30,7 @@ void WAL::logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context) {
     }
     std::unique_lock lck{mtx};
     initWriter(context);
-    localWAL.localWriter->flush(*writer);
+    localWAL.writer->flush(*writer);
     flushAndSyncNoLock();
 }
 
@@ -52,7 +52,6 @@ void WAL::reset() {
     std::unique_lock lck{mtx};
     fileInfo.reset();
     writer.reset();
-    serializer.reset();
     vfs->removeFileIfExists(walPath);
 }
 
@@ -76,30 +75,29 @@ void WAL::initWriter(main::ClientContext* context) {
         context);
 
     writer = std::make_shared<BufferedFileWriter>(*fileInfo);
-    serializer = std::make_unique<Serializer>(writer);
+    checksumWriter.emplace(writer, *MemoryManager::Get(*context));
 
     // Write the databaseID at the start of the WAL if needed
     // This is used to ensure that when replaying the WAL matches the database
     if (fileInfo->getFileSize() == 0) {
-        FileDBIDUtils::writeDatabaseID(*serializer,
+        FileDBIDUtils::writeDatabaseID(checksumWriter->serializer,
             StorageManager::Get(*context)->getOrInitDatabaseID(*context));
+        checksumWriter->writer->flush();
     }
 
     // WAL should always be APPEND only. We don't want to overwrite the file as it may still
     // contain records not replayed. This can happen if checkpoint is not triggered before the
     // Database is closed last time.
     writer->setFileOffset(fileInfo->getFileSize());
-    checksumWriter = std::make_shared<ChecksumWriter>(writer, *MemoryManager::Get(*context));
-    serializer = std::make_unique<Serializer>(checksumWriter);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     KU_ASSERT(!inMemory);
-    checksumWriter->startEntry();
-    walRecord.serialize(*serializer);
-    checksumWriter->finishEntry();
+    KU_ASSERT(checksumWriter.has_value());
+    walRecord.serialize(checksumWriter->serializer);
+    checksumWriter->writer->flush();
 }
 
 WAL* WAL::Get(const main::ClientContext& context) {

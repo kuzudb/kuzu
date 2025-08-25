@@ -1,35 +1,43 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 
+#include "common/serializer/serializer.h"
 #include "common/serializer/writer.h"
 #include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace storage {
-// A wrapper on top of another Writer that computes checksums for bytes written between startEntry()
-// and finishEntry() calls
+class ChecksumWriter;
+
+struct ChecksumSerializer {
+    ChecksumSerializer(std::shared_ptr<common::Writer> outputWriter, MemoryManager& memoryManager);
+
+    std::shared_ptr<ChecksumWriter> writer;
+    common::Serializer serializer;
+};
+
+// A wrapper on top of another Writer that accumulates serialized data
+// Then flushes that data (along with a computed checksum) when the data has completed serializing
 class ChecksumWriter : public common::Writer {
 public:
-    explicit ChecksumWriter(std::shared_ptr<Writer> writer, MemoryManager& memoryManager);
+    explicit ChecksumWriter(std::shared_ptr<common::Writer> outputWriter,
+        MemoryManager& memoryManager);
 
     void write(const uint8_t* data, uint64_t size) override;
     uint64_t getSize() const override;
 
     void clear() override;
-    void flush() override;
     void sync() override;
 
-    void startEntry();
-    void finishEntry();
+    // Calculate checksum + write the checksum + serialized contents to underlying writer
+    void flush() override;
 
 private:
-    std::shared_ptr<Writer> writer;
-    std::unique_ptr<common::Serializer> serializer;
-
-    std::optional<uint64_t> currentEntrySize;
+    common::Serializer outputSerializer;
+    uint64_t currentEntrySize;
     std::unique_ptr<MemoryBuffer> entryBuffer;
 };
+
 } // namespace storage
 } // namespace kuzu
