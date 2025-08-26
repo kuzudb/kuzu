@@ -6,6 +6,7 @@
 #include "common/exception/storage.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
+#include <bit>
 
 namespace kuzu::storage {
 static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;

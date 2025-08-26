@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <optional>
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/reader.h"

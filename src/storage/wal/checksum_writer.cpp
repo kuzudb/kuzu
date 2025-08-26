@@ -4,6 +4,7 @@
 
 #include "common/checksum.h"
 #include "common/serializer/serializer.h"
+#include <bit>
 
 namespace kuzu::storage {
 static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
