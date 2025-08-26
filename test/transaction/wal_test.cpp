@@ -2,6 +2,7 @@
 
 #include "api_test/api_test.h"
 #include "common/exception/runtime.h"
+#include "common/exception/storage.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -118,6 +119,29 @@ TEST_F(WalTest, ShadowFileExistsWithEmptyWAL) {
     ASSERT_EQ(res->getNumTuples(), 0);
     ASSERT_FALSE(std::filesystem::exists(walFilePath));
     ASSERT_FALSE(std::filesystem::exists(shadowFilePath));
+}
+
+// Simulation of a corrupted WAL tail by changing some data, this should trigger a checksum failure
+TEST_F(WalTest, CorruptedWALChecksumMismatch) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    conn->query("CALL force_checkpoint_on_close=false");
+    conn->query("BEGIN TRANSACTION;");
+    conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test2(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test3(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("CREATE NODE TABLE test4(id INT64 PRIMARY KEY, name STRING);");
+    conn->query("COMMIT;");
+    auto walFilePath = kuzu::storage::StorageUtils::getWALFilePath(databasePath);
+    ASSERT_TRUE(std::filesystem::exists(walFilePath));
+    // rewrite part of the wal
+    std::ofstream file(walFilePath, std::ios_base::in | std::ios_base::out | std::ios_base::ate);
+    ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 13);
+    file.seekp(10);
+    file << "abc";
+    file.close();
+    EXPECT_THROW(createDBAndConn();, kuzu::common::StorageException);
 }
 
 // Simulation of a corrupted WAL tail by truncating the WAL file. Note that in this case, there
