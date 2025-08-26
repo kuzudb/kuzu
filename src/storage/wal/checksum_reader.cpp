@@ -8,15 +8,24 @@
 #include "common/serializer/deserializer.h"
 
 namespace kuzu::storage {
-static constexpr uint64_t ENTRY_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
+static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
 
 ChecksumReader::ChecksumReader(common::FileInfo& fileInfo, MemoryManager& memoryManager)
     : deserializer(std::make_unique<common::BufferedFileReader>(fileInfo)), currentEntrySize(0),
-      entryBuffer(memoryManager.allocateBuffer(false, ENTRY_BUFFER_SIZE)) {}
+      entryBuffer(memoryManager.allocateBuffer(false, INITIAL_BUFFER_SIZE)) {}
+
+static void resizeBufferIfNeeded(std::unique_ptr<MemoryBuffer>& entryBuffer,
+    uint64_t requestedSize) {
+    const auto currentBufferSize = entryBuffer->getBuffer().size_bytes();
+    if (requestedSize > currentBufferSize) {
+        auto* memoryManager = entryBuffer->getMemoryManager();
+        entryBuffer = memoryManager->allocateBuffer(false, std::bit_ceil(requestedSize));
+    }
+}
 
 void ChecksumReader::read(uint8_t* data, uint64_t size) {
     deserializer.read(data, size);
-    KU_ASSERT(currentEntrySize + size <= ENTRY_BUFFER_SIZE);
+    resizeBufferIfNeeded(entryBuffer, currentEntrySize + size);
     std::memcpy(entryBuffer->getData() + currentEntrySize, data, size);
     currentEntrySize += size;
 }

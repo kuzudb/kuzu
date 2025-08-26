@@ -6,7 +6,7 @@
 #include "common/serializer/serializer.h"
 
 namespace kuzu::storage {
-static constexpr uint64_t ENTRY_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
+static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
 
 ChecksumSerializer::ChecksumSerializer(std::shared_ptr<common::Writer> outputWriter,
     MemoryManager& memoryManager)
@@ -16,10 +16,19 @@ ChecksumSerializer::ChecksumSerializer(std::shared_ptr<common::Writer> outputWri
 ChecksumWriter::ChecksumWriter(std::shared_ptr<common::Writer> outputWriter,
     MemoryManager& memoryManager)
     : outputSerializer(std::move(outputWriter)), currentEntrySize(0),
-      entryBuffer(memoryManager.allocateBuffer(false, ENTRY_BUFFER_SIZE)) {}
+      entryBuffer(memoryManager.allocateBuffer(false, INITIAL_BUFFER_SIZE)) {}
+
+static void resizeBufferIfNeeded(std::unique_ptr<MemoryBuffer>& entryBuffer,
+    uint64_t requestedSize) {
+    const auto currentBufferSize = entryBuffer->getBuffer().size_bytes();
+    if (requestedSize > currentBufferSize) {
+        auto* memoryManager = entryBuffer->getMemoryManager();
+        entryBuffer = memoryManager->allocateBuffer(false, std::bit_ceil(requestedSize));
+    }
+}
 
 void ChecksumWriter::write(const uint8_t* data, uint64_t size) {
-    KU_ASSERT(currentEntrySize + size <= ENTRY_BUFFER_SIZE);
+    resizeBufferIfNeeded(entryBuffer, currentEntrySize + size);
     std::memcpy(entryBuffer->getData() + currentEntrySize, data, size);
     currentEntrySize += size;
 }
