@@ -4,11 +4,11 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/simple/logical_export_db.h"
 #include "planner/operator/simple/logical_import_db.h"
 #include "planner/planner.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::storage;
@@ -29,7 +29,7 @@ std::vector<std::shared_ptr<LogicalOperator>> Planner::planExportTableData(
     std::string name =
         stringFormat("COPY_{}", FileTypeUtils::toString(boundExportDatabase.getFileType()));
     auto entry =
-        Catalog::Get(*clientContext)->getFunctionEntry(clientContext->getTransaction(), name);
+        Catalog::Get(*clientContext)->getFunctionEntry(Transaction::Get(*clientContext), name);
     auto func = function::BuiltInFunctionsUtils::matchFunction(name,
         entry->ptrCast<FunctionCatalogEntry>());
     KU_ASSERT(func != nullptr);

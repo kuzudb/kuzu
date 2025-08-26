@@ -8,6 +8,7 @@
 #include "function/gds/gds_utils.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -85,6 +86,7 @@ static bool requireRelID(const RJAlgorithm& function) {
 
 void RecursiveExtend::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto graph = sharedState->graph.get();
     auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
     offset_t totalNumNodes = 0;
@@ -92,7 +94,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         totalNumNodes = inputNodeMaskMap->getNumMaskedNode();
     } else {
         for (auto& tableID : graph->getNodeTableIDs()) {
-            totalNumNodes += graph->getMaxOffset(clientContext->getTransaction(), tableID);
+            totalNumNodes += graph->getMaxOffset(transaction, tableID);
         }
     }
     std::vector<std::string> propertyNames;
@@ -129,7 +131,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             GDSUtils::runVertexCompute(context, computeState->frontierPair->getState(), graph,
                 *vertexCompute);
         };
-        auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
+        auto maxOffset = graph->getMaxOffset(transaction, tableID);
         if (inputNodeMaskMap && inputNodeMaskMap->getOffsetMask(tableID)->isEnabled()) {
             for (const auto& offset :
                 inputNodeMaskMap->getOffsetMask(tableID)->range(0, maxOffset)) {

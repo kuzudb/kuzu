@@ -4,8 +4,8 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "main/client_context.h"
 #include "parser/create_macro.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -18,7 +18,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateMacro(const Statement& stateme
     auto macroName = createMacro.getMacroName();
     StringUtils::toUpper(macroName);
     if (catalog::Catalog::Get(*clientContext)
-            ->containsMacro(clientContext->getTransaction(), macroName)) {
+            ->containsMacro(transaction::Transaction::Get(*clientContext), macroName)) {
         throw BinderException{stringFormat("Macro {} already exists.", macroName)};
     }
     parser::default_macro_args defaultArgs;

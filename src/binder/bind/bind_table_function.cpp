@@ -4,6 +4,7 @@
 #include "binder/expression/literal_expression.h"
 #include "catalog/catalog.h"
 #include "function/built_in_function_utils.h"
+#include "transaction/transaction.h"
 #include "main/client_context.h"
 
 using namespace kuzu::common;
@@ -14,8 +15,9 @@ namespace binder {
 
 BoundTableScanInfo Binder::bindTableFunc(const std::string& tableFuncName,
     const parser::ParsedExpression& expr, std::vector<parser::YieldVariable> yieldVariables) {
-    auto entry = catalog::Catalog::Get(*clientContext)
-                     ->getFunctionEntry(clientContext->getTransaction(), tableFuncName,
+    auto catalog = catalog::Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto entry = catalog->getFunctionEntry(transaction, tableFuncName,
                          clientContext->useInternalCatalogEntry());
     expression_vector positionalParams;
     std::vector<LogicalType> positionalParamTypes;

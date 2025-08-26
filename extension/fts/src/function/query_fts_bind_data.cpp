@@ -50,12 +50,12 @@ std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& co
     auto terms = FTSUtils::tokenizeString(queryInStr, config);
     auto stopWordsTable = StorageManager::Get(context)
                               ->getTable(catalog::Catalog::Get(context)
-                                             ->getTableCatalogEntry(context.getTransaction(),
+                                             ->getTableCatalogEntry(transaction::Transaction::Get(context),
                                                  config.stopWordsTableName)
                                              ->getTableID())
                               ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
-        MemoryManager::Get(context), stopWordsTable, context.getTransaction(),
+        MemoryManager::Get(context), stopWordsTable, transaction::Transaction::Get(context),
         optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal(),
         true /* isQuery */);
 }

@@ -1,11 +1,11 @@
 #include "processor/operator/partitioner.h"
 
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -75,7 +75,7 @@ void Partitioner::initGlobalStateInternal(ExecutionContext* context) {
     if (!sharedState->srcNodeTable) {
         auto storageManager = StorageManager::Get(*clientContext);
         auto catalog = catalog::Catalog::Get(*clientContext);
-        auto transaction = clientContext->getTransaction();
+        auto transaction = transaction::Transaction::Get(*clientContext);
         auto fromTableID =
             catalog->getTableCatalogEntry(transaction, dataInfo.fromTableName)->getTableID();
         auto toTableID =

@@ -4,7 +4,7 @@
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 #include "parser/copy.h"
 
 using namespace kuzu::common;
@@ -26,9 +26,9 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     catalog::CatalogEntry* entry = nullptr;
     try {
         entry = catalog::Catalog::Get(*clientContext)
-                    ->getFunctionEntry(clientContext->getTransaction(), name);
-    } catch (common::CatalogException& exception) {
-        throw common::RuntimeException{common::stringFormat(
+                    ->getFunctionEntry(transaction::Transaction::Get(*clientContext), name);
+    } catch (CatalogException& exception) {
+        throw RuntimeException{common::stringFormat(
             "Exporting query result to the '{}' file is currently not supported.", fileTypeStr)};
     }
     auto exportFunc = function::BuiltInFunctionsUtils::matchFunction(name,

@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/types.h"
+#include "transaction/transaction_context.h"
 #include "main/client_context.h"
 #include "simsimd.h"
 
@@ -14,9 +15,10 @@ namespace vector_extension {
 void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation) {
+    auto transaction = transaction::Transaction::Get(context);
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+        if (catalog::Catalog::Get(context)->containsIndex(transaction,
                 tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
@@ -24,7 +26,7 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+        if (!catalog::Catalog::Get(context)->containsIndex(transaction,
                 tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
@@ -39,8 +41,9 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
 catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::ClientContext& context,
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
     binder::Binder::validateTableExistence(context, tableName);
+    auto transaction = transaction::Transaction::Get(context);
     const auto tableEntry =
-        catalog::Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
+        catalog::Catalog::Get(context)->getTableCatalogEntry(transaction, tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();

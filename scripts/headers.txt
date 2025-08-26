@@ -81,5 +81,3 @@ src/include/processor/result/result_set_descriptor.h
 src/include/processor/result/flat_tuple.h
 src/include/processor/warning_context.h
 src/include/storage/storage_version_info.h
-src/include/transaction/transaction.h
-src/include/transaction/transaction_context.h

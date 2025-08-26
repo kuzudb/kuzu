@@ -8,13 +8,14 @@
 #include "common/exception/binder.h"
 #include "graph/graph_entry_set.h"
 #include "graph/on_disk_graph.h"
-#include "main/client_context.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
+#include "function/table/bind_input.h"
+#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -76,7 +77,7 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::
 static NativeGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std::string& tableName,
     const std::string& predicate) {
     auto catalog = Catalog::Get(context);
-    auto transaction = context.getTransaction();
+    auto transaction = transaction::Transaction::Get(context);
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, tableName);
     if (nodeEntry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
         throw BinderException(stringFormat("{} is not a NODE table.", tableName));
@@ -97,7 +98,7 @@ static NativeGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std
 static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std::string& tableName,
     const std::string& predicate) {
     auto catalog = Catalog::Get(context);
-    auto transaction = context.getTransaction();
+    auto transaction = transaction::Transaction::Get(context);
     auto relEntry = catalog->getTableCatalogEntry(transaction, tableName);
     if (relEntry->getType() != CatalogEntryType::REL_GROUP_ENTRY) {
         throw BinderException(
@@ -120,7 +121,7 @@ static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std:
 NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
     const ParsedNativeGraphEntry& entry) {
     auto catalog = Catalog::Get(context);
-    auto transaction = context.getTransaction();
+    auto transaction = transaction::Transaction::Get(context);
     auto result = NativeGraphEntry();
     table_id_set_t projectedNodeTableIDSet;
     for (auto& nodeInfo : entry.nodeInfos) {

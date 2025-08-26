@@ -10,6 +10,7 @@
 #include "function/gds/gds_vertex_compute.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -196,7 +197,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto nodeMask = sharedState->getGraphNodeMaskMap();
     auto mm = MemoryManager::Get(*clientContext);
     auto graph = sharedState->graph.get();
-    auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
                              .maxIterations.getParamVal();
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);

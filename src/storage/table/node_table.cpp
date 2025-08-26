@@ -138,7 +138,7 @@ bool UncommittedIndexInserter::processScanOutput(main::ClientContext* context,
     if (!insertState) {
         insertState = index->initInsertState(context, isVisible);
     }
-    index->commitInsert(context->getTransaction(), nodeIDVector, {scannedVectors}, *insertState);
+    index->commitInsert(transaction::Transaction::Get(*context), nodeIDVector, {scannedVectors}, *insertState);
     startNodeOffset += scanResult.numRows;
     return true;
 }
@@ -168,7 +168,7 @@ bool RollbackPKDeleter::processScanOutput(main::ClientContext* context,
             T key = scannedVector.getValue<T>(pos);
             static constexpr auto isVisible = [](offset_t) { return true; };
             if (offset_t lookupOffset = 0;
-                pkIndex.lookup(context->getTransaction(), key, lookupOffset, isVisible)) {
+                pkIndex.lookup(transaction::Transaction::Get(*context), key, lookupOffset, isVisible)) {
                 // If we delete the key then it will not be visible to future transactions within
                 // this process
                 pkIndex.discardLocal(key);
@@ -410,7 +410,7 @@ void NodeTable::initInsertState(main::ClientContext* context, TableInsertState& 
         auto& indexHolder = indexes[i];
         const auto index = indexHolder.getIndex();
         nodeInsertState.indexInsertStates[i] = index->initInsertState(context,
-            [&](offset_t offset) { return isVisible(context->getTransaction(), offset); });
+            [&](offset_t offset) { return isVisible(transaction::Transaction::Get(*context), offset); });
     }
 }
 
@@ -456,7 +456,7 @@ void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& 
         }
         nodeUpdateState.indexUpdateState[i] =
             index->initUpdateState(context, nodeUpdateState.columnID,
-                [&](offset_t offset) { return isVisible(context->getTransaction(), offset); });
+                [&](offset_t offset) { return isVisible(transaction::Transaction::Get(*context), offset); });
     }
 }
 
@@ -586,7 +586,7 @@ void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEnt
         columnIDsToCommit.push_back(columnID);
     }
 
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     // 1. Append all tuples from local storage to nodeGroups regardless of deleted or not.
     // Note: We cannot simply remove all deleted tuples in local node table, as they may have
     // connected local rels. Directly removing them will cause shift of committed node offset,
@@ -741,7 +741,7 @@ bool NodeTable::lookupPK(const Transaction* transaction, ValueVector* keyVector,
 void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& scanHelper,
     const NodeGroupCollection& nodeGroups_) const {
     auto dataChunk = constructDataChunkForColumns(scanHelper.index->getIndexInfo().columnIDs);
-    const auto scanState = scanHelper.initScanState(context->getTransaction(), dataChunk);
+    const auto scanState = scanHelper.initScanState(transaction::Transaction::Get(*context), dataChunk);
 
     const auto numNodeGroups = nodeGroups_.getNumNodeGroups();
     for (node_group_idx_t nodeGroupToScan = 0u; nodeGroupToScan < numNodeGroups;
@@ -753,10 +753,10 @@ void NodeTable::scanIndexColumns(main::ClientContext* context, IndexScanHelper& 
         if (scanState->nodeGroup->getNumChunkedGroups() > 0) {
             scanState->nodeGroupIdx = nodeGroupToScan;
             KU_ASSERT(scanState->nodeGroup);
-            scanState->nodeGroup->initializeScanState(context->getTransaction(), *scanState);
+            scanState->nodeGroup->initializeScanState(transaction::Transaction::Get(*context), *scanState);
             while (true) {
                 if (const auto scanResult =
-                        scanState->nodeGroup->scan(context->getTransaction(), *scanState);
+                        scanState->nodeGroup->scan(transaction::Transaction::Get(*context), *scanState);
                     !scanHelper.processScanOutput(context, scanResult, scanState->outputVectors)) {
                     break;
                 }

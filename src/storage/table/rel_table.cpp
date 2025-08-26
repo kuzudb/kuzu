@@ -416,7 +416,7 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
         columnIDsToCommit.push_back(columnID);
     }
     // commit rel table data
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     for (auto& relData : directedRelData) {
         const auto direction = relData->getDirection();
         const auto columnToSkip = (direction == RelDataDirection::FWD) ?

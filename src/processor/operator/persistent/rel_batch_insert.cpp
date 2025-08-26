@@ -33,11 +33,10 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState->chunkedGroup =
         std::make_unique<ChunkedCSRNodeGroup>(*MemoryManager::Get(*context->clientContext),
             relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
-    localState->optimisticAllocator =
-        context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
+    const auto transaction = transaction::Transaction::Get(*context->clientContext);
+    localState->optimisticAllocator = transaction->getLocalStorage()->addOptimisticAllocator();
     const auto clientContext = context->clientContext;
     const auto catalog = Catalog::Get(*clientContext);
-    const auto transaction = clientContext->getTransaction();
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
     auto tableID = relGroupEntry.getRelEntryInfo(relInfo->fromTableID, relInfo->toTableID)->oid;
@@ -62,7 +61,7 @@ void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto clientContext = context->clientContext;
     const auto catalog = Catalog::Get(*clientContext);
-    const auto transaction = clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
     // Init info
@@ -98,9 +97,9 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     const auto clientContext = context->clientContext;
-    const auto& relGroupEntry =
-        Catalog::Get(*context->clientContext)
-            ->getTableCatalogEntry(clientContext->getTransaction(), relInfo->tableName)
+    const auto catalog = Catalog::Get(*clientContext);
+    const auto transaction = transaction::Transaction::Get(*clientContext);
+    const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, relInfo->tableName)
             ->constCast<RelGroupCatalogEntry>();
     while (true) {
         relLocalState->nodeGroupIdx =
@@ -113,11 +112,11 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
         // TODO(Guodong): We need to handle the concurrency between COPY and other insertions
         // into the same node group.
         auto& nodeGroup = relTable
-                              ->getOrCreateNodeGroup(context->clientContext->getTransaction(),
+                              ->getOrCreateNodeGroup(transaction,
                                   relLocalState->nodeGroupIdx, relInfo->direction)
                               ->cast<CSRNodeGroup>();
         appendNodeGroup(relGroupEntry, *MemoryManager::Get(*clientContext),
-            clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState);
+            transaction, nodeGroup, *relInfo, *relLocalState);
         updateProgress(context);
     }
 }

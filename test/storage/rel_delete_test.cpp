@@ -29,9 +29,8 @@ public:
 void RelDeleteTest::detachDeleteNode(std::string_view nodeTable, std::string_view relTable,
     int64_t idOfNode) {
     auto* catalog = database->getCatalog();
-    const auto& knowsTableEntry =
-        catalog
-            ->getTableCatalogEntry(conn->getClientContext()->getTransaction(),
+    auto transaction = transaction::Transaction::Get(*conn->getClientContext());
+    const auto& knowsTableEntry = catalog->getTableCatalogEntry(transaction,
                 std::string{relTable})
             ->constCast<catalog::RelGroupCatalogEntry>();
     auto& knowsTable = storage::StorageManager::Get(*conn->getClientContext())
@@ -66,7 +65,7 @@ void RelDeleteTest::detachDeleteNode(std::string_view nodeTable, std::string_vie
 
     // perform delete
     detachDeleteState->detachDeleteDirection = common::RelDataDirection::FWD;
-    knowsTable.detachDelete(conn->getClientContext()->getTransaction(), detachDeleteState.get());
+    knowsTable.detachDelete(transaction, detachDeleteState.get());
 }
 
 // Delete all edges attached to a node without deleting the node

@@ -1,6 +1,6 @@
 #include "processor/operator/persistent/insert_executor.h"
 
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -94,13 +94,14 @@ nodeID_t NodeInsertExecutor::insert(main::ClientContext* context) {
     for (auto& evaluator : tableInfo.columnDataEvaluators) {
         evaluator->evaluate();
     }
-    if (checkConflict(context->getTransaction())) {
+    auto transaction = Transaction::Get(*context);
+    if (checkConflict(transaction)) {
         return info.getNodeID();
     }
     auto insertState = std::make_unique<storage::NodeTableInsertState>(*info.nodeIDVector,
         *tableInfo.pkVector, tableInfo.columnDataVectors);
     tableInfo.table->initInsertState(context, *insertState);
-    tableInfo.table->insert(context->getTransaction(), *insertState);
+    tableInfo.table->insert(transaction, *insertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
     return info.getNodeID();
 }
@@ -176,7 +177,7 @@ internalID_t RelInsertExecutor::insert(main::ClientContext* context) {
     auto insertState = std::make_unique<storage::RelTableInsertState>(*info.srcNodeIDVector,
         *info.dstNodeIDVector, tableInfo.columnDataVectors);
     tableInfo.table->initInsertState(context, *insertState);
-    tableInfo.table->insert(context->getTransaction(), *insertState);
+    tableInfo.table->insert(Transaction::Get(*context), *insertState);
     writeColumnVectors(info.columnVectors, tableInfo.columnDataVectors);
     return tableInfo.getRelID();
 }

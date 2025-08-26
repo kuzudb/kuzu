@@ -10,6 +10,7 @@
 #include "graph_test/base_graph_test.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 

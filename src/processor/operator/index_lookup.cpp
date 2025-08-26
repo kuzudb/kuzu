@@ -126,7 +126,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
     }
     for (auto& info : infos) {
         info.keyEvaluator->evaluate();
-        lookup(context->clientContext->getTransaction(), info);
+        lookup(transaction::Transaction::Get(*context->clientContext), info);
     }
     localState->errorHandler->flushStoredErrors();
     return true;
