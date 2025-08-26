@@ -79,8 +79,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatFlatUnflat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector* resultSelVector,
-        void* dataPtr) {
+        common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         auto aPos = (*aSelVector)[0];
         auto bPos = (*bSelVector)[0];
         if (a.isNull(aPos) || b.isNull(bPos)) {
@@ -176,8 +176,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeFlatUnflatFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector* resultSelVector,
-        void* dataPtr) {
+        common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         auto aPos = (*aSelVector)[0];
         auto cPos = (*cSelVector)[0];
         if (a.isNull(aPos) || c.isNull(cPos)) {
@@ -271,8 +271,8 @@ struct TernaryFunctionExecutor {
         typename OP_WRAPPER>
     static void executeUnflatFlatFlat(common::ValueVector& a, common::SelectionVector* aSelVector,
         common::ValueVector& b, common::SelectionVector* bSelVector, common::ValueVector& c,
-        common::SelectionVector* cSelVector, common::ValueVector& result, common::SelectionVector* resultSelVector,
-        void* dataPtr) {
+        common::SelectionVector* cSelVector, common::ValueVector& result,
+        common::SelectionVector* resultSelVector, void* dataPtr) {
         auto bPos = (*bSelVector)[0];
         auto cPos = (*cSelVector)[0];
         if (b.isNull(bPos) || c.isNull(cPos)) {

@@ -77,8 +77,7 @@ public:
 
     std::vector<std::shared_ptr<common::DataChunkState>> overrideAndSaveParamStates(
         std::span<LambdaParamEvaluator*> lambdaParamEvaluators);
-    static void restoreParamStates(
-        std::span<LambdaParamEvaluator*> lambdaParamEvaluators,
+    static void restoreParamStates(std::span<LambdaParamEvaluator*> lambdaParamEvaluators,
         std::vector<std::shared_ptr<common::DataChunkState>> savedStates);
 
     // use in cases (like list filter) where the output data offset may not correspond to the input

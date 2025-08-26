@@ -22,7 +22,8 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         LogicalType::LIST(input.arguments[1]->getDataType().copy()));
 }
 
-static void copyEvaluatedDataToResult(ValueVector& resultVector, evaluator::ListLambdaBindData* bindData) {
+static void copyEvaluatedDataToResult(ValueVector& resultVector,
+    evaluator::ListLambdaBindData* bindData) {
     auto& sliceInfo = *bindData->sliceInfo;
     auto dstDataVector = ListVector::getDataVector(&resultVector);
     auto rootResultVector = bindData->rootEvaluator->resultVector.get();
@@ -52,8 +53,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input,
     SelectionVector* resultSelVector, void* bindData_) {
     auto bindData = reinterpret_cast<evaluator::ListLambdaBindData*>(bindData_);
     auto* sliceInfo = bindData->sliceInfo;
-    auto savedParamStates =
-        sliceInfo->overrideAndSaveParamStates(bindData->lambdaParamEvaluators);
+    auto savedParamStates = sliceInfo->overrideAndSaveParamStates(bindData->lambdaParamEvaluators);
 
     bindData->rootEvaluator->evaluate();
     copyEvaluatedDataToResult(result, bindData);
@@ -72,8 +72,7 @@ static void execFunc(const std::vector<std::shared_ptr<ValueVector>>& input,
         }
     }
 
-    sliceInfo->restoreParamStates(bindData->lambdaParamEvaluators,
-        std::move(savedParamStates));
+    sliceInfo->restoreParamStates(bindData->lambdaParamEvaluators, std::move(savedParamStates));
 }
 
 function_set ListTransformFunction::getFunctionSet() {
