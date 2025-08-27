@@ -1,6 +1,7 @@
 /**
  * The implementation for checksumming is taken from DuckDB:
  * https://github.com/duckdb/duckdb/blob/v1.3-ossivalis/src/common/checksum.cpp
+ * https://github.com/duckdb/duckdb/blob/v1.3-ossivalis/LICENSE
  */
 
 #include "common/checksum.h"
