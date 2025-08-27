@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "common/assert.h"
 #include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/spill_result.h"
@@ -118,14 +119,15 @@ public:
     std::pair<std::unique_ptr<ColumnChunkData>, std::unique_ptr<ColumnChunkData>> scanUpdates(
         const transaction::Transaction* transaction) const;
 
-    // TODO: Segments could probably share a single datatype
+    // TODO(bmwinger): Segments could probably share a single datatype
     common::LogicalType& getDataType() { return data.front()->getDataType(); }
     const common::LogicalType& getDataType() const { return data.front()->getDataType(); }
     bool isCompressionEnabled() const { return enableCompression; }
 
     ResidencyState getResidencyState() const {
-        // TODO: handle per-segment
-        return data.front()->getResidencyState();
+        auto state = data.front()->getResidencyState();
+        RUNTIME_CHECK(for (auto& chunk : data) { KU_ASSERT(chunk->getResidencyState() == state); });
+        return state;
     }
     bool hasUpdates() const { return updateInfo != nullptr; }
     bool hasUpdates(const transaction::Transaction* transaction, common::row_idx_t startRow,
