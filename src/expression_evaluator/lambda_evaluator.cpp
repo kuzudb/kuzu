@@ -53,9 +53,9 @@ void ListLambdaEvaluator::init(const ResultSet& resultSet, ClientContext* client
 
 void ListLambdaEvaluator::evaluateInternal() {
     auto* inputVector = params[0].get();
-    if (resultVector->dataType.getPhysicalType() == common::PhysicalTypeID::LIST) {
-        const auto inputDataVectorSize = ListVector::getDataVectorSize(inputVector);
-        ListVector::resizeDataVector(resultVector.get(), inputDataVectorSize);
+    if (resultVector->dataType.getPhysicalType() == PhysicalTypeID::LIST) {
+        ListVector::resizeDataVector(resultVector.get(),
+            ListVector::getDataVectorSize(inputVector));
     }
     ListSliceInfo sliceInfo{inputVector};
     bindData.sliceInfo = &sliceInfo;
@@ -72,7 +72,7 @@ void ListLambdaEvaluator::evaluate() {
     evaluateInternal();
 }
 
-bool ListLambdaEvaluator::selectInternal(common::SelectionVector& selVector) {
+bool ListLambdaEvaluator::selectInternal(SelectionVector& selVector) {
     KU_ASSERT(children.size() == 1);
     children[0]->evaluate();
     evaluateInternal();
@@ -84,22 +84,22 @@ void ListLambdaEvaluator::resolveResultVector(const ResultSet&, MemoryManager* m
     resultVector->state = children[0]->resultVector->state;
     isResultFlat_ = children[0]->isResultFlat();
 }
-std::vector<common::idx_t> ListLambdaEvaluator::getParamIndices() {
+
+std::vector<idx_t> ListLambdaEvaluator::getParamIndices() {
     const auto& paramNames = getExpression()
                                  ->getChild(1)
                                  ->constCast<binder::LambdaExpression>()
                                  .getParsedLambdaExpr()
                                  ->constCast<parser::ParsedLambdaExpression>()
                                  .getVarNames();
-    std::vector<common::idx_t> index(lambdaParamEvaluators.size());
-    for (common::idx_t i = 0; i < lambdaParamEvaluators.size(); i++) {
+    std::vector<idx_t> index(lambdaParamEvaluators.size());
+    for (idx_t i = 0; i < lambdaParamEvaluators.size(); i++) {
         auto paramName = lambdaParamEvaluators[i]->getVarName();
         auto it = std::find(paramNames.begin(), paramNames.end(), paramName);
         if (it != paramNames.end()) {
             index[i] = it - paramNames.begin();
         } else {
-            throw common::RuntimeException(
-                common::stringFormat("Lambda paramName {} cannot found.", paramName));
+            throw RuntimeException(stringFormat("Lambda paramName {} cannot found.", paramName));
         }
     }
     return index;

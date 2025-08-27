@@ -594,7 +594,6 @@ Copy exception: Unable to find primary key value 1.
 Binder exception: Cannot find a valid label in e that connects Test1 and Test2.
 
 -CASE 5893
-
 -STATEMENT create node table Account(id serial primary key, service string, name string);
 ---- ok
 -STATEMENT create (a:Account {service: 'A', name: 'alice'});
@@ -611,3 +610,18 @@ Binder exception: Cannot find a valid label in e that connects Test1 and Test2.
     return a_account.name;
 ---- 1
 alice
+
+-CASE 5840
+-STATEMENT CREATE NODE TABLE Node (
+                   id SERIAL PRIMARY KEY,
+                   cities STRING[]
+               );
+---- ok
+-STATEMENT UNWIND [{"cities": ["New York", "Los Angeles"]}, {"cities": ["Tokyo", "Osaka"]}] AS data
+        CREATE (n:Node)
+        SET n.cities = list_transform(data.cities, label -> regexp_replace(label, 'New', 'Old'));
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: Node, id: 0, cities: [Old York,Los Angeles]}
+{_ID: 0:1, _LABEL: Node, id: 1, cities: [Tokyo,Osaka]}
