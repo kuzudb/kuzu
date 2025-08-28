@@ -11,6 +11,12 @@ using namespace kuzu::transaction;
 
 class WalTest : public ApiTest {
 protected:
+    void SetUp() override {
+        ApiTest::SetUp();
+        // Most of these tests are checking if partial recovery works correctly
+        systemConfig->throwOnWalReplayFailure = false;
+    }
+
     void testStrayWALFile(const std::function<void()>& setupNewDBFunc);
     void setupChecksumMismatchTest(std::function<void(std::ofstream&)> corruptFunc);
 };
@@ -144,6 +150,8 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInHeader) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
+    systemConfig->throwOnWalReplayFailure = true;
+    createDBAndConn();
     setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
         walFileToCorrupt.seekp(10);
         // 10 bytes in will be the database ID's checksum
@@ -156,9 +164,6 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInHeaderNoThrow) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
-    systemConfig->throwOnWalReplayFailure = false;
-    createDBAndConn();
-
     setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
         walFileToCorrupt.seekp(10);
         // 10 bytes in will be the database ID's checksum
@@ -175,6 +180,8 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInBody) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
+    systemConfig->throwOnWalReplayFailure = true;
+    createDBAndConn();
     setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
         walFileToCorrupt.seekp(30);
         walFileToCorrupt << "abc";
@@ -186,8 +193,6 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInBodyNoThrow) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
-    systemConfig->throwOnWalReplayFailure = false;
-    createDBAndConn();
     setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
         walFileToCorrupt.seekp(10);
         // 10 bytes in will be the database ID's checksum
