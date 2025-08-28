@@ -21,7 +21,7 @@ class LocalWAL {
     friend class WAL;
 
 public:
-    explicit LocalWAL(MemoryManager& mm);
+    explicit LocalWAL(MemoryManager& mm, bool enableChecksums);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal);
     void logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type);
@@ -51,12 +51,15 @@ public:
     uint64_t getSize();
 
 private:
+    explicit LocalWAL(std::shared_ptr<common::Writer> writer);
+    explicit LocalWAL(std::shared_ptr<common::Writer> fileWriter, bool enableChecksums);
+
     void addNewWALRecord(const WALRecord& walRecord);
 
 private:
     std::mutex mtx;
-    std::shared_ptr<common::InMemFileWriter> writer;
-    ChecksumSerializer checksumWriter;
+    std::shared_ptr<common::InMemFileWriter> inMemWriter;
+    common::Serializer serializer;
 };
 
 } // namespace storage

@@ -9,11 +9,6 @@
 namespace kuzu::storage {
 static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
 
-ChecksumSerializer::ChecksumSerializer(std::shared_ptr<common::Writer> outputWriter,
-    MemoryManager& memoryManager)
-    : writer(std::make_shared<ChecksumWriter>(std::move(outputWriter), memoryManager)),
-      serializer(writer) {}
-
 ChecksumWriter::ChecksumWriter(std::shared_ptr<common::Writer> outputWriter,
     MemoryManager& memoryManager)
     : outputSerializer(std::move(outputWriter)), currentEntrySize(0),
@@ -36,9 +31,14 @@ void ChecksumWriter::write(const uint8_t* data, uint64_t size) {
 
 void ChecksumWriter::clear() {
     currentEntrySize = 0;
+    outputSerializer.getWriter()->clear();
 }
 
 void ChecksumWriter::flush() {
+    outputSerializer.getWriter()->flush();
+}
+
+void ChecksumWriter::onObjectEnd() {
     const auto checksum = common::checksum(entryBuffer->getData(), currentEntrySize);
     outputSerializer.write(entryBuffer->getData(), currentEntrySize);
     outputSerializer.serializeValue(checksum);
@@ -46,9 +46,11 @@ void ChecksumWriter::flush() {
 }
 
 uint64_t ChecksumWriter::getSize() const {
-    return entryBuffer->getBuffer().size();
+    return entryBuffer->getBuffer().size() + outputSerializer.getWriter()->getSize();
 }
 
-void ChecksumWriter::sync() {}
+void ChecksumWriter::sync() {
+    outputSerializer.getWriter()->sync();
+}
 
 } // namespace kuzu::storage

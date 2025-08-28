@@ -11,9 +11,11 @@
 namespace kuzu::storage {
 static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
 
-ChecksumReader::ChecksumReader(common::FileInfo& fileInfo, MemoryManager& memoryManager)
+ChecksumReader::ChecksumReader(common::FileInfo& fileInfo, MemoryManager& memoryManager,
+    std::string_view checksumMismatchMessage)
     : deserializer(std::make_unique<common::BufferedFileReader>(fileInfo)), currentEntrySize(0),
-      entryBuffer(memoryManager.allocateBuffer(false, INITIAL_BUFFER_SIZE)) {}
+      entryBuffer(memoryManager.allocateBuffer(false, INITIAL_BUFFER_SIZE)),
+      checksumMismatchMessage(checksumMismatchMessage) {}
 
 static void resizeBufferIfNeeded(std::unique_ptr<MemoryBuffer>& entryBuffer,
     uint64_t requestedSize) {
@@ -35,7 +37,7 @@ bool ChecksumReader::finished() {
     return deserializer.finished();
 }
 
-void ChecksumReader::finishEntry(std::string_view checksumMismatchMessage) {
+void ChecksumReader::onObjectEnd() {
     const uint64_t computedChecksum = common::checksum(entryBuffer->getData(), currentEntrySize);
     uint64_t storedChecksum{};
     deserializer.deserializeValue(storedChecksum);

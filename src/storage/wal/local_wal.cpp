@@ -12,8 +12,16 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace storage {
 
-LocalWAL::LocalWAL(MemoryManager& mm)
-    : writer(std::make_shared<InMemFileWriter>(mm)), checksumWriter(writer, mm) {}
+LocalWAL::LocalWAL(std::shared_ptr<common::Writer> writer) : serializer(std::move(writer)) {}
+
+LocalWAL::LocalWAL(std::shared_ptr<common::Writer> fileWriter, bool enableChecksums)
+    : LocalWAL(
+          enableChecksums ? std::make_shared<ChecksumWriter>(fileWriter) : std::move(fileWriter)) {}
+
+LocalWAL::LocalWAL(MemoryManager& mm, bool enableChecksums)
+    : inMemWriter(std::make_shared<InMemFileWriter>(mm)),
+      serializer(enableChecksums ? std::static_pointer_cast<Writer>(inMemWriter) :
+                                   std::make_shared<ChecksumWriter>(inMemWriter)) {}
 
 void LocalWAL::logBeginTransaction() {
     BeginTransactionRecord walRecord;
@@ -89,21 +97,20 @@ void LocalWAL::logLoadExtension(std::string path) {
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void LocalWAL::clear() {
     std::unique_lock lck{mtx};
-    checksumWriter.writer->clear();
-    writer->clear();
+    serializer.getWriter()->clear();
 }
 
 uint64_t LocalWAL::getSize() {
     std::unique_lock lck{mtx};
-    return writer->getSize();
+    return serializer.getWriter()->getSize();
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void LocalWAL::addNewWALRecord(const WALRecord& walRecord) {
     std::unique_lock lck{mtx};
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
-    walRecord.serialize(checksumWriter.serializer);
-    checksumWriter.writer->flush();
+    walRecord.serialize(serializer);
+    serializer.getWriter()->onObjectEnd();
 }
 
 } // namespace storage

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/wal/checksum_writer.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -13,7 +12,8 @@ namespace storage {
 class LocalWAL;
 class WAL {
 public:
-    WAL(const std::string& dbPath, bool readOnly, common::VirtualFileSystem* vfs);
+    WAL(const std::string& dbPath, bool readOnly, bool enableChecksums,
+        common::VirtualFileSystem* vfs);
     ~WAL();
 
     void logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context);
@@ -44,8 +44,8 @@ private:
     // Since most writes to the shared WAL will be flushing local WAL (which has its own checksums),
     // these writes can go through the normal writer. We do still need a checksum writer though for
     // writing COMMIT/CHECKPOINT records
-    std::shared_ptr<common::BufferedFileWriter> writer;
-    std::optional<ChecksumSerializer> checksumWriter;
+    std::unique_ptr<common::Serializer> serializer;
+    bool enableChecksums;
 };
 
 } // namespace storage
