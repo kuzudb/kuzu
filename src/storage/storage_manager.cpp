@@ -69,9 +69,9 @@ Table* StorageManager::getTable(table_id_t tableID) {
     return tables.at(tableID).get();
 }
 
-void StorageManager::recover(main::ClientContext& clientContext) {
+void StorageManager::recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure) {
     const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
-    walReplayer->replay();
+    walReplayer->replay(throwOnWalReplayFailure);
 }
 
 void StorageManager::createNodeTable(NodeTableCatalogEntry* entry) {

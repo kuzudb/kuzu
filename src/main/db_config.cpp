@@ -10,7 +10,7 @@ namespace kuzu {
 namespace main {
 
 #define GET_CONFIGURATION(_PARAM)                                                                  \
-    { _PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting }
+    {_PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting}
 
 static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(ThreadsSetting), GET_CONFIGURATION(TimeoutSetting),
@@ -30,7 +30,8 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       maxDBSize{systemConfig.maxDBSize}, enableMultiWrites{false},
       autoCheckpoint{systemConfig.autoCheckpoint},
       checkpointThreshold{systemConfig.checkpointThreshold},
-      forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true} {
+      forceCheckpointOnClose{systemConfig.forceCheckpointOnClose},
+      throwOnWalReplayFailure(systemConfig.throwOnWalReplayFailure), enableSpillingToDisk{true} {
 #if defined(__APPLE__)
     this->threadQos = systemConfig.threadQos;
 #endif

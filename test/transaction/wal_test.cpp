@@ -12,6 +12,7 @@ using namespace kuzu::transaction;
 class WalTest : public ApiTest {
 protected:
     void testStrayWALFile(const std::function<void()>& setupNewDBFunc);
+    void setupChecksumMismatchTest(std::function<void(std::ofstream&)> corruptFunc);
 };
 
 TEST_F(WalTest, NoWALFile) {
@@ -121,11 +122,7 @@ TEST_F(WalTest, ShadowFileExistsWithEmptyWAL) {
     ASSERT_FALSE(std::filesystem::exists(shadowFilePath));
 }
 
-// Simulation of a corrupted WAL tail by changing some data, this should trigger a checksum failure
-TEST_F(WalTest, CorruptedWALChecksumMismatch) {
-    if (inMemMode || systemConfig->checkpointThreshold == 0) {
-        GTEST_SKIP();
-    }
+void WalTest::setupChecksumMismatchTest(std::function<void(std::ofstream&)> corruptFunc) {
     conn->query("CALL force_checkpoint_on_close=false");
     conn->query("BEGIN TRANSACTION;");
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
@@ -138,10 +135,69 @@ TEST_F(WalTest, CorruptedWALChecksumMismatch) {
     // rewrite part of the wal
     std::ofstream file(walFilePath, std::ios_base::in | std::ios_base::out | std::ios_base::ate);
     ASSERT_TRUE(std::filesystem::file_size(walFilePath) > 13);
-    file.seekp(10);
-    file << "abc";
+    corruptFunc(file);
     file.close();
+}
+
+// Simulation of a corrupted WAL tail by changing some data, this should trigger a checksum failure
+TEST_F(WalTest, CorruptedWALChecksumMismatchInHeader) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
+        walFileToCorrupt.seekp(10);
+        // 10 bytes in will be the database ID's checksum
+        walFileToCorrupt << "abc";
+    });
     EXPECT_THROW(createDBAndConn();, kuzu::common::StorageException);
+}
+
+TEST_F(WalTest, CorruptedWALChecksumMismatchInHeaderNoThrow) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    systemConfig->throwOnWalReplayFailure = false;
+    createDBAndConn();
+
+    setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
+        walFileToCorrupt.seekp(10);
+        // 10 bytes in will be the database ID's checksum
+        walFileToCorrupt << "abc";
+    });
+
+    // The replay shouldn't complete but shouldn't throw either
+    createDBAndConn();
+    auto result = conn->query("match (t:test) return count(*)");
+    EXPECT_FALSE(result->isSuccess());
+}
+
+TEST_F(WalTest, CorruptedWALChecksumMismatchInBody) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
+        walFileToCorrupt.seekp(30);
+        walFileToCorrupt << "abc";
+    });
+    EXPECT_THROW(createDBAndConn();, kuzu::common::StorageException);
+}
+
+TEST_F(WalTest, CorruptedWALChecksumMismatchInBodyNoThrow) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    systemConfig->throwOnWalReplayFailure = false;
+    createDBAndConn();
+    setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
+        walFileToCorrupt.seekp(10);
+        // 10 bytes in will be the database ID's checksum
+        walFileToCorrupt << "abc";
+    });
+    // The replay shouldn't complete but shouldn't throw either
+    createDBAndConn();
+    auto result = conn->query("match (t:test) return count(*)");
+    EXPECT_FALSE(result->isSuccess());
+    EXPECT_STREQ("Binder exception: Table test does not exist.", result->getErrorMessage().c_str());
 }
 
 // Simulation of a corrupted WAL tail by truncating the WAL file. Note that in this case, there

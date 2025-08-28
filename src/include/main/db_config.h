@@ -63,6 +63,7 @@ struct DBConfig {
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
+    bool throwOnWalReplayFailure;
     bool enableSpillingToDisk;
 #if defined(__APPLE__)
     uint32_t threadQos;

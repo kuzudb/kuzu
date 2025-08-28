@@ -45,7 +45,7 @@ static ku_uuid_t readDatabaseID(Deserializer& deserializer) {
     return walDatabaseID;
 }
 
-void WALReplayer::replay() const {
+void WALReplayer::replay(bool throwOnWalReplayFailure) const {
     auto vfs = VirtualFileSystem::GetUnsafe(clientContext);
     Checkpointer checkpointer(clientContext);
     // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
@@ -72,7 +72,8 @@ void WALReplayer::replay() const {
     try {
         // First, we dry run the replay to find out the offset of the last record that was
         // CHECKPOINT or COMMIT.
-        auto [offsetDeserialized, isLastRecordCheckpoint] = dryReplay(*fileInfo);
+        auto [offsetDeserialized, isLastRecordCheckpoint] =
+            dryReplay(*fileInfo, throwOnWalReplayFailure);
         if (isLastRecordCheckpoint) {
             // If the last record is a checkpoint, we resume by replaying the shadow file.
             ShadowFile::replayShadowPageRecords(clientContext);
@@ -88,11 +89,13 @@ void WALReplayer::replay() const {
             Deserializer deserializer(
                 std::make_unique<ChecksumReader>(*fileInfo, *MemoryManager::Get(clientContext)));
 
-            // Make sure the WAL file is for the current database
-            const auto walDatabaseID = readDatabaseID(deserializer);
-            FileDBIDUtils::verifyDatabaseID(*fileInfo,
-                StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
-                walDatabaseID);
+            if (offsetDeserialized > 0) {
+                // Make sure the WAL file is for the current database
+                const auto walDatabaseID = readDatabaseID(deserializer);
+                FileDBIDUtils::verifyDatabaseID(*fileInfo,
+                    StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
+                    walDatabaseID);
+            }
 
             while (deserializer.getReader()->cast<ChecksumReader>()->getReadOffset() <
                    offsetDeserialized) {
@@ -117,7 +120,8 @@ void WALReplayer::replay() const {
     }
 }
 
-WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
+WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo,
+    bool throwOnWalReplayFailure) const {
     uint64_t offsetDeserialized = 0;
     bool isLastRecordCheckpoint = false;
     try {
@@ -151,9 +155,12 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
             }
             }
         }
-    } catch (...) { // NOLINT
+    } catch (...) {
         // If we hit an exception while deserializing, we assume that the WAL file is (partially)
         // corrupted. This should only happen for records of the last transaction recorded.
+        if (throwOnWalReplayFailure) {
+            throw;
+        }
     }
     return {offsetDeserialized, isLastRecordCheckpoint};
 }
