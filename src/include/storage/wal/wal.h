@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/wal/checksum_writer.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -36,11 +37,15 @@ private:
     std::mutex mtx;
     std::string walPath;
     bool inMemory;
-    bool readOnly;
+    [[maybe_unused]] bool readOnly;
     common::VirtualFileSystem* vfs;
     std::unique_ptr<common::FileInfo> fileInfo;
+
+    // Since most writes to the shared WAL will be flushing local WAL (which has its own checksums),
+    // these writes can go through the normal writer. We do still need a checksum writer though for
+    // writing COMMIT/CHECKPOINT records
     std::shared_ptr<common::BufferedFileWriter> writer;
-    std::unique_ptr<common::Serializer> serializer;
+    std::optional<ChecksumSerializer> checksumWriter;
 };
 
 } // namespace storage

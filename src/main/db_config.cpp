@@ -30,7 +30,8 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       maxDBSize{systemConfig.maxDBSize}, enableMultiWrites{false},
       autoCheckpoint{systemConfig.autoCheckpoint},
       checkpointThreshold{systemConfig.checkpointThreshold},
-      forceCheckpointOnClose{systemConfig.forceCheckpointOnClose}, enableSpillingToDisk{true} {
+      forceCheckpointOnClose{systemConfig.forceCheckpointOnClose},
+      throwOnWalReplayFailure(systemConfig.throwOnWalReplayFailure), enableSpillingToDisk{true} {
 #if defined(__APPLE__)
     this->threadQos = systemConfig.threadQos;
 #endif

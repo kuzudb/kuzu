@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/wal/checksum_writer.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -55,7 +56,7 @@ private:
 private:
     std::mutex mtx;
     std::shared_ptr<common::InMemFileWriter> writer;
-    std::unique_ptr<common::Serializer> serializer;
+    ChecksumSerializer checksumWriter;
 };
 
 } // namespace storage

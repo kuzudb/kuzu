@@ -34,7 +34,7 @@ public:
 
     Table* getTable(common::table_id_t tableID);
 
-    static void recover(main::ClientContext& clientContext);
+    static void recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure);
 
     void createTable(catalog::TableCatalogEntry* entry);
     void addRelTable(catalog::RelGroupCatalogEntry* entry,

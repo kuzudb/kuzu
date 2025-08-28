@@ -17,6 +17,7 @@
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
+#include "storage/wal/checksum_reader.h"
 #include "storage/wal/wal_record.h"
 
 using namespace kuzu::binder;
@@ -29,12 +30,22 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+static constexpr std::string_view checksumMismatchMessage =
+    "Checksum verification failed, the WAL file is corrupted.";
+
 WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{clientContext} {
     walPath = StorageUtils::getWALFilePath(clientContext.getDatabasePath());
     shadowFilePath = StorageUtils::getShadowFilePath(clientContext.getDatabasePath());
 }
 
-void WALReplayer::replay() const {
+static ku_uuid_t readDatabaseID(Deserializer& deserializer) {
+    ku_uuid_t walDatabaseID{};
+    deserializer.deserializeValue(walDatabaseID);
+    deserializer.getReader()->cast<ChecksumReader>()->finishEntry(checksumMismatchMessage);
+    return walDatabaseID;
+}
+
+void WALReplayer::replay(bool throwOnWalReplayFailure) const {
     auto vfs = VirtualFileSystem::GetUnsafe(clientContext);
     Checkpointer checkpointer(clientContext);
     // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
@@ -61,7 +72,8 @@ void WALReplayer::replay() const {
     try {
         // First, we dry run the replay to find out the offset of the last record that was
         // CHECKPOINT or COMMIT.
-        auto [offsetDeserialized, isLastRecordCheckpoint] = dryReplay(*fileInfo);
+        auto [offsetDeserialized, isLastRecordCheckpoint] =
+            dryReplay(*fileInfo, throwOnWalReplayFailure);
         if (isLastRecordCheckpoint) {
             // If the last record is a checkpoint, we resume by replaying the shadow file.
             ShadowFile::replayShadowPageRecords(clientContext);
@@ -74,19 +86,22 @@ void WALReplayer::replay() const {
             // Read the checkpointed data from the disk.
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
-            Deserializer deserializer(std::make_unique<BufferedFileReader>(*fileInfo));
+            Deserializer deserializer(
+                std::make_unique<ChecksumReader>(*fileInfo, *MemoryManager::Get(clientContext)));
 
-            // Make sure the WAL file is for the current database
-            ku_uuid_t walDatabaseID{};
-            deserializer.deserializeValue(walDatabaseID);
-            FileDBIDUtils::verifyDatabaseID(*fileInfo,
-                StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
-                walDatabaseID);
+            if (offsetDeserialized > 0) {
+                // Make sure the WAL file is for the current database
+                const auto walDatabaseID = readDatabaseID(deserializer);
+                FileDBIDUtils::verifyDatabaseID(*fileInfo,
+                    StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
+                    walDatabaseID);
+            }
 
-            while (deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset() <
+            while (deserializer.getReader()->cast<ChecksumReader>()->getReadOffset() <
                    offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
-                auto walRecord = WALRecord::deserialize(deserializer, clientContext);
+                auto walRecord =
+                    WALRecord::deserialize(deserializer, clientContext, checksumMismatchMessage);
                 replayWALRecord(*walRecord);
             }
             // After replaying all the records, we should truncate the WAL file to the last
@@ -105,18 +120,21 @@ void WALReplayer::replay() const {
     }
 }
 
-WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
+WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo,
+    bool throwOnWalReplayFailure) const {
     uint64_t offsetDeserialized = 0;
     bool isLastRecordCheckpoint = false;
     try {
-        Deserializer deserializer(std::make_unique<BufferedFileReader>(fileInfo));
+        Deserializer deserializer(
+            std::make_unique<ChecksumReader>(fileInfo, *MemoryManager::Get(clientContext)));
 
-        ku_uuid_t walDatabaseID{};
-        deserializer.deserializeValue(walDatabaseID);
+        // Skip the databaseID here, we'll verify it when we actually replay
+        readDatabaseID(deserializer);
 
         bool finishedDeserializing = deserializer.finished();
         while (!finishedDeserializing) {
-            auto walRecord = WALRecord::deserialize(deserializer, clientContext);
+            auto walRecord =
+                WALRecord::deserialize(deserializer, clientContext, checksumMismatchMessage);
             finishedDeserializing = deserializer.finished();
             switch (walRecord->type) {
             case WALRecordType::CHECKPOINT_RECORD: {
@@ -125,21 +143,24 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo) const {
                 isLastRecordCheckpoint = true;
                 finishedDeserializing = true;
                 offsetDeserialized =
-                    deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+                    deserializer.getReader()->cast<ChecksumReader>()->getReadOffset();
             } break;
             case WALRecordType::COMMIT_RECORD: {
                 // Update the offset to the end of the last commit record.
                 offsetDeserialized =
-                    deserializer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+                    deserializer.getReader()->cast<ChecksumReader>()->getReadOffset();
             } break;
             default: {
                 // DO NOTHING.
             }
             }
         }
-    } catch (...) { // NOLINT
+    } catch (...) {
         // If we hit an exception while deserializing, we assume that the WAL file is (partially)
         // corrupted. This should only happen for records of the last transaction recorded.
+        if (throwOnWalReplayFailure) {
+            throw;
+        }
     }
     return {offsetDeserialized, isLastRecordCheckpoint};
 }
