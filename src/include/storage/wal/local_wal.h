@@ -51,9 +51,6 @@ public:
     uint64_t getSize();
 
 private:
-    explicit LocalWAL(std::shared_ptr<common::Writer> writer);
-    explicit LocalWAL(std::shared_ptr<common::Writer> fileWriter, bool enableChecksums);
-
     void addNewWALRecord(const WALRecord& walRecord);
 
 private:

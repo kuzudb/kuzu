@@ -12,16 +12,10 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace storage {
 
-LocalWAL::LocalWAL(std::shared_ptr<common::Writer> writer) : serializer(std::move(writer)) {}
-
-LocalWAL::LocalWAL(std::shared_ptr<common::Writer> fileWriter, bool enableChecksums)
-    : LocalWAL(
-          enableChecksums ? std::make_shared<ChecksumWriter>(fileWriter) : std::move(fileWriter)) {}
-
 LocalWAL::LocalWAL(MemoryManager& mm, bool enableChecksums)
     : inMemWriter(std::make_shared<InMemFileWriter>(mm)),
       serializer(enableChecksums ? std::static_pointer_cast<Writer>(inMemWriter) :
-                                   std::make_shared<ChecksumWriter>(inMemWriter)) {}
+                                   std::make_shared<ChecksumWriter>(inMemWriter, mm)) {}
 
 void LocalWAL::logBeginTransaction() {
     BeginTransactionRecord walRecord;

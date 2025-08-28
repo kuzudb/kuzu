@@ -205,6 +205,22 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInBodyNoThrow) {
     EXPECT_STREQ("Binder exception: Table test does not exist.", result->getErrorMessage().c_str());
 }
 
+TEST_F(WalTest, WALChecksumConfigMismatch) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    systemConfig->enableChecksums = false;
+    EXPECT_THROW(
+        {
+            try {
+                createDBAndConn();
+            } catch (std::exception& e) {
+                EXPECT_STREQ(e.what(), "");
+            }
+        },
+        kuzu::common::RuntimeException);
+}
+
 // Simulation of a corrupted WAL tail by truncating the WAL file. Note that in this case, there
 // would only be a single write transaction. This would cause the last wal record to be corrupted
 // and the database should ignore the last record when recovering.
