@@ -14,6 +14,9 @@ struct ExtensionEntry {
 
 class ExtensionManager {
 public:
+    static constexpr uint64_t EXTENSION_SIGNATURE_LEN = 256;
+
+public:
     void loadExtension(const std::string& path, main::ClientContext* context);
 
     KUZU_API std::string toCypher();
