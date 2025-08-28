@@ -11,7 +11,7 @@ static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
 
 ChecksumWriter::ChecksumWriter(std::shared_ptr<common::Writer> outputWriter,
     MemoryManager& memoryManager)
-    : outputSerializer(std::move(outputWriter)), currentEntrySize(0),
+    : outputSerializer(std::move(outputWriter)),
       entryBuffer(memoryManager.allocateBuffer(false, INITIAL_BUFFER_SIZE)) {}
 
 static void resizeBufferIfNeeded(std::unique_ptr<MemoryBuffer>& entryBuffer,

@@ -14,8 +14,8 @@ namespace storage {
 
 LocalWAL::LocalWAL(MemoryManager& mm, bool enableChecksums)
     : inMemWriter(std::make_shared<InMemFileWriter>(mm)),
-      serializer(enableChecksums ? std::static_pointer_cast<Writer>(inMemWriter) :
-                                   std::make_shared<ChecksumWriter>(inMemWriter, mm)) {}
+      serializer(enableChecksums ? std::make_shared<ChecksumWriter>(inMemWriter, mm) :
+                                   std::static_pointer_cast<Writer>(inMemWriter)) {}
 
 void LocalWAL::logBeginTransaction() {
     BeginTransactionRecord walRecord;

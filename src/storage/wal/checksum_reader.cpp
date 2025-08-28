@@ -13,7 +13,7 @@ static constexpr uint64_t INITIAL_BUFFER_SIZE = common::KUZU_PAGE_SIZE;
 
 ChecksumReader::ChecksumReader(common::FileInfo& fileInfo, MemoryManager& memoryManager,
     std::string_view checksumMismatchMessage)
-    : deserializer(std::make_unique<common::BufferedFileReader>(fileInfo)), currentEntrySize(0),
+    : deserializer(std::make_unique<common::BufferedFileReader>(fileInfo)),
       entryBuffer(memoryManager.allocateBuffer(false, INITIAL_BUFFER_SIZE)),
       checksumMismatchMessage(checksumMismatchMessage) {}
 
