@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include "common/serializer/serializer.h"
 #include "common/serializer/writer.h"
@@ -25,12 +26,13 @@ public:
 
     void flush() override;
 
+    void onObjectBegin() override;
     // Calculate checksum + write the checksum + serialized contents to underlying writer
     void onObjectEnd() override;
 
 private:
     common::Serializer outputSerializer;
-    uint64_t currentEntrySize;
+    std::optional<uint64_t> currentEntrySize;
     std::unique_ptr<MemoryBuffer> entryBuffer;
 };
 

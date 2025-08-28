@@ -103,6 +103,7 @@ uint64_t LocalWAL::getSize() {
 void LocalWAL::addNewWALRecord(const WALRecord& walRecord) {
     std::unique_lock lck{mtx};
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
+    serializer.getWriter()->onObjectBegin();
     walRecord.serialize(serializer);
     serializer.getWriter()->onObjectEnd();
 }

@@ -28,26 +28,31 @@ static void resizeBufferIfNeeded(std::unique_ptr<MemoryBuffer>& entryBuffer,
 
 void ChecksumReader::read(uint8_t* data, uint64_t size) {
     deserializer.read(data, size);
-    resizeBufferIfNeeded(entryBuffer, currentEntrySize + size);
-    std::memcpy(entryBuffer->getData() + currentEntrySize, data, size);
-    currentEntrySize += size;
+    if (currentEntrySize.has_value()) {
+        resizeBufferIfNeeded(entryBuffer, *currentEntrySize + size);
+        std::memcpy(entryBuffer->getData() + *currentEntrySize, data, size);
+        *currentEntrySize += size;
+    }
 }
 
 bool ChecksumReader::finished() {
     return deserializer.finished();
 }
 
+void ChecksumReader::onObjectBegin() {
+    currentEntrySize.emplace(0);
+}
+
 void ChecksumReader::onObjectEnd() {
-    const uint64_t computedChecksum = common::checksum(entryBuffer->getData(), currentEntrySize);
+    KU_ASSERT(currentEntrySize.has_value());
+    const uint64_t computedChecksum = common::checksum(entryBuffer->getData(), *currentEntrySize);
     uint64_t storedChecksum{};
     deserializer.deserializeValue(storedChecksum);
     if (storedChecksum != computedChecksum) {
-        // TODO: Maybe make behaviour configurable e.g. truncate WAL instead of erroring
         throw common::StorageException(std::string{checksumMismatchMessage});
     }
 
-    // reset buffer
-    currentEntrySize = 0;
+    currentEntrySize.reset();
 }
 
 uint64_t ChecksumReader::getReadOffset() const {

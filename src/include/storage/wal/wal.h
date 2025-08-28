@@ -32,6 +32,7 @@ private:
     void initWriter(main::ClientContext* context);
     void addNewWALRecordNoLock(const WALRecord& walRecord);
     void flushAndSyncNoLock();
+    void writeHeader(main::ClientContext& context);
 
 private:
     std::mutex mtx;

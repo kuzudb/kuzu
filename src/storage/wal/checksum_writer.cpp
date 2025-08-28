@@ -24,13 +24,18 @@ static void resizeBufferIfNeeded(std::unique_ptr<MemoryBuffer>& entryBuffer,
 }
 
 void ChecksumWriter::write(const uint8_t* data, uint64_t size) {
-    resizeBufferIfNeeded(entryBuffer, currentEntrySize + size);
-    std::memcpy(entryBuffer->getData() + currentEntrySize, data, size);
-    currentEntrySize += size;
+    if (currentEntrySize.has_value()) {
+        resizeBufferIfNeeded(entryBuffer, *currentEntrySize + size);
+        std::memcpy(entryBuffer->getData() + *currentEntrySize, data, size);
+        *currentEntrySize += size;
+    } else {
+        // The data we are writing does not need to be checksummed
+        outputSerializer.write(data, size);
+    }
 }
 
 void ChecksumWriter::clear() {
-    currentEntrySize = 0;
+    currentEntrySize.reset();
     outputSerializer.getWriter()->clear();
 }
 
@@ -38,15 +43,20 @@ void ChecksumWriter::flush() {
     outputSerializer.getWriter()->flush();
 }
 
+void ChecksumWriter::onObjectBegin() {
+    currentEntrySize.emplace(0);
+}
+
 void ChecksumWriter::onObjectEnd() {
-    const auto checksum = common::checksum(entryBuffer->getData(), currentEntrySize);
-    outputSerializer.write(entryBuffer->getData(), currentEntrySize);
+    KU_ASSERT(currentEntrySize.has_value());
+    const auto checksum = common::checksum(entryBuffer->getData(), *currentEntrySize);
+    outputSerializer.write(entryBuffer->getData(), *currentEntrySize);
     outputSerializer.serializeValue(checksum);
-    clear();
+    currentEntrySize.reset();
 }
 
 uint64_t ChecksumWriter::getSize() const {
-    return entryBuffer->getBuffer().size() + outputSerializer.getWriter()->getSize();
+    return currentEntrySize.value_or(0) + outputSerializer.getWriter()->getSize();
 }
 
 void ChecksumWriter::sync() {

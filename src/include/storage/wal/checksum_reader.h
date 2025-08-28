@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include "common/serializer/deserializer.h"
 #include "common/serializer/reader.h"
@@ -16,6 +17,7 @@ public:
     void read(uint8_t* data, uint64_t size) override;
     bool finished() override;
 
+    void onObjectBegin() override;
     // Reads the stored checksum
     // Also computes + verifies the checksum for the entry that has just been read against the
     // stored value
@@ -26,7 +28,7 @@ public:
 private:
     common::Deserializer deserializer;
 
-    uint64_t currentEntrySize;
+    std::optional<uint64_t> currentEntrySize;
     std::unique_ptr<MemoryBuffer> entryBuffer;
 
     std::string_view checksumMismatchMessage;

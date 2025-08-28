@@ -42,7 +42,6 @@ static WALHeader readWALHeader(Deserializer& deserializer) {
     WALHeader header{};
     deserializer.deserializeValue(header.databaseID);
     deserializer.deserializeValue(header.enableChecksums);
-    deserializer.getReader()->onObjectEnd();
     return header;
 }
 
@@ -61,8 +60,9 @@ static void checkWALHeader(const WALHeader& header, bool enableChecksums) {
         throw RuntimeException(stringFormat(
             "The database you are trying to open was serialized with enableChecksums={} but you "
             "are trying to open it with enableChecksums={}. Please open your database using the "
-            "correct enableChecksums config. If you wish to change this for you database, please "
-            "use the export/import functionality."));
+            "correct enableChecksums config. If you wish to change this for your database, please "
+            "use the export/import functionality.",
+            TypeUtils::toString(header.enableChecksums), TypeUtils::toString(enableChecksums)));
     }
 }
 
@@ -119,11 +119,11 @@ void WALReplayer::replay(bool throwOnWalReplayFailure, bool enableChecksums) con
 
             if (offsetDeserialized > 0) {
                 // Make sure the WAL file is for the current database
+                deserializer.getReader()->onObjectBegin();
                 const auto walHeader = readWALHeader(deserializer);
                 FileDBIDUtils::verifyDatabaseID(*fileInfo,
                     StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
                     walHeader.databaseID);
-                checkWALHeader(walHeader, enableChecksums);
                 deserializer.getReader()->onObjectEnd();
             }
 
@@ -156,7 +156,9 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo, bool throw
         Deserializer deserializer = initDeserializer(fileInfo, clientContext, enableChecksums);
 
         // Skip the databaseID here, we'll verify it when we actually replay
-        readWALHeader(deserializer);
+        deserializer.getReader()->onObjectBegin();
+        const auto walHeader = readWALHeader(deserializer);
+        checkWALHeader(walHeader, enableChecksums);
         deserializer.getReader()->onObjectEnd();
 
         bool finishedDeserializing = deserializer.finished();

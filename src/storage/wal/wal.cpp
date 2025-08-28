@@ -67,6 +67,14 @@ uint64_t WAL::getFileSize() {
     return serializer->getWriter()->getSize();
 }
 
+void WAL::writeHeader(main::ClientContext& context) {
+    serializer->getWriter()->onObjectBegin();
+    FileDBIDUtils::writeDatabaseID(*serializer,
+        StorageManager::Get(context)->getOrInitDatabaseID(context));
+    serializer->write(enableChecksums);
+    serializer->getWriter()->onObjectEnd();
+}
+
 void WAL::initWriter(main::ClientContext* context) {
     if (serializer) {
         return;
@@ -85,9 +93,7 @@ void WAL::initWriter(main::ClientContext* context) {
     // Write the databaseID at the start of the WAL if needed
     // This is used to ensure that when replaying the WAL matches the database
     if (fileInfo->getFileSize() == 0) {
-        FileDBIDUtils::writeDatabaseID(*serializer,
-            StorageManager::Get(*context)->getOrInitDatabaseID(*context));
-        serializer->getWriter()->onObjectEnd();
+        writeHeader(*context);
     }
 
     // WAL should always be APPEND only. We don't want to overwrite the file as it may still
@@ -101,6 +107,7 @@ void WAL::addNewWALRecordNoLock(const WALRecord& walRecord) {
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
     KU_ASSERT(!inMemory);
     KU_ASSERT(serializer != nullptr);
+    serializer->getWriter()->onObjectBegin();
     walRecord.serialize(*serializer);
     serializer->getWriter()->onObjectEnd();
 }

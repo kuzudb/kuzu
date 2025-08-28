@@ -22,6 +22,7 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     const main::ClientContext& clientContext) {
     std::string key;
     auto type = WALRecordType::INVALID_RECORD;
+    deserializer.getReader()->onObjectBegin();
     deserializer.validateDebuggingInfo(key, "type");
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
