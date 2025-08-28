@@ -3,6 +3,7 @@
 #include "api_test/api_test.h"
 #include "common/exception/runtime.h"
 #include "common/exception/storage.h"
+#include "gmock/gmock.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -147,7 +148,7 @@ void WalTest::setupChecksumMismatchTest(std::function<void(std::ofstream&)> corr
 
 // Simulation of a corrupted WAL tail by changing some data, this should trigger a checksum failure
 TEST_F(WalTest, CorruptedWALChecksumMismatchInHeader) {
-    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0 || !systemConfig->enableChecksums) {
         GTEST_SKIP();
     }
     systemConfig->throwOnWalReplayFailure = true;
@@ -161,7 +162,7 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInHeader) {
 }
 
 TEST_F(WalTest, CorruptedWALChecksumMismatchInHeaderNoThrow) {
-    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0 || !systemConfig->enableChecksums) {
         GTEST_SKIP();
     }
     setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
@@ -177,7 +178,7 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInHeaderNoThrow) {
 }
 
 TEST_F(WalTest, CorruptedWALChecksumMismatchInBody) {
-    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0 || !systemConfig->enableChecksums) {
         GTEST_SKIP();
     }
     systemConfig->throwOnWalReplayFailure = true;
@@ -190,7 +191,7 @@ TEST_F(WalTest, CorruptedWALChecksumMismatchInBody) {
 }
 
 TEST_F(WalTest, CorruptedWALChecksumMismatchInBodyNoThrow) {
-    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0 || !systemConfig->enableChecksums) {
         GTEST_SKIP();
     }
     setupChecksumMismatchTest([](std::ofstream& walFileToCorrupt) {
@@ -209,16 +210,42 @@ TEST_F(WalTest, WALChecksumConfigMismatch) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
+    ASSERT_TRUE(conn->query("call force_checkpoint_on_close=false")->isSuccess());
+    ASSERT_TRUE(conn->query("call auto_checkpoint=false")->isSuccess());
+    ASSERT_TRUE(conn->query("create node table test1(id int64 primary key)")->isSuccess());
+    ASSERT_TRUE(conn->query("create node table test2(id int64 primary key)")->isSuccess());
     systemConfig->enableChecksums = false;
+    systemConfig->throwOnWalReplayFailure = true;
     EXPECT_THROW(
         {
             try {
                 createDBAndConn();
             } catch (std::exception& e) {
-                EXPECT_STREQ(e.what(), "");
+                EXPECT_THAT(e.what(),
+                    testing::StartsWith("Runtime exception: The database you are trying to open "
+                                        "was serialized with enableChecksums=True but you are "
+                                        "trying to open it with enableChecksums=False."));
+                throw;
             }
         },
         kuzu::common::RuntimeException);
+}
+
+TEST_F(WalTest, WALChecksumConfigMismatchNoThrow) {
+    if (inMemMode || systemConfig->checkpointThreshold == 0) {
+        GTEST_SKIP();
+    }
+    ASSERT_TRUE(conn->query("call force_checkpoint_on_close=false")->isSuccess());
+    ASSERT_TRUE(conn->query("call auto_checkpoint=false")->isSuccess());
+    ASSERT_TRUE(conn->query("create node table test1(id int64 primary key)")->isSuccess());
+    ASSERT_TRUE(conn->query("create node table test2(id int64 primary key)")->isSuccess());
+    systemConfig->enableChecksums = false;
+    systemConfig->throwOnWalReplayFailure = false;
+    // We have throwOnWalReplayFailure=false so we essentially skip the replay
+    createDBAndConn();
+    auto res = conn->query("CALL show_tables() WHERE name STARTS WITH 'test' RETURN *;");
+    ASSERT_TRUE(res->isSuccess());
+    ASSERT_EQ(res->getNumTuples(), 0);
 }
 
 // Simulation of a corrupted WAL tail by truncating the WAL file. Note that in this case, there
