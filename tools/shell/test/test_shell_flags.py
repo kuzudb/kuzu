@@ -562,6 +562,25 @@ def test_no_progress_bar(temp_db, flag) -> None:
 
 @pytest.mark.parametrize(
     "flag",
+    ["-w", "--ignore_wal_replay_errors"],
+)
+def test_ignore_wal_replay_errors(temp_db, flag) -> None:
+    # create garbage WAL file
+    with open(temp_db + ".wal", "w") as wal_file:
+        wal_file.write("abcdefghijklmnopqrstuvwxyz")
+    test = ShellTest().add_argument(temp_db)
+    result = test.run()
+    result.check_stderr("Storage exception")
+
+    with open(temp_db + ".wal", "w") as wal_file:
+        wal_file.write("abcdefghijklmnopqrstuvwxyz")
+    test = ShellTest().add_argument(temp_db).add_argument(flag).statement("RETURN 1")
+    result = test.run()
+    result.check_stdout("1")
+
+
+@pytest.mark.parametrize(
+    "flag",
     [
         "-i",
         "--init",
