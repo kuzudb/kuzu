@@ -41,7 +41,13 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{cli
 static WALHeader readWALHeader(Deserializer& deserializer) {
     WALHeader header{};
     deserializer.deserializeValue(header.databaseID);
-    deserializer.deserializeValue(header.enableChecksums);
+
+    // It is possible to read a value other than 0/1 when deserializing the flag
+    // This causes some weird behaviours with some toolchains so we manually do the conversion here
+    uint8_t enableChecksumsBytes = 0;
+    deserializer.deserializeValue(enableChecksumsBytes);
+    header.enableChecksums = enableChecksumsBytes != 0;
+
     return header;
 }
 

@@ -46,8 +46,6 @@ public:
             return val;
         } else if constexpr (std::is_same_v<T, ku_string_t>) {
             return val.getAsString();
-        } else if constexpr (std::is_same_v<T, bool>) {
-            return val ? "true" : "false";
         } else {
             static_assert(std::is_same<T, int64_t>::value || std::is_same<T, int32_t>::value ||
                           std::is_same<T, int16_t>::value || std::is_same<T, int8_t>::value ||
