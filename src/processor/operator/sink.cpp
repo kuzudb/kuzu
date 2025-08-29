@@ -1,7 +1,7 @@
 #include "processor/operator/sink.h"
 
-#include "processor/result/factorized_table_util.h"
 #include "main/query_result/materialized_query_result.h"
+#include "processor/result/factorized_table_util.h"
 
 namespace kuzu {
 namespace processor {

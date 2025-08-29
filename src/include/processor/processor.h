@@ -21,7 +21,8 @@ public:
 
     common::TaskScheduler* getTaskScheduler() { return taskScheduler.get(); }
 
-    std::unique_ptr<main::QueryResult> execute(PhysicalPlan* physicalPlan, ExecutionContext* context);
+    std::unique_ptr<main::QueryResult> execute(PhysicalPlan* physicalPlan,
+        ExecutionContext* context);
 
 private:
     void decomposePlanIntoTask(PhysicalOperator* op, common::Task* task, ExecutionContext* context);

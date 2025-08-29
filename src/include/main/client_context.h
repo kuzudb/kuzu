@@ -5,9 +5,9 @@
 #include <mutex>
 #include <optional>
 
+#include "common/arrow/arrow_result_config.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
-#include "common/arrow/arrow_result_config.h"
 #include "function/table/scan_replacement.h"
 #include "main/client_config.h"
 #include "main/prepared_statement_manager.h"
@@ -160,7 +160,8 @@ public:
         common::ArrowResultConfig arrowConfig;
 
         QueryConfig() : resultType{QueryResultType::FTABLE}, arrowConfig{} {}
-        QueryConfig(QueryResultType resultType, common::ArrowResultConfig arrowConfig) : resultType{resultType}, arrowConfig{arrowConfig} {}
+        QueryConfig(QueryResultType resultType, common::ArrowResultConfig arrowConfig)
+            : resultType{resultType}, arrowConfig{arrowConfig} {}
     };
 
     std::unique_ptr<QueryResult> query(std::string_view queryStatement,

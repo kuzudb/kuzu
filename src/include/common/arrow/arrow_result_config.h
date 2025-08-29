@@ -15,5 +15,5 @@ private:
     static constexpr int64_t DEFAULT_CHUNK_SIZE = 1000;
 };
 
-}
-}
+} // namespace common
+} // namespace kuzu

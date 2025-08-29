@@ -1,9 +1,9 @@
 #include "processor/operator/result_collector.h"
 
 #include "binder/expression/expression_util.h"
+#include "main/query_result/materialized_query_result.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "main/query_result/materialized_query_result.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

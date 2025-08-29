@@ -1,9 +1,10 @@
 #pragma once
 
+#include <mutex>
+
+#include "common/arrow/arrow.h"
 #include "processor/operator/sink.h"
 #include "processor/result/flat_tuple.h"
-#include "common/arrow/arrow.h"
-#include <mutex>
 
 namespace kuzu {
 namespace processor {
@@ -39,13 +40,16 @@ struct ArrowResultCollectorInfo {
     std::vector<DataPos> payloadPositions;
     std::vector<common::LogicalType> columnTypes;
 
-    ArrowResultCollectorInfo(int64_t chunkSize, std::vector<DataPos> payloadPositions, std::vector<common::LogicalType> columnTypes)
-        : chunkSize{chunkSize}, payloadPositions{std::move(payloadPositions)}, columnTypes {std::move(columnTypes)} {}
+    ArrowResultCollectorInfo(int64_t chunkSize, std::vector<DataPos> payloadPositions,
+        std::vector<common::LogicalType> columnTypes)
+        : chunkSize{chunkSize}, payloadPositions{std::move(payloadPositions)},
+          columnTypes{std::move(columnTypes)} {}
     EXPLICIT_COPY_DEFAULT_MOVE(ArrowResultCollectorInfo);
 
 private:
-    ArrowResultCollectorInfo(const ArrowResultCollectorInfo& other) : chunkSize{other.chunkSize},
-        payloadPositions{other.payloadPositions}, columnTypes{copyVector(other.columnTypes)} {}
+    ArrowResultCollectorInfo(const ArrowResultCollectorInfo& other)
+        : chunkSize{other.chunkSize}, payloadPositions{other.payloadPositions},
+          columnTypes{copyVector(other.columnTypes)} {}
 };
 
 class ArrowResultCollector final : public Sink {
@@ -53,23 +57,25 @@ class ArrowResultCollector final : public Sink {
 
 public:
     ArrowResultCollector(std::shared_ptr<ArrowResultCollectorSharedState> sharedState,
-        ArrowResultCollectorInfo info, std::unique_ptr<PhysicalOperator> child, physical_op_id id, std::unique_ptr<OPPrintInfo> printInfo)
+        ArrowResultCollectorInfo info, std::unique_ptr<PhysicalOperator> child, physical_op_id id,
+        std::unique_ptr<OPPrintInfo> printInfo)
         : Sink{type_, std::move(child), id, std::move(printInfo)},
-        sharedState{std::move(sharedState)}, info{std::move(info)} {}
+          sharedState{std::move(sharedState)}, info{std::move(info)} {}
 
     std::unique_ptr<main::QueryResult> getQueryResult() const override;
 
     void executeInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() override {
-        return std::make_unique<ArrowResultCollector>(sharedState, info.copy(), children[0]->copy(), id, printInfo->copy());
+        return std::make_unique<ArrowResultCollector>(sharedState, info.copy(), children[0]->copy(),
+            id, printInfo->copy());
     }
 
 private:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext*) override;
 
     void iterateResultSet(common::ArrowRowBatch* inputBatch);
-    bool  fillRowBatch(common::ArrowRowBatch& rowBatch);
+    bool fillRowBatch(common::ArrowRowBatch& rowBatch);
 
 private:
     std::shared_ptr<ArrowResultCollectorSharedState> sharedState;
@@ -77,5 +83,5 @@ private:
     ArrowResultCollectorLocalState localState;
 };
 
-}
-}
+} // namespace processor
+} // namespace kuzu

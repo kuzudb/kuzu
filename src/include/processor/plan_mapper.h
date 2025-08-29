@@ -1,11 +1,11 @@
 #pragma once
 
+#include "common/arrow/arrow_result_config.h"
+#include "main/query_result.h"
 #include "planner/operator/logical_operator.h"
 #include "processor/execution_context.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
-#include "common/arrow/arrow_result_config.h"
-#include "main/query_result.h"
 
 namespace kuzu {
 namespace common {
@@ -61,7 +61,8 @@ public:
     explicit PlanMapper(ExecutionContext* executionContext);
 
     std::unique_ptr<PhysicalPlan> getPhysicalPlan(const planner::LogicalPlan* logicalPlan,
-        const binder::expression_vector& expressions, main::QueryResultType resultType, common::ArrowResultConfig arrowConfig);
+        const binder::expression_vector& expressions, main::QueryResultType resultType,
+        common::ArrowResultConfig arrowConfig);
 
     uint32_t getOperatorID() { return physicalOperatorID++; }
 
@@ -169,9 +170,9 @@ public:
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
-    std::unique_ptr<PhysicalOperator> createArrowResultCollector(common::ArrowResultConfig arrowConfig,
-        const binder::expression_vector& expressions, planner::Schema* schema,
-        std::unique_ptr<PhysicalOperator> prevOperator);
+    std::unique_ptr<PhysicalOperator> createArrowResultCollector(
+        common::ArrowResultConfig arrowConfig, const binder::expression_vector& expressions,
+        planner::Schema* schema, std::unique_ptr<PhysicalOperator> prevOperator);
 
     // Scan fTable
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,

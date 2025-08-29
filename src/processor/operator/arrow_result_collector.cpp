@@ -43,7 +43,8 @@ void ArrowResultCollectorSharedState::merge(const std::vector<ArrowArray>& local
 }
 
 void ArrowResultCollector::executeInternal(ExecutionContext* context) {
-    auto rowBatch = std::make_unique<ArrowRowBatch>(info.columnTypes, info.chunkSize, false /* fallbackExtensionTypes */);
+    auto rowBatch = std::make_unique<ArrowRowBatch>(info.columnTypes, info.chunkSize,
+        false /* fallbackExtensionTypes */);
     while (children[0]->getNextTuple(context)) {
         localState.resetCursor();
         while (true) {
@@ -51,7 +52,8 @@ void ArrowResultCollector::executeInternal(ExecutionContext* context) {
                 break;
             }
             localState.arrays.push_back(rowBatch->toArray(info.columnTypes));
-            rowBatch = std::make_unique<ArrowRowBatch>(info.columnTypes, info.chunkSize, false /* fallbackExtensionTypes */);
+            rowBatch = std::make_unique<ArrowRowBatch>(info.columnTypes, info.chunkSize,
+                false /* fallbackExtensionTypes */);
         }
     }
     // Handle the last rowBatch whose size can be smaller than chunk size.
@@ -92,10 +94,9 @@ void ArrowResultCollector::initLocalStateInternal(ResultSet* resultSet, Executio
     localState.tuple = std::make_unique<FlatTuple>(info.columnTypes);
 }
 
-
 std::unique_ptr<main::QueryResult> ArrowResultCollector::getQueryResult() const {
     return std::make_unique<main::ArrowQueryResult>(std::move(sharedState->arrays), info.chunkSize);
 }
 
-}
-}
+} // namespace processor
+} // namespace kuzu
