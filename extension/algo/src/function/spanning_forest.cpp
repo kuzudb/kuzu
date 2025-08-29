@@ -13,6 +13,7 @@
 #include "function/config/spanning_forest_config.h"
 #include "function/gds/gds.h"
 #include "function/gds/gds_object_manager.h"
+#include "function/gds/weight_utils.h"
 #include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "planner/operator/logical_table_function_call.h"
@@ -123,6 +124,7 @@ public:
     KruskalCompute(storage::MemoryManager* mm, offset_t numNodes);
 
     // Prepares the list of edges to be processed from `graph`.
+    template<typename T>
     void initEdges(Graph* graph, const table_id_t& tableId, NbrScanState* const scanState,
         const bool& weightProperty);
 
@@ -171,6 +173,7 @@ KruskalCompute::KruskalCompute(storage::MemoryManager* mm, offset_t numNodes)
     std::iota(parents.begin(), parents.end(), 0);
 }
 
+template<typename T>
 void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
     NbrScanState* const scanState, const bool& weightProperty) {
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
@@ -183,8 +186,9 @@ void KruskalCompute::initEdges(Graph* graph, const table_id_t& tableId,
                     return;
                 }
                 auto relId = propertyVectors[0]->template getValue<relID_t>(i);
-                auto weight = weightProperty ? propertyVectors[1]->template getValue<double>(i) :
-                                               DEFAULT_WEIGHT;
+                double weight = (weightProperty ? static_cast<double>(
+                                                      propertyVectors[1]->template getValue<T>(i)) :
+                                                  DEFAULT_WEIGHT);
                 edges.push_back({nodeId, nbrId, relId, weight});
             });
         }
@@ -303,9 +307,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         throw RuntimeException{
             stringFormat("Cannot find property: {}", config.weightProperty.getParamVal())};
     }
+    const auto& propertyType =
+        (config.weightProperty.getParamVal().empty() ?
+                LogicalTypeID::DOUBLE :
+                nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal())
+                    .getType()
+                    .getLogicalTypeID());
     if (!config.weightProperty.getParamVal().empty() &&
-        !LogicalTypeUtils::isNumerical(
-            nbrInfo.relGroupEntry->getProperty(config.weightProperty.getParamVal()).getType())) {
+        !LogicalTypeUtils::isNumerical(propertyType)) {
         throw RuntimeException{stringFormat("Provided weight property is not numerical: {}",
             config.weightProperty.getParamVal())};
     }
@@ -320,8 +329,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
 
     KruskalCompute compute(mm, numNodes);
-    compute.initEdges(graph, tableId, scanState.get(),
-        !config.weightProperty.getParamVal().empty());
+    WeightUtils::visit(SpanningForest::name, propertyType, [&]<typename T>(T) {
+        compute.initEdges<T>(graph, tableId, scanState.get(),
+            !config.weightProperty.getParamVal().empty());
+    });
     compute.sortEdges(config.variant.getParamVal());
     compute.run();
     compute.assignForestIds();
