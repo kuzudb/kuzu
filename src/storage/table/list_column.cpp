@@ -121,7 +121,7 @@ void ListColumn::scanSegment(const SegmentState& state, ColumnChunkData* resultC
     if (numValuesToScan == 0) {
         return;
     }
-    // ListChunkData::setNumValues will modify the size of the offset/size chunks before we scan
+    // Column::scanSegment above modifies the size of the offset/size chunks before we scan
     // them Revert this so that they scan to the correct position
     // FIXME(bmwinger): there should be a better solution to this, but it will probably be removed
     // later anyway

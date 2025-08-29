@@ -9,7 +9,6 @@ class Transaction;
 
 namespace storage {
 
-// TODO(bmwinger): what is this class for?
 class KUZU_API InMemChunkedNodeGroupCollection {
 public:
     explicit InMemChunkedNodeGroupCollection(std::vector<common::LogicalType> types)

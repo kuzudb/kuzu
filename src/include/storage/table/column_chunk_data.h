@@ -107,13 +107,13 @@ struct ChunkState {
         return nullptr;
     }
 
-    // Func should take the following arguments:
-    // (SegmentState& segmentState, offset_t offsetInSegment, offset_t lengthInSegment, offset_t
-    // dstOffset) dstOffset starts from 0 and is the offset in the output data for a given segment
+    // dstOffset starts from 0 and is the offset in the output data for a given segment
     //  (it increases by lengthInSegment for each segment)
     // Returns the total number of values scanned (input length can be longer than the available
     // values)
-    template<typename Func>
+    template<std::invocable<SegmentState&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+            Func>
     common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
         Func func) {
         // TODO(bmwinger): try binary search (might only make a difference for a very large number
@@ -140,9 +140,11 @@ struct ChunkState {
         return dstOffset;
     }
 
-    // TODO(bmwinger): this function should be const and only isn't because of ALP exception chunk
-    // modifications
-    template<typename Func>
+    // TODO(bmwinger): the above function should be const and only isn't because of ALP exception
+    // chunk modifications. The SegmentState& should also be const for the same reason
+    template<std::invocable<SegmentState&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+            Func>
     common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
         Func func) const {
         return const_cast<ChunkState*>(this)->rangeSegments(offsetInChunk, length, func);
@@ -281,8 +283,8 @@ public:
 
     virtual uint64_t getEstimatedMemoryUsage() const;
     bool shouldSplit() const {
-        // TODO(bmwinger): when segments are restructured this should be able to cache the same
-        // getMetadataToFlush call that flush uses to avoid scanning the segment twice
+        // TODO(bmwinger): this should use the inMemoryStats to avoid scanning the data, however not
+        // all functions update them
         return numValues > 1 && getSizeOnDisk() > MAX_SEGMENT_SIZE;
     }
 

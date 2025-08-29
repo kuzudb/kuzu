@@ -398,7 +398,6 @@ void ColumnChunk::checkpoint(Column& column,
         auto segmentEnd = segmentStart + segment->getNumValues();
         // If the segment was split during checkpointing we need to insert the new segments into the
         // ColumnChunk
-        // TODO(bmwinger): how do we track the position?
         auto newSegments = column.checkpointSegment(
             ColumnCheckpointState(*segment, std::move(segmentCheckpointStates)), pageAllocator);
         if (!newSegments.empty()) {
