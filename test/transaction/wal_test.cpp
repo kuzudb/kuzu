@@ -214,7 +214,7 @@ TEST_F(WalTest, WALChecksumConfigMismatch) {
     ASSERT_TRUE(conn->query("call auto_checkpoint=false")->isSuccess());
     ASSERT_TRUE(conn->query("create node table test1(id int64 primary key)")->isSuccess());
     ASSERT_TRUE(conn->query("create node table test2(id int64 primary key)")->isSuccess());
-    systemConfig->enableChecksums = false;
+    systemConfig->enableChecksums = !systemConfig->enableChecksums;
     systemConfig->throwOnWalReplayFailure = true;
     EXPECT_THROW(
         {
@@ -222,9 +222,14 @@ TEST_F(WalTest, WALChecksumConfigMismatch) {
                 createDBAndConn();
             } catch (std::exception& e) {
                 EXPECT_THAT(e.what(),
-                    testing::StartsWith("Runtime exception: The database you are trying to open "
-                                        "was serialized with enableChecksums=True but you are "
-                                        "trying to open it with enableChecksums=False."));
+                    testing::AnyOf(testing::StartsWith(
+                                       "Runtime exception: The database you are trying to open "
+                                       "was serialized with enableChecksums=True but you are "
+                                       "trying to open it with enableChecksums=False."),
+                        testing::StartsWith(
+                            "Runtime exception: The database you are trying to open "
+                            "was serialized with enableChecksums=False but you are "
+                            "trying to open it with enableChecksums=True.")));
                 throw;
             }
         },
@@ -239,7 +244,7 @@ TEST_F(WalTest, WALChecksumConfigMismatchNoThrow) {
     ASSERT_TRUE(conn->query("call auto_checkpoint=false")->isSuccess());
     ASSERT_TRUE(conn->query("create node table test1(id int64 primary key)")->isSuccess());
     ASSERT_TRUE(conn->query("create node table test2(id int64 primary key)")->isSuccess());
-    systemConfig->enableChecksums = false;
+    systemConfig->enableChecksums = !systemConfig->enableChecksums;
     systemConfig->throwOnWalReplayFailure = false;
     // We have throwOnWalReplayFailure=false so we essentially skip the replay
     createDBAndConn();
