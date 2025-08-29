@@ -253,8 +253,6 @@ void Column::scanSegment(const SegmentState& state, ColumnChunkData* outputChunk
         outputChunk->resize(std::bit_ceil(startLength + numValues));
     }
 
-    // FIXME(bmwinger): failing for certain null columns
-    // KU_ASSERT((offsetInSegment + numValues) <= state.metadata.numValues);
     if (getDataTypeSizeInChunk(dataType) > 0) {
         columnReadWriter->readCompressedValuesToPage(state, outputChunk->getData(),
             outputChunk->getNumValues(), offsetInSegment, numValues, readToPageFunc);
