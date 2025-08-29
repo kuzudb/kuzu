@@ -362,8 +362,14 @@ protected:
 
 template<>
 inline void ColumnChunkData::setValue(bool val, common::offset_t pos) {
+    KU_ASSERT(pos < capacity);
+    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     // Buffer is rounded up to the nearest 8 bytes so that this cast is safe
     common::NullMask::setNull(getData<uint64_t>(), pos, val);
+    if (pos >= numValues) {
+        numValues = pos + 1;
+    }
+    inMemoryStats.update(StorageValue{val}, dataType.getPhysicalType());
 }
 
 template<>
@@ -448,6 +454,9 @@ public:
         }
         if (!inMemoryStats.max.has_value() || max > inMemoryStats.max->get<bool>()) {
             inMemoryStats.max = max;
+        }
+        if ((dstOffset + numBits) >= numValues) {
+            numValues = dstOffset + numBits;
         }
     }
 

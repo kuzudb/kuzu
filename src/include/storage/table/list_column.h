@@ -65,7 +65,7 @@ public:
     Column* getDataColumn() const { return dataColumn.get(); }
 
     std::vector<std::unique_ptr<ColumnChunkData>> checkpointSegment(
-        ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const override;
+        ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const override;
 
 protected:
     void scanSegment(const SegmentState& state, common::offset_t startOffsetInChunk,
@@ -82,8 +82,9 @@ private:
     void scanUnfiltered(const SegmentState& state, common::ValueVector* resultVector,
         uint64_t numValuesToScan, const ListOffsetSizeInfo& listOffsetInfoInStorage,
         common::offset_t offsetInResult) const;
-    void scanFiltered(const SegmentState& state, common::ValueVector* offsetVector,
-        const ListOffsetSizeInfo& listOffsetInfoInStorage, common::offset_t offsetInResult) const;
+    void scanFiltered(const SegmentState& state, common::offset_t startOffsetInChunk,
+        common::ValueVector* offsetVector, const ListOffsetSizeInfo& listOffsetInfoInStorage,
+        common::offset_t offsetInResult) const;
 
     common::offset_t readOffset(const SegmentState& state,
         common::offset_t offsetInNodeGroup) const;

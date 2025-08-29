@@ -110,7 +110,7 @@ void ListColumn::scanSegment(const SegmentState& state, offset_t startOffsetInCh
     if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
         scanUnfiltered(state, resultVector, numValuesToScan, listOffsetSizeInfo, offsetInResult);
     } else {
-        scanFiltered(state, resultVector, listOffsetSizeInfo, offsetInResult);
+        scanFiltered(state, startOffsetInChunk, resultVector, listOffsetSizeInfo, offsetInResult);
     }
 }
 
@@ -270,25 +270,28 @@ void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVe
     }
 }
 
-void ListColumn::scanFiltered(const SegmentState& state, ValueVector* resultVector,
-    const ListOffsetSizeInfo& listOffsetSizeInfo, offset_t offsetInResult) const {
+void ListColumn::scanFiltered(const SegmentState& state, offset_t startOffsetInChunk,
+    ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetSizeInfo,
+    offset_t offsetInResult) const {
     auto dataVector = ListVector::getDataVector(resultVector);
     auto startOffsetInDataVector = ListVector::getDataVectorSize(resultVector);
     auto offsetInDataVector = startOffsetInDataVector;
 
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
-        auto listSize = listOffsetSizeInfo.getListSize(pos);
-        resultVector->setValue(offsetInResult + pos,
-            list_entry_t{(offset_t)offsetInDataVector, listSize});
-        offsetInDataVector += listSize;
+        if (startOffsetInChunk + pos < state.metadata.numValues) {
+            auto listSize = listOffsetSizeInfo.getListSize(pos);
+            resultVector->setValue(offsetInResult + pos,
+                list_entry_t{(offset_t)offsetInDataVector, listSize});
+            offsetInDataVector += listSize;
+        }
     }
     ListVector::resizeDataVector(resultVector, offsetInDataVector);
     offsetInDataVector = startOffsetInDataVector;
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
         // Nulls are scanned to the resultVector first
-        if (!resultVector->isNull(pos)) {
+        if (startOffsetInChunk + pos < state.metadata.numValues && !resultVector->isNull(pos)) {
             auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
             auto appendSize = listOffsetSizeInfo.getListSize(pos);
             dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],

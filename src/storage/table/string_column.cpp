@@ -108,7 +108,7 @@ void StringColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState&
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> StringColumn::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
     auto& persistentData = checkpointState.persistentData;
     auto result = Column::checkpointSegment(std::move(checkpointState), pageAllocator);
     persistentData.syncNumValues();
@@ -194,7 +194,7 @@ void StringColumn::scanFiltered(const SegmentState& state, offset_t startOffsetI
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
     for (auto i = offsetInResult; i < resultVector->state->getSelVector().getSelSize(); i++) {
         const auto pos = resultVector->state->getSelVector()[i];
-        if (!resultVector->isNull(pos)) {
+        if (startOffsetInChunk + pos < state.metadata.numValues && !resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
             const auto offsetInGroup = startOffsetInChunk + pos;
             string_index_t index = 0;

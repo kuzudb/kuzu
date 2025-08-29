@@ -728,19 +728,12 @@ void NullChunkData::setNull(offset_t pos, bool isNull) {
     setValue(isNull, pos);
     // TODO(Guodong): Better let NullChunkData also support `append` a
     // vector.
-    if (pos >= numValues) {
-        numValues = pos + 1;
-        KU_ASSERT(numValues <= capacity);
-    }
-    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
 }
 
 void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     const bool isNull = vector->isNull(offsetInVector);
-    setNull(offsetInChunk, isNull);
-    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
-    numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+    setValue(isNull, offsetInChunk);
 }
 
 void NullChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
@@ -751,9 +744,6 @@ void NullChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInC
     KU_ASSERT(srcChunk->getBufferSize() >= sizeof(uint64_t));
     copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
         numValuesToCopy);
-    if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
-        numValues = dstOffsetInChunk + numValuesToCopy;
-    }
 }
 
 void NullChunkData::append(const ColumnChunkData* other, offset_t startOffsetInOtherChunk,
@@ -794,7 +784,6 @@ void NullChunkData::appendNulls(const ValueVector* vector, const SelectionView& 
     offset_t startPosInChunk) {
     if (selView.isUnfiltered()) {
         copyFromBuffer(vector->getNullMask().getData(), 0, startPosInChunk, selView.getSelSize());
-        numValues += selView.getSelSize();
     } else {
         for (auto i = 0u; i < selView.getSelSize(); i++) {
             const auto pos = selView[i];

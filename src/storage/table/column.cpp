@@ -5,6 +5,8 @@
 #include <memory>
 
 #include "common/assert.h"
+#include "common/data_chunk/data_chunk_state.h"
+#include "common/data_chunk/sel_vector.h"
 #include "common/null_mask.h"
 #include "common/system_config.h"
 #include "common/types/types.h"
@@ -197,6 +199,10 @@ void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, offset_t
 
 void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegment,
     row_idx_t numValuesToScan, ValueVector* resultVector, offset_t offsetInVector) const {
+    if (numValuesToScan == 0) {
+        return;
+    }
+    KU_ASSERT(startOffsetInSegment + numValuesToScan <= state.metadata.numValues);
     if (nullColumn) {
         KU_ASSERT(state.nullState);
         nullColumn->scanSegment(*state.nullState, startOffsetInSegment, numValuesToScan,
@@ -233,6 +239,10 @@ void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegmen
 
 void Column::scanSegment(const SegmentState& state, ColumnChunkData* outputChunk,
     offset_t offsetInSegment, offset_t numValues) const {
+    if (numValues == 0) {
+        return;
+    }
+    KU_ASSERT(offsetInSegment + numValues <= state.metadata.numValues);
     auto startLength = outputChunk->getNumValues();
     if (nullColumn) {
         nullColumn->scanSegment(*state.nullState, outputChunk->getNullData(), offsetInSegment,
@@ -273,6 +283,7 @@ void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t
 
 void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegment, offset_t length,
     uint8_t* result) {
+    KU_ASSERT(startOffsetInSegment + length <= state.metadata.numValues);
     columnReadWriter->readCompressedValuesToPage(state, result, 0, startOffsetInSegment, length,
         readToPageFunc);
 }
@@ -439,7 +450,8 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOfPlace(
-    const SegmentState& state, const ColumnCheckpointState& checkpointState, PageAllocator &pageAllocator) const {
+    const SegmentState& state, const ColumnCheckpointState& checkpointState,
+    PageAllocator& pageAllocator) const {
     const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
@@ -490,7 +502,7 @@ bool Column::canCheckpointInPlace(const SegmentState& state,
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
     SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
