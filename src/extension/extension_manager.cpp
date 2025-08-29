@@ -1,7 +1,5 @@
 #include "extension/extension_manager.h"
 
-#include <cstdint>
-
 #include "common/exception/binder.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
@@ -24,70 +22,67 @@ static void executeExtensionLoader(main::ClientContext* context, const std::stri
     }
 }
 
-static std::string publicKey = R"(
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhXoRMc6xWz1rFRd8vhbp
-0dFxfnqdY91Nhn1jbf7k/DhASFXuh2BIF5FgwtkXd2L1JbJHYS0PHTgKvolv+OMH
-yE217wMNGoeqbegwlMp5PIrUvmLCS+EIQ79zKMGg2tmQvZqj4rDNcYl9l26JShMM
-qOfGDTjXjUhfeWVADwq2+XE3QY/iwW/hUn2uiU/t+MjmNXRiqMR68BjQbTtbvz1R
-NWaWgdpq3q9jxeHCKIYGde8mqvGS5admQpL7my9NGnDRcz99E+12bB/PKPzeDi1l
-I2FnyXhNE1QoMk9jeoPVY84AqGBX8r8qhdeCGEogP/s6bwFCQcD/ce9lYoydxJIl
-lwIDAQAB
------END PUBLIC KEY-----
-)";
-
-static void validateSignature(main::ClientContext* context, const std::string& fullPath) {
-    auto fileHandle = common::VirtualFileSystem::GetUnsafe(*context)->openFile(fullPath,
-        common::FileOpenFlags(common::FileFlags::READ_ONLY), context);
-    auto fileSize = fileHandle->getFileSize();
-    auto signatureBuffer = std::make_unique<uint8_t[]>(ExtensionManager::EXTENSION_SIGNATURE_LEN);
-    auto signatureOffset = fileSize - ExtensionManager::EXTENSION_SIGNATURE_LEN;
-    fileHandle->readFromFile(signatureBuffer.get(), ExtensionManager::EXTENSION_SIGNATURE_LEN,
-        signatureOffset);
-    const auto maxLenChunks = 1024ULL * 1024ULL;
+static std::string computeHashForExtensionToLoad(common::offset_t signatureOffset,
+    common::FileInfo* fileInfo) {
+    const auto maxLenChunks = 1024ULL * 1024ULL; // 1MB
     const auto numChunks = (signatureOffset + maxLenChunks - 1) / maxLenChunks;
     std::string hashResult;
-    hashResult.reserve(32 * numChunks);
+    hashResult.reserve(ExtensionManager::SHA256_LEN * numChunks);
     std::string chunkBuffer;
-    chunkBuffer.resize(32);
+    chunkBuffer.resize(ExtensionManager::SHA256_LEN);
     auto chunkData = std::make_unique<uint8_t[]>(maxLenChunks);
     for (auto i = 0u; i < signatureOffset; i += maxLenChunks) {
         auto numBytesToHash = std::min<uint64_t>(signatureOffset - i, maxLenChunks);
-        fileHandle->readFile(chunkData.get(), numBytesToHash);
+        fileInfo->readFile(chunkData.get(), numBytesToHash);
         mbedtls_sha256(chunkData.get(), numBytesToHash,
             reinterpret_cast<unsigned char*>(chunkBuffer.data()), 0 /* SHA256 */);
         hashResult += chunkBuffer;
     }
+    std::string computedExtensionHash;
+    computedExtensionHash.resize(ExtensionManager::SHA256_LEN);
+    mbedtls_sha256(reinterpret_cast<const unsigned char*>(hashResult.data()), hashResult.length(),
+        reinterpret_cast<unsigned char*>(computedExtensionHash.data()), 0 /* SHA256 */);
+    return computedExtensionHash;
+}
 
-    std::string hashForExtension;
-    hashForExtension.resize(32);
-    mbedtls_sha256_context sha_context;
-    mbedtls_sha256_init(&sha_context);
-    if (mbedtls_sha256_starts(&sha_context, false) ||
-        mbedtls_sha256_update(&sha_context,
-            reinterpret_cast<const unsigned char*>(hashResult.data()), hashResult.length()) ||
-        mbedtls_sha256_finish(&sha_context,
-            reinterpret_cast<unsigned char*>(hashForExtension.data()))) {
-        throw common::InternalException("SHA256 Error");
-    }
-    mbedtls_sha256_free(&sha_context);
-
+static void verifyByPublicKey(uint8_t* signature, const std::string& computedExtensionHash) {
     mbedtls_pk_context pk_context;
     mbedtls_pk_init(&pk_context);
 
-    if (mbedtls_pk_parse_public_key(&pk_context,
-            reinterpret_cast<const unsigned char*>(publicKey.c_str()), publicKey.size() + 1)) {
-        throw common::InternalException("RSA public key import error");
-    }
-    // actually verify
+    mbedtls_pk_parse_public_key(&pk_context,
+        reinterpret_cast<const unsigned char*>(ExtensionManager::PUBLIC_KEY),
+        strlen(ExtensionManager::PUBLIC_KEY) + 1);
     auto valid = mbedtls_pk_verify(&pk_context, MBEDTLS_MD_SHA256,
-                     reinterpret_cast<const unsigned char*>(hashForExtension.data()),
-                     hashForExtension.size(), signatureBuffer.get(),
+                     reinterpret_cast<const unsigned char*>(computedExtensionHash.data()),
+                     computedExtensionHash.size(), signature,
                      ExtensionManager::EXTENSION_SIGNATURE_LEN) == 0;
     mbedtls_pk_free(&pk_context);
     if (!valid) {
-        throw common::RuntimeException{"Failed to verify the extension signature."};
+        throw common::RuntimeException{
+            "Failed to verify the extension signature.\nIf you want to load unsigned extensions, "
+            "please set allow_unsigned_extension=false."};
     }
+}
+
+static std::unique_ptr<uint8_t[]> getSignature(common::FileInfo* fileInfo,
+    common::offset_t signatureOffset) {
+    auto signatureBuffer = std::make_unique<uint8_t[]>(ExtensionManager::EXTENSION_SIGNATURE_LEN);
+    fileInfo->readFromFile(signatureBuffer.get(), ExtensionManager::EXTENSION_SIGNATURE_LEN,
+        signatureOffset);
+    return signatureBuffer;
+}
+
+static void validateSignature(main::ClientContext* context, const std::string& fullPath) {
+    auto fileInfo = common::VirtualFileSystem::GetUnsafe(*context)->openFile(fullPath,
+        common::FileOpenFlags(common::FileFlags::READ_ONLY), context);
+    auto fileSize = fileInfo->getFileSize();
+    if (ExtensionManager::EXTENSION_SIGNATURE_LEN >= fileSize) {
+        throw common::RuntimeException{"The file is too small to be a kuzu extension."};
+    }
+    auto signatureOffset = fileSize - ExtensionManager::EXTENSION_SIGNATURE_LEN;
+    auto signature = getSignature(fileInfo.get(), signatureOffset);
+    auto computedExtensionHash = computeHashForExtensionToLoad(signatureOffset, fileInfo.get());
+    verifyByPublicKey(signature.get(), computedExtensionHash);
 }
 
 void ExtensionManager::loadExtension(const std::string& path, main::ClientContext* context) {
@@ -102,7 +97,9 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
         executeExtensionLoader(context, path);
         fullPath = ExtensionUtils::getLocalPathForExtensionLib(context, path);
     }
-    validateSignature(context, path);
+    if (!context->getClientConfig()->allowUnsignedExtension) {
+        validateSignature(context, path);
+    }
     auto libLoader = ExtensionLibLoader(path, fullPath);
     auto name = libLoader.getNameFunc();
     std::string extensionName = (*name)();

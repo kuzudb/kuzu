@@ -331,6 +331,12 @@ if (USE_STD_FORMAT)
     add_compile_definitions(USE_STD_FORMAT)
 endif()
 
+if (BUILD_EXTENSION_TESTS)
+    add_compile_definitions(ALLOW_UNSIGNED_EXTENSION_DEFAULT_VAL=true)
+else()
+    add_compile_definitions(ALLOW_UNSIGNED_EXTENSION_DEFAULT_VAL=false)
+endif()
+
 function(add_kuzu_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
@@ -430,6 +436,7 @@ endforeach()
 
 if (${BUILD_TESTS} OR ${BUILD_EXTENSION_TESTS})
     add_subdirectory(test)
+
 elseif (${BUILD_BENCHMARK})
     add_subdirectory(test/test_helper)
 endif ()

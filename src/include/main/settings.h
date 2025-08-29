@@ -253,5 +253,17 @@ struct EnableInternalCatalogSetting {
     }
 };
 
+struct AllowUnsignedExtensionSetting {
+    static constexpr auto name = "allow_unsigned_extension";
+    static constexpr auto inputType = common::LogicalTypeID::BOOL;
+    static void setContext(ClientContext* context, const common::Value& parameter) {
+        parameter.validateType(inputType);
+        context->getClientConfigUnsafe()->allowUnsignedExtension = parameter.getValue<bool>();
+    }
+    static common::Value getSetting(const ClientContext* context) {
+        return common::Value::createValue(context->getClientConfig()->allowUnsignedExtension);
+    }
+};
+
 } // namespace main
 } // namespace kuzu

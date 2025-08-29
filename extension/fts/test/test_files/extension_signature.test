@@ -1,0 +1,38 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE Basic
+-SKIP_STATIC_LINK
+-STATEMENT CALL ALLOW_UNSIGNED_EXTENSION = FALSE
+---- ok
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/with_signature.kuzu_extension'
+---- 1
+Extension: /Users/z473chen/Desktop/code/kuzu/extension/fts/test/extension_signature_tests/with_signature.kuzu_extension has been loaded.
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension'
+---- error
+Runtime exception: Failed to verify the extension signature.
+If you want to load unsigned extensions, please set allow_unsigned_extension=false.
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/libdelta.kuzu_extension'
+---- error
+Runtime exception: Failed to verify the extension signature.
+If you want to load unsigned extensions, please set allow_unsigned_extension=false.
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/empty.kuzu_extension'
+---- error
+Runtime exception: The file is too small to be a kuzu extension.
+-STATEMENT CALL CREATE_FTS_INDEX('Book', 'book_index', ['abstract', 'author', 'title'], stemmer := 'porter');
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'a quantum machine') RETURN node.title;
+---- 2
+The Quantum World
+Learning Machines
+
+-CASE AllowUnsignedExtension
+-STATEMENT CALL ALLOW_UNSIGNED_EXTENSION = TRUE
+---- ok
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension'
+---- 1
+Extension: /Users/z473chen/Desktop/code/kuzu/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension has been loaded.
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/libdelta.kuzu_extension'
+---- 1
+Extension: /Users/z473chen/Desktop/code/kuzu/extension/fts/test/extension_signature_tests/libdelta.kuzu_extension has been loaded.
