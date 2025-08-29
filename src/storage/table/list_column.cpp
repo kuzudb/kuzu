@@ -114,51 +114,6 @@ void ListColumn::scanSegment(const SegmentState& state, offset_t startOffsetInCh
     }
 }
 
-/* FIXME(bmwinger): why was there essentially two different implementations of the same function
-(signatures were originally slightly different)?
-
-void ListColumn::scanInternal(const SegmentState& state,
-    offset_t startOffsetInGroup, offset_t endOffsetInGroup, ValueVector* resultVector,
-    uint64_t offsetInVector) const {
-    nullColumn->scanInternal(*state.nullState, startOffsetInGroup, endOffsetInGroup,
-        resultVector, offsetInVector);
-    auto listOffsetInfoInStorage =
-        getListOffsetSizeInfo(state, startOffsetInGroup, endOffsetInGroup -
-startOffsetInGroup);
-    offset_t listOffsetInVector = offsetInVector == 0 ? 0 :
-                              resultVector->getValue<list_entry_t>(offsetInVector - 1).offset +
-                                  resultVector->getValue<list_entry_t>(offsetInVector - 1).size;
-    auto offsetToWriteListData = listOffsetInVector;
-    auto numValues = endOffsetInGroup - startOffsetInGroup;
-    numValues = std::min(numValues, listOffsetInfoInStorage.numTotal);
-    KU_ASSERT(endOffsetInGroup >= startOffsetInGroup);
-    for (auto i = 0u; i < numValues; i++) {
-        list_size_t size = listOffsetInfoInStorage.getListSize(i);
-        resultVector->setValue(i + offsetInVector, list_entry_t{listOffsetInVector, size});
-        listOffsetInVector += size;
-    }
-    ListVector::resizeDataVector(resultVector, listOffsetInVector);
-    auto dataVector = ListVector::getDataVector(resultVector);
-    bool isOffsetSortedAscending = listOffsetInfoInStorage.isOffsetSortedAscending(0, numValues);
-    if (isOffsetSortedAscending) {
-        auto startOffset = listOffsetInfoInStorage.getListStartOffset(0);
-        auto length = listOffsetInfoInStorage.getListStartOffset(numValues) - startOffset;
-        dataColumn->scanInternal(
-            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX], startOffset,
-            length, dataVector, offsetToWriteListData);
-    } else {
-        for (auto i = 0u; i < numValues; i++) {
-            offset_t startOffset = listOffsetInfoInStorage.getListStartOffset(i);
-            offset_t appendSize = listOffsetInfoInStorage.getListSize(i);
-            dataColumn->scanInternal(
-                state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX], startOffset,
-                appendSize, dataVector, offsetToWriteListData);
-            offsetToWriteListData += appendSize;
-        }
-    }
-}
-*/
-
 void ListColumn::scanSegment(const SegmentState& state, ColumnChunkData* resultChunk,
     common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan) const {
     auto startOffsetInResult = resultChunk->getNumValues();
