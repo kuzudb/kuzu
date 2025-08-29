@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/wal/checksum_writer.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {

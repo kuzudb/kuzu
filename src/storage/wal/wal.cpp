@@ -10,6 +10,7 @@
 #include "storage/file_db_id_utils.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/checksum_writer.h"
 #include "storage/wal/local_wal.h"
 
 using namespace kuzu::common;

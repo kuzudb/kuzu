@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/serializer/in_mem_file_writer.h"
 #include "common/vector/value_vector.h"
+#include "storage/wal/checksum_writer.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
