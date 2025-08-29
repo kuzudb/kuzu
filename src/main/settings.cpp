@@ -1,13 +1,12 @@
 #include "main/settings.h"
 
 #include "common/exception/runtime.h"
+#include "common/task_system/progress_bar.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
-#include "main/db_config.h"
-
-#include "common/task_system/progress_bar.h"
 namespace kuzu {
 namespace main {
 
@@ -48,7 +47,8 @@ common::Value ProgressBarSetting::getSetting(const ClientContext* context) {
     return common::Value(context->getClientConfig()->enableProgressBar);
 }
 
-void VarLengthExtendMaxDepthSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void VarLengthExtendMaxDepthSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getClientConfigUnsafe()->varLengthMaxDepth = parameter.getValue<int64_t>();
 }
@@ -57,7 +57,8 @@ common::Value VarLengthExtendMaxDepthSetting::getSetting(const ClientContext* co
     return common::Value(context->getClientConfig()->varLengthMaxDepth);
 }
 
-void SparseFrontierThresholdSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void SparseFrontierThresholdSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getClientConfigUnsafe()->sparseFrontierThreshold = parameter.getValue<int64_t>();
 }
@@ -111,7 +112,8 @@ common::Value FileSearchPathSetting::getSetting(const ClientContext* context) {
     return common::Value::createValue(context->getClientConfig()->fileSearchPath);
 }
 
-void RecursivePatternSemanticSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void RecursivePatternSemanticSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     const auto input = parameter.getValue<std::string>();
     context->getClientConfigUnsafe()->recursivePatternSemantic =
@@ -119,12 +121,13 @@ void RecursivePatternSemanticSetting::setContext(ClientContext* context, const c
 }
 
 common::Value RecursivePatternSemanticSetting::getSetting(const ClientContext* context) {
-    const auto result = common::PathSemanticUtils::toString(
-        context->getClientConfig()->recursivePatternSemantic);
+    const auto result =
+        common::PathSemanticUtils::toString(context->getClientConfig()->recursivePatternSemantic);
     return common::Value::createValue(result);
 }
 
-void RecursivePatternFactorSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void RecursivePatternFactorSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getClientConfigUnsafe()->recursivePatternCardinalityScaleFactor =
         parameter.getValue<std::int64_t>();
@@ -145,7 +148,8 @@ common::Value EnableMVCCSetting::getSetting(const ClientContext* context) {
     return common::Value(context->getDBConfig()->enableMultiWrites);
 }
 
-void CheckpointThresholdSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void CheckpointThresholdSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getDBConfigUnsafe()->checkpointThreshold = parameter.getValue<int64_t>();
 }
@@ -163,7 +167,8 @@ common::Value AutoCheckpointSetting::getSetting(const ClientContext* context) {
     return common::Value(context->getDBConfig()->autoCheckpoint);
 }
 
-void ForceCheckpointClosingDBSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void ForceCheckpointClosingDBSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getDBConfigUnsafe()->forceCheckpointOnClose = parameter.getValue<bool>();
 }
@@ -181,7 +186,8 @@ common::Value EnableOptimizerSetting::getSetting(const ClientContext* context) {
     return common::Value::createValue(context->getClientConfig()->enablePlanOptimizer);
 }
 
-void EnableInternalCatalogSetting::setContext(ClientContext* context, const common::Value& parameter) {
+void EnableInternalCatalogSetting::setContext(ClientContext* context,
+    const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getClientConfigUnsafe()->enableInternalCatalog = parameter.getValue<bool>();
 }
@@ -215,7 +221,6 @@ void SpillToDiskSetting::setContext(ClientContext* context, const common::Value&
 common::Value SpillToDiskSetting::getSetting(const ClientContext* context) {
     return common::Value::createValue(context->getDBConfig()->enableSpillingToDisk);
 }
-
 
 } // namespace main
 } // namespace kuzu

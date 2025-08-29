@@ -7,9 +7,9 @@
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
-#include "main/settings.h"
-#include "main/db_config.h"
 #include "main/client_context.h"
+#include "main/db_config.h"
+#include "main/settings.h"
 
 using namespace kuzu::common;
 
