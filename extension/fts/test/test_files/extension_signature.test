@@ -28,6 +28,7 @@ The Quantum World
 Learning Machines
 
 -CASE AllowUnsignedExtension
+-SKIP_STATIC_LINK
 -STATEMENT CALL ALLOW_UNSIGNED_EXTENSION = TRUE
 ---- ok
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension'
