@@ -17,6 +17,16 @@ class Database {
    * @param {Number} maxDBSize maximum size of the database file in bytes. Note that
    * this is introduced temporarily for now to get around with the default 8TB mmap
    * address space limit some environment.
+   * @param {Boolean} autoCheckpoint If true, the database will automatically checkpoint when the size of
+   * the WAL file exceeds the checkpoint threshold.
+   * @param {Number} checkpointThreshold The threshold of the WAL file size in bytes. When the size of the
+   * WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
+   * @param {Boolean} forceCheckpointOnClose If true, the database will force checkpoint when closing.
+   * @param {Boolean} throwOnWalReplayFailure If true, any WAL replaying failure when loading the database
+   * will throw an error. Otherwise, Kuzu will silently ignore the failure and replay up to where
+   * the error occured.
+   * @param {Boolean} enableChecksums If true, the database will use checksums to detect corruption in the
+   * WAL file.
    */
   constructor(
     databasePath,
@@ -25,7 +35,9 @@ class Database {
     readOnly = false,
     maxDBSize = 0,
     autoCheckpoint = true,
-    checkpointThreshold = -1
+    checkpointThreshold = -1,
+    throwOnWalReplayFailure = true,
+    enableChecksums = true,
   ) {
     if (!databasePath) {
       databasePath = ":memory:";
@@ -52,7 +64,9 @@ class Database {
       readOnly,
       maxDBSize,
       autoCheckpoint,
-      checkpointThreshold
+      checkpointThreshold,
+      throwOnWalReplayFailure,
+      enableChecksums
     );
     this._isInitialized = false;
     this._initPromise = null;
