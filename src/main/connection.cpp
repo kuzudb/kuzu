@@ -55,7 +55,8 @@ std::unique_ptr<QueryResult> Connection::query(std::string_view queryStatement) 
 
 std::unique_ptr<QueryResult> Connection::queryAsArrow(std::string_view query, int64_t chunkSize) {
     dbLifeCycleManager->checkDatabaseClosedOrThrow();
-    auto queryResult = clientContext->query(query, std::nullopt, {true, chunkSize});
+    auto queryResult = clientContext->query(query, std::nullopt,
+        {QueryResultType::ARROW, ArrowResultConfig{chunkSize}});
     queryResult->setDBLifeCycleManager(dbLifeCycleManager);
     return queryResult;
 }

@@ -21,12 +21,18 @@ PlanMapper::PlanMapper(ExecutionContext* executionContext)
     mapperExtensions = clientContext->getDatabase()->getMapperExtensions();
 }
 
-std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const LogicalPlan* logicalPlan,
-    const expression_vector& expressionsToCollect) {
+std::unique_ptr<PhysicalPlan> PlanMapper::getPhysicalPlan(const LogicalPlan* logicalPlan,
+    const expression_vector& expressions, main::QueryResultType resultType,
+    ArrowResultConfig arrowConfig) {
     auto root = mapOperator(logicalPlan->getLastOperator().get());
     if (!root->isSink()) {
-        root = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
-            logicalPlan->getSchema(), std::move(root));
+        if (resultType == main::QueryResultType::ARROW) {
+            root = createArrowResultCollector(arrowConfig, expressions, logicalPlan->getSchema(),
+                std::move(root));
+        } else {
+            root = createResultCollector(AccumulateType::REGULAR, expressions,
+                logicalPlan->getSchema(), std::move(root));
+        }
     }
     auto physicalPlan = std::make_unique<PhysicalPlan>(std::move(root));
     if (logicalPlan->isProfile()) {

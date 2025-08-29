@@ -14,6 +14,11 @@ QueryResult::QueryResult()
     : type{QueryResultType::FTABLE}, nextQueryResult{nullptr}, queryResultIterator{this},
       dbLifeCycleManager{nullptr} {}
 
+QueryResult::QueryResult(QueryResultType type)
+    : type{type}, nextQueryResult{nullptr}, queryResultIterator{this}, dbLifeCycleManager{nullptr} {
+
+}
+
 QueryResult::QueryResult(QueryResultType type, std::vector<std::string> columnNames,
     std::vector<LogicalType> columnTypes)
     : type{type}, columnNames{std::move(columnNames)}, columnTypes{std::move(columnTypes)},
@@ -82,6 +87,15 @@ void QueryResult::validateQuerySucceed() const {
     if (!success) {
         throw Exception(errMsg);
     }
+}
+
+void QueryResult::setColumnNames(std::vector<std::string> columnNames) {
+    this->columnNames = std::move(columnNames);
+}
+
+void QueryResult::setColumnTypes(std::vector<LogicalType> columnTypes) {
+    this->columnTypes = std::move(columnTypes);
+    tuple = std::make_shared<FlatTuple>(this->columnTypes);
 }
 
 void QueryResult::addNextResult(std::unique_ptr<QueryResult> next_) {
