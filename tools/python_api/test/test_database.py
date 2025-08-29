@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 
 import kuzu
 import pytest
-
 from conftest import get_db_file_path
 
 if TYPE_CHECKING:
@@ -141,6 +141,39 @@ def test_database_checkpoint_threshold_config(tmp_path: Path) -> None:
         with conn.execute("CALL current_setting('checkpoint_threshold') RETURN *") as result:
             assert result.get_num_tuples() == 1
             assert result.get_next()[0] == "1234"
+
+
+def test_database_throw_on_wal_replay_failure_config(tmp_path: Path) -> None:
+    database_path = get_db_file_path(tmp_path)
+    wal_file_path = str(database_path) + ".wal"
+    with Path.open(wal_file_path, "w") as wal_file:
+        wal_file.write("a" * 28)
+    with kuzu.Database(database_path=database_path, throw_on_wal_replay_failure=False) as db:
+        assert not db.is_closed
+        assert db._database is not None
+
+        conn = kuzu.Connection(db)
+        with conn.execute("RETURN 1") as result:
+            assert result.get_num_tuples() == 1
+            assert result.get_next()[0] == 1
+
+
+def test_database_enable_checksums_config(tmp_path: Path) -> None:
+    database_path = get_db_file_path(tmp_path)
+    # first construct database file with enable_checksums=True
+    with kuzu.Database(database_path=database_path) as db:
+        assert not db.is_closed
+        assert db._database is not None
+        conn = kuzu.Connection(db)
+
+        # do some updates to leave a WAL
+        conn.execute("call auto_checkpoint=false")
+        conn.execute("call force_checkpoint_on_close=false")
+        conn.execute("create node table test(id int64 primary key)")
+
+    # running again with enable_checksums=False should give an error
+    with pytest.raises(RuntimeError) as check:
+        db = kuzu.Database(database_path=database_path, enable_checksums=False)
 
 
 def test_database_close_order() -> None:

@@ -37,6 +37,8 @@ class Database:
         max_db_size: int = (1 << 43),
         auto_checkpoint: bool = True,
         checkpoint_threshold: int = -1,
+        throw_on_wal_replay_failure: bool = True,
+        enable_checksums: bool = True,
     ):
         """
         Parameters
@@ -83,6 +85,15 @@ class Database:
             The threshold of the WAL file size in bytes. When the size of the
             WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
 
+        throw_on_wal_replay_failure: bool
+            If true, any WAL replaying failure when loading the database will throw an error.
+            Otherwise, Kuzu will silently ignore the failure and replay up to where the error
+            occured.
+
+        enable_checksums: bool
+            If true, the database will use checksums to detect corruption in the
+            WAL file.
+
         """
         if database_path is None:
             database_path = ":memory:"
@@ -97,6 +108,8 @@ class Database:
         self.max_db_size = max_db_size
         self.auto_checkpoint = auto_checkpoint
         self.checkpoint_threshold = checkpoint_threshold
+        self.throw_on_wal_replay_failure = throw_on_wal_replay_failure
+        self.enable_checksums = enable_checksums
         self.is_closed = False
 
         self._database: Any = None  # (type: _kuzu.Database from pybind11)
@@ -161,6 +174,8 @@ class Database:
                 self.max_db_size,
                 self.auto_checkpoint,
                 self.checkpoint_threshold,
+                self.throw_on_wal_replay_failure,
+                self.enable_checksums,
             )
 
     def get_torch_geometric_remote_backend(
