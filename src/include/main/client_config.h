@@ -23,6 +23,11 @@ struct ClientConfigDefault {
     static constexpr uint64_t WARNING_LIMIT = 8 * 1024;
     static constexpr bool ENABLE_PLAN_OPTIMIZER = true;
     static constexpr bool ENABLE_INTERNAL_CATALOG = false;
+#ifdef __ALLOW_UNSIGNED_EXTENSION__
+    static constexpr bool ALLOW_UNSIGNED_EXTENSION = true;
+#else
+    static constexpr bool ALLOW_UNSIGNED_EXTENSION = false;
+#endif
 };
 
 struct ClientConfig {
@@ -57,6 +62,8 @@ struct ClientConfig {
     bool enablePlanOptimizer = ClientConfigDefault::ENABLE_PLAN_OPTIMIZER;
     // If use internal catalog during binding
     bool enableInternalCatalog = ClientConfigDefault::ENABLE_INTERNAL_CATALOG;
+    // If allow unsigned extension
+    bool allowUnsignedExtension = ClientConfigDefault::ALLOW_UNSIGNED_EXTENSION;
 };
 
 } // namespace main

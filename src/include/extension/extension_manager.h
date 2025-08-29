@@ -14,6 +14,22 @@ struct ExtensionEntry {
 
 class ExtensionManager {
 public:
+    static constexpr uint64_t EXTENSION_SIGNATURE_LEN = 256;
+
+    static constexpr uint64_t SHA256_LEN = 32;
+
+    static constexpr char PUBLIC_KEY[] =
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhXoRMc6xWz1rFRd8vhbp\n"
+        "0dFxfnqdY91Nhn1jbf7k/DhASFXuh2BIF5FgwtkXd2L1JbJHYS0PHTgKvolv+OMH\n"
+        "yE217wMNGoeqbegwlMp5PIrUvmLCS+EIQ79zKMGg2tmQvZqj4rDNcYl9l26JShMM\n"
+        "qOfGDTjXjUhfeWVADwq2+XE3QY/iwW/hUn2uiU/t+MjmNXRiqMR68BjQbTtbvz1R\n"
+        "NWaWgdpq3q9jxeHCKIYGde8mqvGS5admQpL7my9NGnDRcz99E+12bB/PKPzeDi1l\n"
+        "I2FnyXhNE1QoMk9jeoPVY84AqGBX8r8qhdeCGEogP/s6bwFCQcD/ce9lYoydxJIl\n"
+        "lwIDAQAB\n"
+        "-----END PUBLIC KEY-----";
+
+public:
     void loadExtension(const std::string& path, main::ClientContext* context);
 
     KUZU_API std::string toCypher();

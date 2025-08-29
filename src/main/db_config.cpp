@@ -22,7 +22,8 @@ static ConfigurationOption options[] = { // NOLINT(cert-err58-cpp):
     GET_CONFIGURATION(RecursivePatternFactorSetting), GET_CONFIGURATION(EnableMVCCSetting),
     GET_CONFIGURATION(CheckpointThresholdSetting), GET_CONFIGURATION(AutoCheckpointSetting),
     GET_CONFIGURATION(ForceCheckpointClosingDBSetting), GET_CONFIGURATION(SpillToDiskSetting),
-    GET_CONFIGURATION(EnableOptimizerSetting), GET_CONFIGURATION(EnableInternalCatalogSetting)};
+    GET_CONFIGURATION(EnableOptimizerSetting), GET_CONFIGURATION(EnableInternalCatalogSetting),
+    GET_CONFIGURATION(AllowUnsignedExtensionSetting)};
 
 DBConfig::DBConfig(const SystemConfig& systemConfig)
     : bufferPoolSize{systemConfig.bufferPoolSize}, maxNumThreads{systemConfig.maxNumThreads},
