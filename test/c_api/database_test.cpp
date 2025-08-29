@@ -171,16 +171,3 @@ TEST_F(CApiDatabaseTest, UseConnectionAfterDatabaseDestroy) {
 
     kuzu_connection_destroy(&conn);
 }
-
-TEST_F(CApiDatabaseTest, dasdasdsa) {
-    createDBAndConn();
-    printf("%s",
-        conn->query(
-                "load extension '/Users/z473chen/PycharmProjects/pythonProject16/myext_signed.so';")
-            ->toString()
-            .c_str());
-    printf("%s", conn->query("load extension "
-                             "'/Users/z473chen/PycharmProjects/pythonProject16/myext_signed1.so';")
-                     ->toString()
-                     .c_str());
-}
