@@ -8,7 +8,7 @@
 ---- ok
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/with_signature.kuzu_extension'
 ---- 1
-Extension: /Users/z473chen/Desktop/code/kuzu/extension/fts/test/extension_signature_tests/with_signature.kuzu_extension has been loaded.
+Extension: ${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/with_signature.kuzu_extension has been loaded.
 -STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension'
 ---- error
 Runtime exception: Failed to verify the extension signature.
@@ -31,9 +31,6 @@ Learning Machines
 -SKIP_STATIC_LINK
 -STATEMENT CALL ALLOW_UNSIGNED_EXTENSION = TRUE
 ---- ok
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension'
----- 1
-Extension: /Users/z473chen/Desktop/code/kuzu/extension/fts/test/extension_signature_tests/wrong_signature.kuzu_extension has been loaded.
--STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/test/extension_signature_tests/libdelta.kuzu_extension'
----- 1
-Extension: /Users/z473chen/Desktop/code/kuzu/extension/fts/test/extension_signature_tests/libdelta.kuzu_extension has been loaded.
+-STATEMENT LOAD EXTENSION '${KUZU_ROOT_DIRECTORY}/extension/fts/build/libfts.kuzu_extension'
+---- ok
+
