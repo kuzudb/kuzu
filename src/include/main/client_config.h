@@ -23,7 +23,11 @@ struct ClientConfigDefault {
     static constexpr uint64_t WARNING_LIMIT = 8 * 1024;
     static constexpr bool ENABLE_PLAN_OPTIMIZER = true;
     static constexpr bool ENABLE_INTERNAL_CATALOG = false;
-    static constexpr bool ALLOW_UNSIGNED_EXTENSION = ALLOW_UNSIGNED_EXTENSION_DEFAULT_VAL;
+#ifdef __ALLOW_UNSIGNED_EXTENSION__
+    static constexpr bool ALLOW_UNSIGNED_EXTENSION = true;
+#else
+    static constexpr bool ALLOW_UNSIGNED_EXTENSION = false;
+#endif
 };
 
 struct ClientConfig {

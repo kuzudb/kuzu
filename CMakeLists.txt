@@ -332,9 +332,9 @@ if (USE_STD_FORMAT)
 endif()
 
 if (BUILD_EXTENSION_TESTS)
-    add_compile_definitions(ALLOW_UNSIGNED_EXTENSION_DEFAULT_VAL=true)
+    add_compile_definitions(__ALLOW_UNSIGNED_EXTENSION__)
 else()
-    add_compile_definitions(ALLOW_UNSIGNED_EXTENSION_DEFAULT_VAL=false)
+    add_compile_definitions(__ALLOW_UNSIGNED_EXTENSION__)
 endif()
 
 function(add_kuzu_test TEST_NAME)
