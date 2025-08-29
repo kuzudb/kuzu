@@ -1,5 +1,7 @@
 #include "processor/processor_task.h"
 
+#include "common/task_system/progress_bar.h"
+#include "main/client_context.h"
 #include "main/settings.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"

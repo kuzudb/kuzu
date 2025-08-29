@@ -185,7 +185,7 @@
 1000
 
 -LOG SCC
--STATEMENT CALL strongly_connected_components('G') with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
+-STATEMENT CALL strongly_connected_components('G', MAXITerations := 100) with group_id, COUNT(*) AS c RETURN c ORDER BY c DESC LIMIT 10;
 ---- 10
 219
 3
