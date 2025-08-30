@@ -53,14 +53,11 @@ public:
         bool fallbackExtensionTypes);
 
     void append(const processor::FlatTuple& tuple);
-    std::int64_t size() const {
-        return numTuples;
-    }
+    std::int64_t size() const { return numTuples; }
     ArrowArray toArray(const std::vector<LogicalType>& types);
 
 private:
-    static void appendValue(ArrowVector* vector, const Value& value,
-        bool fallbackExtensionTypes);
+    static void appendValue(ArrowVector* vector, const Value& value, bool fallbackExtensionTypes);
 
     static ArrowArray* convertVectorToArray(ArrowVector& vector, const LogicalType& type,
         bool fallbackExtensionTypes);
@@ -69,13 +66,13 @@ private:
     static ArrowArray* convertInternalIDVectorToArray(ArrowVector& vector, const LogicalType& type,
         bool fallbackExtensionTypes);
 
-    static void copyNonNullValue(ArrowVector* vector, const Value& value,
-        std::int64_t pos, bool fallbackExtensionTypes);
+    static void copyNonNullValue(ArrowVector* vector, const Value& value, std::int64_t pos,
+        bool fallbackExtensionTypes);
     static void copyNullValue(ArrowVector* vector, const Value& value, std::int64_t pos);
 
     template<LogicalTypeID DT>
-    static void templateCopyNonNullValue(ArrowVector* vector,
-        const Value& value, std::int64_t pos, bool fallbackExtensionTypes);
+    static void templateCopyNonNullValue(ArrowVector* vector, const Value& value, std::int64_t pos,
+        bool fallbackExtensionTypes);
     template<LogicalTypeID DT>
     static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
     static void copyNullValueUnion(ArrowVector* vector, const Value& value, std::int64_t pos);

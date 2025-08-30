@@ -22,12 +22,13 @@ PlanMapper::PlanMapper(ExecutionContext* executionContext)
 }
 
 std::unique_ptr<PhysicalPlan> PlanMapper::getPhysicalPlan(const LogicalPlan* logicalPlan,
-    const expression_vector& expressions, main::QueryResultType resultType, ArrowResultConfig arrowConfig) {
+    const expression_vector& expressions, main::QueryResultType resultType,
+    ArrowResultConfig arrowConfig) {
     auto root = mapOperator(logicalPlan->getLastOperator().get());
     if (!root->isSink()) {
         if (resultType == main::QueryResultType::ARROW) {
-            root = createArrowResultCollector(arrowConfig, expressions,
-                logicalPlan->getSchema(), std::move(root));
+            root = createArrowResultCollector(arrowConfig, expressions, logicalPlan->getSchema(),
+                std::move(root));
         } else {
             root = createResultCollector(AccumulateType::REGULAR, expressions,
                 logicalPlan->getSchema(), std::move(root));

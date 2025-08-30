@@ -37,9 +37,9 @@ public:
     }
 
     virtual std::unique_ptr<main::QueryResult> getQueryResult() const {
-        throw common::InternalException(common::stringFormat(
-            "{} operator does not implement getQueryResult.",
-            PhysicalOperatorUtils::operatorTypeToString(operatorType)));
+        throw common::InternalException(
+            common::stringFormat("{} operator does not implement getQueryResult.",
+                PhysicalOperatorUtils::operatorTypeToString(operatorType)));
     }
 
     virtual std::shared_ptr<FactorizedTable> getResultFTable() const {

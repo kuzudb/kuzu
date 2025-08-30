@@ -292,8 +292,7 @@ py::object PyQueryResult::getAsDF() {
 void PyQueryResult::getNextArrowChunk(const std::vector<LogicalType>& types,
     const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize,
     bool fallbackExtensionTypes) {
-    auto rowBatch =
-        std::make_unique<ArrowRowBatch>(types, chunkSize, fallbackExtensionTypes);
+    auto rowBatch = std::make_unique<ArrowRowBatch>(types, chunkSize, fallbackExtensionTypes);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!queryResult->hasNext()) {
