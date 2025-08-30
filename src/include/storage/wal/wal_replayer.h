@@ -12,7 +12,7 @@ class WALReplayer {
 public:
     explicit WALReplayer(main::ClientContext& clientContext);
 
-    void replay(bool throwOnWalReplayFailure) const;
+    void replay(bool throwOnWalReplayFailure, bool enableChecksums) const;
 
 private:
     struct WALReplayInfo {
@@ -40,7 +40,8 @@ private:
 
     // This function is used to deserialize the WAL records without actually applying them to the
     // storage.
-    WALReplayInfo dryReplay(common::FileInfo& fileInfo, bool throwOnWalReplayFailure) const;
+    WALReplayInfo dryReplay(common::FileInfo& fileInfo, bool throwOnWalReplayFailure,
+        bool enableChecksums) const;
 
     void removeWALAndShadowFiles() const;
     void removeFileIfExists(const std::string& path) const;

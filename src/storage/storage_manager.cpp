@@ -23,11 +23,11 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-StorageManager::StorageManager(const std::string& databasePath, bool readOnly,
+StorageManager::StorageManager(const std::string& databasePath, bool readOnly, bool enableChecksums,
     MemoryManager& memoryManager, bool enableCompression, VirtualFileSystem* vfs)
     : databasePath{databasePath}, readOnly{readOnly}, dataFH{nullptr}, memoryManager{memoryManager},
       enableCompression{enableCompression} {
-    wal = std::make_unique<WAL>(databasePath, readOnly, vfs);
+    wal = std::make_unique<WAL>(databasePath, readOnly, enableChecksums, vfs);
     shadowFile =
         std::make_unique<ShadowFile>(*memoryManager.getBufferManager(), vfs, this->databasePath);
     inMemory = main::DBConfig::isDBPathInMemory(databasePath);
@@ -69,9 +69,10 @@ Table* StorageManager::getTable(table_id_t tableID) {
     return tables.at(tableID).get();
 }
 
-void StorageManager::recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure) {
+void StorageManager::recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure,
+    bool enableChecksums) {
     const auto walReplayer = std::make_unique<WALReplayer>(clientContext);
-    walReplayer->replay(throwOnWalReplayFailure);
+    walReplayer->replay(throwOnWalReplayFailure, enableChecksums);
 }
 
 void StorageManager::createNodeTable(NodeTableCatalogEntry* entry) {

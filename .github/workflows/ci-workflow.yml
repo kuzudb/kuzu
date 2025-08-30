@@ -195,6 +195,12 @@ jobs:
         run: |
           make test
 
+      - name: Test with checksums disabled
+        env:
+          ENABLE_CHECKSUMS: false
+        run: |
+          make test
+
       - name: Ensure Python dependencies
         run: pip install --user -r tools/python_api/requirements_dev.txt
 

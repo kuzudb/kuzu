@@ -38,14 +38,49 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{cli
     shadowFilePath = StorageUtils::getShadowFilePath(clientContext.getDatabasePath());
 }
 
-static ku_uuid_t readDatabaseID(Deserializer& deserializer) {
-    ku_uuid_t walDatabaseID{};
-    deserializer.deserializeValue(walDatabaseID);
-    deserializer.getReader()->cast<ChecksumReader>()->finishEntry(checksumMismatchMessage);
-    return walDatabaseID;
+static WALHeader readWALHeader(Deserializer& deserializer) {
+    WALHeader header{};
+    deserializer.deserializeValue(header.databaseID);
+
+    // It is possible to read a value other than 0/1 when deserializing the flag
+    // This causes some weird behaviours with some toolchains so we manually do the conversion here
+    uint8_t enableChecksumsBytes = 0;
+    deserializer.deserializeValue(enableChecksumsBytes);
+    header.enableChecksums = enableChecksumsBytes != 0;
+
+    return header;
 }
 
-void WALReplayer::replay(bool throwOnWalReplayFailure) const {
+static Deserializer initDeserializer(FileInfo& fileInfo, main::ClientContext& clientContext,
+    bool enableChecksums) {
+    if (enableChecksums) {
+        return Deserializer{std::make_unique<ChecksumReader>(fileInfo,
+            *MemoryManager::Get(clientContext), checksumMismatchMessage)};
+    } else {
+        return Deserializer{std::make_unique<BufferedFileReader>(fileInfo)};
+    }
+}
+
+static void checkWALHeader(const WALHeader& header, bool enableChecksums) {
+    if (enableChecksums != header.enableChecksums) {
+        throw RuntimeException(stringFormat(
+            "The database you are trying to open was serialized with enableChecksums={} but you "
+            "are trying to open it with enableChecksums={}. Please open your database using the "
+            "correct enableChecksums config. If you wish to change this for your database, please "
+            "use the export/import functionality.",
+            TypeUtils::toString(header.enableChecksums), TypeUtils::toString(enableChecksums)));
+    }
+}
+
+static uint64_t getReadOffset(Deserializer& deSer, bool enableChecksums) {
+    if (enableChecksums) {
+        return deSer.getReader()->cast<ChecksumReader>()->getReadOffset();
+    } else {
+        return deSer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+    }
+}
+
+void WALReplayer::replay(bool throwOnWalReplayFailure, bool enableChecksums) const {
     auto vfs = VirtualFileSystem::GetUnsafe(clientContext);
     Checkpointer checkpointer(clientContext);
     // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
@@ -73,7 +108,7 @@ void WALReplayer::replay(bool throwOnWalReplayFailure) const {
         // First, we dry run the replay to find out the offset of the last record that was
         // CHECKPOINT or COMMIT.
         auto [offsetDeserialized, isLastRecordCheckpoint] =
-            dryReplay(*fileInfo, throwOnWalReplayFailure);
+            dryReplay(*fileInfo, throwOnWalReplayFailure, enableChecksums);
         if (isLastRecordCheckpoint) {
             // If the last record is a checkpoint, we resume by replaying the shadow file.
             ShadowFile::replayShadowPageRecords(clientContext);
@@ -86,22 +121,21 @@ void WALReplayer::replay(bool throwOnWalReplayFailure) const {
             // Read the checkpointed data from the disk.
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
-            Deserializer deserializer(
-                std::make_unique<ChecksumReader>(*fileInfo, *MemoryManager::Get(clientContext)));
+            Deserializer deserializer = initDeserializer(*fileInfo, clientContext, enableChecksums);
 
             if (offsetDeserialized > 0) {
                 // Make sure the WAL file is for the current database
-                const auto walDatabaseID = readDatabaseID(deserializer);
+                deserializer.getReader()->onObjectBegin();
+                const auto walHeader = readWALHeader(deserializer);
                 FileDBIDUtils::verifyDatabaseID(*fileInfo,
                     StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
-                    walDatabaseID);
+                    walHeader.databaseID);
+                deserializer.getReader()->onObjectEnd();
             }
 
-            while (deserializer.getReader()->cast<ChecksumReader>()->getReadOffset() <
-                   offsetDeserialized) {
+            while (getReadOffset(deserializer, enableChecksums) < offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
-                auto walRecord =
-                    WALRecord::deserialize(deserializer, clientContext, checksumMismatchMessage);
+                auto walRecord = WALRecord::deserialize(deserializer, clientContext);
                 replayWALRecord(*walRecord);
             }
             // After replaying all the records, we should truncate the WAL file to the last
@@ -120,21 +154,22 @@ void WALReplayer::replay(bool throwOnWalReplayFailure) const {
     }
 }
 
-WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo,
-    bool throwOnWalReplayFailure) const {
+WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo, bool throwOnWalReplayFailure,
+    bool enableChecksums) const {
     uint64_t offsetDeserialized = 0;
     bool isLastRecordCheckpoint = false;
     try {
-        Deserializer deserializer(
-            std::make_unique<ChecksumReader>(fileInfo, *MemoryManager::Get(clientContext)));
+        Deserializer deserializer = initDeserializer(fileInfo, clientContext, enableChecksums);
 
         // Skip the databaseID here, we'll verify it when we actually replay
-        readDatabaseID(deserializer);
+        deserializer.getReader()->onObjectBegin();
+        const auto walHeader = readWALHeader(deserializer);
+        checkWALHeader(walHeader, enableChecksums);
+        deserializer.getReader()->onObjectEnd();
 
         bool finishedDeserializing = deserializer.finished();
         while (!finishedDeserializing) {
-            auto walRecord =
-                WALRecord::deserialize(deserializer, clientContext, checksumMismatchMessage);
+            auto walRecord = WALRecord::deserialize(deserializer, clientContext);
             finishedDeserializing = deserializer.finished();
             switch (walRecord->type) {
             case WALRecordType::CHECKPOINT_RECORD: {
@@ -142,13 +177,11 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo,
                 // If we reach a checkpoint record, we can stop replaying.
                 isLastRecordCheckpoint = true;
                 finishedDeserializing = true;
-                offsetDeserialized =
-                    deserializer.getReader()->cast<ChecksumReader>()->getReadOffset();
+                offsetDeserialized = getReadOffset(deserializer, enableChecksums);
             } break;
             case WALRecordType::COMMIT_RECORD: {
                 // Update the offset to the end of the last commit record.
-                offsetDeserialized =
-                    deserializer.getReader()->cast<ChecksumReader>()->getReadOffset();
+                offsetDeserialized = getReadOffset(deserializer, enableChecksums);
             } break;
             default: {
                 // DO NOTHING.

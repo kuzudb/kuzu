@@ -93,6 +93,7 @@ std::unique_ptr<SystemConfig> TestHelper::getSystemConfigFromEnv() {
     auto enableCompressionEnv = getSystemEnv("ENABLE_COMPRESSION");
     auto checkpointThresholdEnv = getSystemEnv("CHECKPOINT_THRESHOLD");
     auto forceCheckpointOnCloseEnv = getSystemEnv("FORCE_CHECKPOINT_ON_CLOSE");
+    auto enableChecksumEnv = getSystemEnv("ENABLE_CHECKSUMS");
     auto maxDBSizeEnv = getSystemEnv("MAX_DB_SIZE");
     systemConfig->bufferPoolSize = bufferPoolSizeEnv.empty() ?
                                        DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING :
@@ -109,6 +110,9 @@ std::unique_ptr<SystemConfig> TestHelper::getSystemConfigFromEnv() {
         forceCheckpointOnCloseEnv.empty() ?
             systemConfig->forceCheckpointOnClose :
             StringUtils::caseInsensitiveEquals(forceCheckpointOnCloseEnv, "true");
+    systemConfig->enableChecksums =
+        enableChecksumEnv.empty() ? systemConfig->enableChecksums :
+                                    StringUtils::caseInsensitiveEquals(enableChecksumEnv, "true");
     systemConfig->maxDBSize =
         maxDBSizeEnv.empty() ? systemConfig->maxDBSize : std::stoull(maxDBSizeEnv);
     return systemConfig;
