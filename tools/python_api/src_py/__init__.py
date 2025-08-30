@@ -61,6 +61,8 @@ def __getattr__(name: str) -> str | int:
         return Database.get_version()
     elif name == "storage_version":
         return Database.get_storage_version()
+    elif name == "storage_version_info":
+        return Database.get_storage_version_info()
     else:
         msg = f"module {__name__!r} has no attribute {name!r}"
         raise AttributeError(msg)
