@@ -11,6 +11,13 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace main {
 
+ArrowQueryResult::ArrowQueryResult(std::vector<ArrowArray> arrays, int64_t chunkSize)
+    : QueryResult{type_}, arrays{std::move(arrays)}, chunkSize_{chunkSize} {
+    for (auto& array : this->arrays) {
+        numTuples += array.length;
+    }
+}
+
 ArrowQueryResult::ArrowQueryResult(std::vector<std::string> columnNames,
     std::vector<LogicalType> columnTypes, FactorizedTable& table, int64_t chunkSize)
     : QueryResult{type_, std::move(columnNames), std::move(columnTypes)}, chunkSize_{chunkSize} {
@@ -25,18 +32,18 @@ uint64_t ArrowQueryResult::getNumTuples() const {
 }
 
 ArrowArray ArrowQueryResult::getArray(FactorizedTableIterator& iterator, int64_t chunkSize) {
-    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(columnTypes), chunkSize,
-        false /* fallbackExtensionTypes */);
+    auto rowBatch = ArrowRowBatch(columnTypes, chunkSize, false /* fallbackExtensionTypes */);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!iterator.hasNext()) {
             break;
         }
         (void)iterator.getNext(*tuple);
-        rowBatch->append(*tuple);
+        rowBatch.append(*tuple);
+        rowBatchSize++;
         numTuples++;
     }
-    return rowBatch->toArray();
+    return rowBatch.toArray(columnTypes);
 }
 
 bool ArrowQueryResult::hasNext() const {

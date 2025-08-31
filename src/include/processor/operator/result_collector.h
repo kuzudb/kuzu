@@ -81,6 +81,8 @@ public:
         return sharedState->getTable();
     }
 
+    std::unique_ptr<main::QueryResult> getQueryResult() const override;
+
     std::unique_ptr<PhysicalOperator> copy() override {
         return std::make_unique<ResultCollector>(info.copy(), sharedState, children[0]->copy(), id,
             printInfo->copy());

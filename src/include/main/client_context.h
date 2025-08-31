@@ -5,6 +5,7 @@
 #include <mutex>
 #include <optional>
 
+#include "common/arrow/arrow_result_config.h"
 #include "common/timer.h"
 #include "common/types/value/value.h"
 #include "function/table/scan_replacement.h"
@@ -154,14 +155,17 @@ public:
 
     void cleanUp();
 
-    struct ArrowInfo {
-        bool asArrow = false;
-        int64_t chunkSize = 1000;
+    struct QueryConfig {
+        QueryResultType resultType;
+        common::ArrowResultConfig arrowConfig;
 
-        ArrowInfo(bool asArrow, int64_t chunkSize) : asArrow(asArrow), chunkSize(chunkSize) {}
+        QueryConfig() : resultType{QueryResultType::FTABLE}, arrowConfig{} {}
+        QueryConfig(QueryResultType resultType, common::ArrowResultConfig arrowConfig)
+            : resultType{resultType}, arrowConfig{arrowConfig} {}
     };
+
     std::unique_ptr<QueryResult> query(std::string_view queryStatement,
-        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
+        std::optional<uint64_t> queryID = std::nullopt, QueryConfig config = {});
     std::unique_ptr<PreparedStatement> prepareWithParams(std::string_view query,
         std::unordered_map<std::string, std::unique_ptr<common::Value>> inputParams = {});
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
@@ -216,9 +220,9 @@ private:
 
     std::unique_ptr<QueryResult> executeNoLock(PreparedStatement* preparedStatement,
         CachedPreparedStatement* cachedPreparedStatement,
-        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
+        std::optional<uint64_t> queryID = std::nullopt, QueryConfig config = {});
     std::unique_ptr<QueryResult> queryNoLock(std::string_view query,
-        std::optional<uint64_t> queryID = std::nullopt, ArrowInfo arrowInfo = {false, 1000});
+        std::optional<uint64_t> queryID = std::nullopt, QueryConfig config = {});
 
     bool canExecuteWriteQuery() const;
 

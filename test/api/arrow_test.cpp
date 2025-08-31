@@ -19,6 +19,19 @@ TEST_F(ArrowTest, resultToArrow) {
     arrowArray->release(arrowArray.get());
 }
 
+TEST_F(ArrowTest, queryAsArrow) {
+    auto query = "MATCH (a:person) WHERE a.fName = 'Bob' RETURN a.fName";
+    auto result = conn->queryAsArrow(query, 1);
+    auto arrowArray = result->getNextArrowChunk(1);
+    ASSERT_EQ(arrowArray->length, 1);
+    ASSERT_EQ(arrowArray->null_count, 0);
+    ASSERT_EQ(arrowArray->n_children, 1);
+    // FIXME: Not sure where the length of the string is stored
+    ASSERT_EQ(std::string((const char*)arrowArray->children[0]->buffers[2], 3), "Bob");
+    ASSERT_FALSE(result->hasNextArrowChunk());
+    arrowArray->release(arrowArray.get());
+}
+
 TEST_F(ArrowTest, getArrowResult) {
     auto query = "MATCH (a:person) WHERE a.fName = 'Bob' RETURN a.fName";
     auto result = conn->queryAsArrow(query, 1);

@@ -13,6 +13,11 @@ namespace main {
 
 MaterializedQueryResult::MaterializedQueryResult() = default;
 
+MaterializedQueryResult::MaterializedQueryResult(std::shared_ptr<FactorizedTable> table)
+    : QueryResult{type_}, table{std::move(table)} {
+    iterator = std::make_unique<FactorizedTableIterator>(*this->table);
+}
+
 MaterializedQueryResult::MaterializedQueryResult(std::vector<std::string> columnNames,
     std::vector<LogicalType> columnTypes, std::shared_ptr<FactorizedTable> table)
     : QueryResult{type_, std::move(columnNames), std::move(columnTypes)}, table{std::move(table)} {
@@ -87,8 +92,8 @@ bool MaterializedQueryResult::hasNextArrowChunk() {
 
 std::unique_ptr<ArrowArray> MaterializedQueryResult::getNextArrowChunk(int64_t chunkSize) {
     checkDatabaseClosedOrThrow();
-    auto rowBatch = std::make_unique<ArrowRowBatch>(copyVector(columnTypes), chunkSize,
-        false /* fallbackExtensionTypes */);
+    auto rowBatch =
+        std::make_unique<ArrowRowBatch>(columnTypes, chunkSize, false /* fallbackExtensionTypes */);
     auto rowBatchSize = 0u;
     while (rowBatchSize < chunkSize) {
         if (!iterator->hasNext()) {
@@ -98,7 +103,7 @@ std::unique_ptr<ArrowArray> MaterializedQueryResult::getNextArrowChunk(int64_t c
         rowBatch->append(*tuple);
         rowBatchSize++;
     }
-    return std::make_unique<ArrowArray>(rowBatch->toArray());
+    return std::make_unique<ArrowArray>(rowBatch->toArray(columnTypes));
 }
 
 } // namespace main

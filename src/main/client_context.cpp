@@ -15,7 +15,6 @@
 #include "main/database.h"
 #include "main/database_manager.h"
 #include "main/db_config.h"
-#include "main/query_result/arrow_query_result.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
 #include "parser/visitor/standalone_call_rewriter.h"
@@ -372,13 +371,13 @@ std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement*
 }
 
 std::unique_ptr<QueryResult> ClientContext::query(std::string_view query,
-    std::optional<uint64_t> queryID, ArrowInfo arrowInfo) {
+    std::optional<uint64_t> queryID, QueryConfig config) {
     lock_t lck{mtx};
-    return queryNoLock(query, queryID, arrowInfo);
+    return queryNoLock(query, queryID, config);
 }
 
 std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
-    std::optional<uint64_t> queryID, ArrowInfo arrowInfo) {
+    std::optional<uint64_t> queryID, QueryConfig config) {
     auto parsedStatements = std::vector<std::shared_ptr<Statement>>();
     try {
         parsedStatements = parseQuery(query);
@@ -392,7 +391,7 @@ std::unique_ptr<QueryResult> ClientContext::queryNoLock(std::string_view query,
         auto [preparedStatement, cachedStatement] =
             prepareNoLock(statement, false /*shouldCommitNewTransaction*/);
         auto currentQueryResult =
-            executeNoLock(preparedStatement.get(), cachedStatement.get(), queryID, arrowInfo);
+            executeNoLock(preparedStatement.get(), cachedStatement.get(), queryID, config);
         if (!currentQueryResult->isSuccess()) {
             if (!lastResult) {
                 queryResult = std::move(currentQueryResult);
@@ -522,7 +521,7 @@ ClientContext::PrepareResult ClientContext::prepareNoLock(
 
 std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* preparedStatement,
     CachedPreparedStatement* cachedStatement, std::optional<uint64_t> queryID,
-    ArrowInfo arrowInfo) {
+    QueryConfig queryConfig) {
     if (!preparedStatement->isSuccess()) {
         return QueryResult::getQueryResultWithError(preparedStatement->errMsg);
     }
@@ -531,7 +530,7 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     this->startTimer();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
-    std::shared_ptr<FactorizedTable> resultFT;
+    std::unique_ptr<QueryResult> result;
     try {
         bool isTransactionStatement =
             preparedStatement->getStatementType() == StatementType::TRANSACTION;
@@ -546,17 +545,17 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
                 const auto executionContext =
                     std::make_unique<ExecutionContext>(profiler.get(), this, *queryID);
                 auto mapper = PlanMapper(executionContext.get());
-                const auto physicalPlan = mapper.mapLogicalPlanToPhysical(
-                    cachedStatement->logicalPlan.get(), cachedStatement->columns);
+                const auto physicalPlan = mapper.getPhysicalPlan(cachedStatement->logicalPlan.get(),
+                    cachedStatement->columns, queryConfig.resultType, queryConfig.arrowConfig);
                 if (isTransactionStatement) {
-                    resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
+                    result = localDatabase->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());
                 } else {
                     if (preparedStatement->getStatementType() == StatementType::COPY_FROM) {
                         // Note: We always force checkpoint for COPY_FROM statement.
                         getTransaction()->setForceCheckpoint();
                     }
-                    resultFT = localDatabase->queryProcessor->execute(physicalPlan.get(),
+                    result = localDatabase->queryProcessor->execute(physicalPlan.get(),
                         executionContext.get());
                 }
             },
@@ -570,16 +569,8 @@ std::unique_ptr<QueryResult> ClientContext::executeNoLock(PreparedStatement* pre
     const auto memoryManager = storage::MemoryManager::Get(*this);
     memoryManager->getBufferManager()->getSpillerOrSkip([](auto& spiller) { spiller.clearFile(); });
     executingTimer.stop();
-    auto columnNames = cachedStatement->getColumnNames();
-    auto columnTypes = cachedStatement->getColumnTypes();
-    std::unique_ptr<QueryResult> result;
-    if (arrowInfo.asArrow) {
-        result = std::make_unique<ArrowQueryResult>(std::move(columnNames), std::move(columnTypes),
-            *resultFT, arrowInfo.chunkSize);
-    } else {
-        result = std::make_unique<MaterializedQueryResult>(std::move(columnNames),
-            std::move(columnTypes), resultFT);
-    }
+    result->setColumnNames(cachedStatement->getColumnNames());
+    result->setColumnTypes(cachedStatement->getColumnTypes());
     auto summary = std::make_unique<QuerySummary>(preparedStatement->preparedSummary);
     summary->setExecutionTime(executingTimer.getElapsedTimeMS());
     result->setQuerySummary(std::move(summary));

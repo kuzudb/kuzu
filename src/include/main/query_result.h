@@ -28,7 +28,7 @@ public:
      * @brief Used to create a QueryResult object for the failing query.
      */
     KUZU_API QueryResult();
-
+    explicit QueryResult(QueryResultType type);
     QueryResult(QueryResultType type, std::vector<std::string> columnNames,
         std::vector<common::LogicalType> columnTypes);
 
@@ -119,6 +119,9 @@ public:
     KUZU_API virtual std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize) = 0;
 
     QueryResultType getType() const { return type; }
+
+    void setColumnNames(std::vector<std::string> columnNames);
+    void setColumnTypes(std::vector<common::LogicalType> columnTypes);
 
     void addNextResult(std::unique_ptr<QueryResult> next_);
     std::unique_ptr<QueryResult> moveNextResult();

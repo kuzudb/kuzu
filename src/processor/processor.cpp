@@ -22,7 +22,7 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 }
 #endif
 
-std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalPlan,
+std::unique_ptr<main::QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan,
     ExecutionContext* context) {
     auto lastOperator = physicalPlan->lastOperator.get();
     // The root pipeline(task) consists of operators and its prevOperator only, because we
@@ -39,7 +39,7 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
     progressBar->startProgress(context->queryID);
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
     progressBar->endProgress(context->queryID);
-    return sink->getResultFTable();
+    return sink->getQueryResult();
 }
 
 void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,
