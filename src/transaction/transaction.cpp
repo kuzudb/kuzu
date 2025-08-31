@@ -32,7 +32,8 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
     undoBuffer = std::make_unique<storage::UndoBuffer>(storage::MemoryManager::Get(clientContext));
     currentTS = common::Timestamp::getCurrentTimestamp().value;
-    localWAL = std::make_unique<storage::LocalWAL>(*storage::MemoryManager::Get(clientContext));
+    localWAL = std::make_unique<storage::LocalWAL>(*storage::MemoryManager::Get(clientContext),
+        clientContext.getDBConfig()->enableChecksums);
 }
 
 Transaction::Transaction(TransactionType transactionType) noexcept

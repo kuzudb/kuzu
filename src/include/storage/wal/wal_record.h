@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "common/enums/table_type.h"
+#include "common/types/uuid.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -40,6 +41,11 @@ enum class WALRecordType : uint8_t {
     CHECKPOINT_RECORD = 254,
 };
 
+struct WALHeader {
+    common::ku_uuid_t databaseID;
+    bool enableChecksums;
+};
+
 struct WALRecord {
     WALRecordType type = WALRecordType::INVALID_RECORD;
 
@@ -50,7 +56,7 @@ struct WALRecord {
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<WALRecord> deserialize(common::Deserializer& deserializer,
-        const main::ClientContext& clientContext, std::string_view checksumMismatchMessage);
+        const main::ClientContext& clientContext);
 
     template<class TARGET>
     const TARGET& constCast() const {
