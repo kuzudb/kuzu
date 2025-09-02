@@ -38,10 +38,7 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     if (std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
             [&](const LoadedExtension& ext) { return ext.getExtensionName() == extensionName; })) {
         libLoader.unload();
-        throw common::BinderException{
-            common::stringFormat("Extension: {} is already loaded. You can check loaded extensions "
-                                 "by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.",
-                extensionName)};
+        return;
     }
     auto init = libLoader.getInitFunc();
     (*init)(context);
