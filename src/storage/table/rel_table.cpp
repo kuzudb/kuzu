@@ -13,11 +13,10 @@
 #include "storage/local_storage/local_table.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
-#include "storage/table/rel_table_data.h"
-#include "storage/wal/local_wal.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/rel_table_data.h"
+#include "storage/wal/local_wal.h"
 #include "transaction/transaction.h"
 #include <ranges>
 

@@ -511,8 +511,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);
-    return insertChunkedGroup->flushAsNewChunkedNodeGroup(&DUMMY_CHECKPOINT_TRANSACTION,
-        mm, state.pageAllocator);
+    return insertChunkedGroup->flushAsNewChunkedNodeGroup(&DUMMY_CHECKPOINT_TRANSACTION, mm,
+        state.pageAllocator);
 }
 
 std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lock,

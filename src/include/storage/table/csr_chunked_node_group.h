@@ -189,8 +189,7 @@ public:
 
     InMemChunkedCSRNodeGroup(InMemChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
-        : InMemChunkedNodeGroup{base, selectedColumns},
-          csrHeader{std::move(base.csrHeader)} {}
+        : InMemChunkedNodeGroup{base, selectedColumns}, csrHeader{std::move(base.csrHeader)} {}
 
     InMemChunkedCSRHeader& getCSRHeader() { return csrHeader; }
     const InMemChunkedCSRHeader& getCSRHeader() const { return csrHeader; }

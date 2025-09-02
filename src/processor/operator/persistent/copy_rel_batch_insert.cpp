@@ -24,8 +24,7 @@ std::unique_ptr<RelBatchInsertExecutionState> CopyRelBatchInsert::initExecutionS
             relInfo.partitioningIdx, nodeGroupIdx);
     const auto startNodeOffset = storage::StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
     for (auto& chunkedGroup : executionState->partitioningBuffer->getChunkedGroups()) {
-        setOffsetToWithinNodeGroup(
-            chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID),
+        setOffsetToWithinNodeGroup(chunkedGroup->getColumnChunk(relInfo.boundNodeOffsetColumnID),
             startNodeOffset);
     }
     return executionState;
@@ -36,8 +35,7 @@ void CopyRelBatchInsert::populateCSRLengthsInternal(const storage::InMemChunkedC
     common::column_id_t boundNodeOffsetColumn) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
-    const auto lengthData =
-        reinterpret_cast<common::length_t*>(csrHeader.length->getData());
+    const auto lengthData = reinterpret_cast<common::length_t*>(csrHeader.length->getData());
     std::fill(lengthData, lengthData + numNodes, 0);
     for (auto& chunkedGroup : partition.getChunkedGroups()) {
         auto& offsetChunk = chunkedGroup->getColumnChunk(boundNodeOffsetColumn);

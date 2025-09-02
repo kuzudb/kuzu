@@ -24,7 +24,7 @@ public:
         common::offset_t srcOffset, common::length_t numValues) const override;
 
     std::vector<std::unique_ptr<ColumnChunkData>> checkpointSegment(
-        ColumnCheckpointState&& checkpointState, PageAllocator &pageAllocator) const override;
+        ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const override;
 
     const DictionaryColumn& getDictionary() const { return dictionary; }
     const Column* getIndexColumn() const { return indexColumn.get(); }

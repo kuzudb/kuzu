@@ -88,9 +88,9 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         evaluator->init(*resultSet, context->clientContext);
         nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
     }
-    nodeLocalState->chunkedGroup = std::make_unique<InMemChunkedNodeGroup>(
-        *MemoryManager::Get(*context->clientContext), nodeInfo->columnTypes,
-        info->compressionEnabled, StorageConfig::NODE_GROUP_SIZE, 0);
+    nodeLocalState->chunkedGroup =
+        std::make_unique<InMemChunkedNodeGroup>(*MemoryManager::Get(*context->clientContext),
+            nodeInfo->columnTypes, info->compressionEnabled, StorageConfig::NODE_GROUP_SIZE, 0);
     KU_ASSERT(resultSet->dataChunks[0]);
     nodeLocalState->columnState = resultSet->dataChunks[0]->state;
 }
