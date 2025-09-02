@@ -161,8 +161,8 @@ pub(crate) mod ffi {
             maxDBSize: u64,
             auto_checkpoint: bool,
             checkpoint_threshold: i64,
-            throwOnWalReplayFailure: bool,
-            enableChecksums: bool,
+            throw_on_wal_replay_failure: bool,
+            enable_checksums: bool,
         ) -> Result<UniquePtr<Database>>;
 
     }

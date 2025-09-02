@@ -308,7 +308,7 @@ mod tests {
                 db_path.clone(),
                 SYSTEM_CONFIG_FOR_TESTS.enable_checksums(false),
             )
-            .expect_err("aaa");
+            .expect_err("An error should be thrown if the enable_checksums config doesn't match the one used to produce a WAL file");
         }
         Ok(())
     }
