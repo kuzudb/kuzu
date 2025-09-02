@@ -79,6 +79,12 @@ struct CacheEmbeddings {
     static constexpr bool DEFAULT_VALUE = true;
 };
 
+struct SkipIfExists {
+    static constexpr const char* NAME = "skip_if_exists";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = false;
+};
+
 struct BlindSearchUpSelThreshold {
     static constexpr const char* NAME = "blind_search_up_sel";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
@@ -103,6 +109,7 @@ struct HNSWIndexConfig {
     double alpha = Alpha::DEFAULT_VALUE;
     int64_t efc = Efc::DEFAULT_VALUE;
     bool cacheEmbeddingsColumn = CacheEmbeddings::DEFAULT_VALUE;
+    bool skipIfExists = SkipIfExists::DEFAULT_VALUE;
 
     HNSWIndexConfig() = default;
 
@@ -119,7 +126,7 @@ struct HNSWIndexConfig {
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
         : mu{other.mu}, ml{other.ml}, pu{other.pu}, metric{other.metric}, alpha{other.alpha},
-          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn) {}
+          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn), skipIfExists(other.skipIfExists) {}
 
     static MetricType getMetricType(const std::string& metricName);
 };
