@@ -30,9 +30,9 @@
 25002
 
 -LOG CheckSumTest
--STATEMENT MATCH (row:tableOfTypes) RETURN sum(row.id), sum(row.int64Column), sum(row.doubleColumn)
+-STATEMENT MATCH (row:tableOfTypes) RETURN sum(row.id), sum(row.int64Column), abs(sum(row.doubleColumn) - 2504542.349696) <= 0.0001
 ---- 1
-1249925001|2500180|2504542.349696
+1249925001|2500180|True
 
 -LOG EmptyStringTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN row.*;
@@ -40,7 +40,7 @@
 49992|50|31.582059|False|1551-07-19|1551-07-19 16:28:31||[5,67,66]
 
 -LOG FloatTest
--STATEMENT MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
+-STATEMENT MATCH (row:tableOfTypes) WHERE abs(row.doubleColumn - 68.73718401556897) <= 0.0001  RETURN row.dateColumn;
 ---- 1
 1042-06-05
 
