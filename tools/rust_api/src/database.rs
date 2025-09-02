@@ -284,10 +284,7 @@ mod tests {
         )?;
         let conn = Connection::new(&db)?;
         let result = conn.query("return 1");
-        assert_eq!(
-            result?.next().unwrap()[0],
-            Value::Int64(1)
-        );
+        assert_eq!(result?.next().unwrap()[0], Value::Int64(1));
         Ok(())
     }
 
@@ -298,7 +295,9 @@ mod tests {
         {
             let db = Database::new(
                 db_path.clone(),
-                SYSTEM_CONFIG_FOR_TESTS.auto_checkpoint(false).enable_checksums(true),
+                SYSTEM_CONFIG_FOR_TESTS
+                    .auto_checkpoint(false)
+                    .enable_checksums(true),
             )?;
             let conn = Connection::new(&db)?;
             conn.query("call force_checkpoint_on_close=false")?;
@@ -308,7 +307,8 @@ mod tests {
             Database::new(
                 db_path.clone(),
                 SYSTEM_CONFIG_FOR_TESTS.enable_checksums(false),
-            ).expect_err("aaa");
+            )
+            .expect_err("aaa");
         }
         Ok(())
     }
