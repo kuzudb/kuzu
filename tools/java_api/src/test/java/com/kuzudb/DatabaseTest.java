@@ -221,7 +221,8 @@ public class DatabaseTest extends TestBase {
                 1234 /* checkpointThreshold */,
                 true /* throwOnWalReplayFailure */,
                 false /* enableChecksums */)) {
-            // Database will be automatically destroyed after this block
+            // The database creation should fail
+            assertTrue(false);
         } catch (Exception e) {
             assertTrue(e.getMessage().contains("Please open your database using the correct enableChecksums config."));
         }
