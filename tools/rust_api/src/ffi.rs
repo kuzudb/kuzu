@@ -151,6 +151,7 @@ pub(crate) mod ffi {
         #[namespace = "kuzu::main"]
         type Database;
 
+        #[allow(clippy::fn_params_excessive_bools)]
         fn new_database(
             databasePath: StringView,
             bufferPoolSize: u64,

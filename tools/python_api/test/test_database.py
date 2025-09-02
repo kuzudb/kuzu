@@ -10,9 +10,6 @@ import kuzu
 import pytest
 from conftest import get_db_file_path
 
-if TYPE_CHECKING:
-    from pathlib import Path
-
 
 def open_database_on_subprocess(tmp_path: Path, build_dir: Path) -> None:
     code = dedent(
