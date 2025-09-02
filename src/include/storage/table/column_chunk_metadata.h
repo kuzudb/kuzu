@@ -40,8 +40,8 @@ public:
 
     GetCompressionMetadata(const GetCompressionMetadata& other) = default;
 
-    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t capacity,
-        uint64_t numValues, StorageValue min, StorageValue max) const;
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t numValues,
+        StorageValue min, StorageValue max) const;
 };
 
 class GetBitpackingMetadata {
@@ -54,8 +54,8 @@ public:
 
     GetBitpackingMetadata(const GetBitpackingMetadata& other) = default;
 
-    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t capacity,
-        uint64_t numValues, StorageValue min, StorageValue max);
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t numValues,
+        StorageValue min, StorageValue max);
 };
 
 template<std::floating_point T>
@@ -70,13 +70,12 @@ public:
 
     GetFloatCompressionMetadata(const GetFloatCompressionMetadata& other) = default;
 
-    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t capacity,
-        uint64_t numValues, StorageValue min, StorageValue max);
+    ColumnChunkMetadata operator()(std::span<const uint8_t> buffer, uint64_t numValues,
+        StorageValue min, StorageValue max);
 };
 
-ColumnChunkMetadata uncompressedGetMetadata(std::span<const uint8_t> buffer, uint64_t capacity,
-    uint64_t numValues, StorageValue min, StorageValue max);
+ColumnChunkMetadata uncompressedGetMetadata(common::PhysicalTypeID dataType, uint64_t numValues,
+    StorageValue min, StorageValue max);
 
-ColumnChunkMetadata booleanGetMetadata(std::span<const uint8_t> buffer, uint64_t capacity,
-    uint64_t numValues, StorageValue min, StorageValue max);
+ColumnChunkMetadata booleanGetMetadata(uint64_t numValues, StorageValue min, StorageValue max);
 } // namespace kuzu::storage
