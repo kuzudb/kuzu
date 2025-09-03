@@ -23,6 +23,7 @@ add_library(kuzu_table_function
         show_sequences.cpp
         show_tables.cpp
         show_warnings.cpp
+        show_macros.cpp
         stats_info.cpp
         storage_info.cpp
         simple_table_function.cpp
