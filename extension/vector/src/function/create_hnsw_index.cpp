@@ -52,7 +52,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto tableEntry = HNSWIndexUtils::bindTable(*context, tableName);
     if (HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName, operation)) {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
-                std::move(config), true);
+            std::move(config), true);
     }
     const auto nodeTableEntry = tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
     const auto tableID = nodeTableEntry->getTableID();

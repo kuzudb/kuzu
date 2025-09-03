@@ -1,8 +1,8 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "common/exception/binder.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index_utils.h"
@@ -19,7 +19,8 @@ struct DropAllHNSWIndexesBindData final : TableFuncBindData {
     catalog::NodeTableCatalogEntry* tableEntry;
     std::vector<std::string> indexNames;
 
-    DropAllHNSWIndexesBindData(catalog::NodeTableCatalogEntry* tableEntry, std::vector<std::string> indexNames)
+    DropAllHNSWIndexesBindData(catalog::NodeTableCatalogEntry* tableEntry,
+        std::vector<std::string> indexNames)
         : TableFuncBindData{0}, tableEntry{tableEntry}, indexNames{std::move(indexNames)} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
@@ -35,8 +36,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableID = tableEntry->getTableID();
     std::vector<std::string> vectorIndexes;
     auto indexEntries =
-        catalog::Catalog::Get(*context)
-            ->getIndexEntries(context->getTransaction(), tableID);
+        catalog::Catalog::Get(*context)->getIndexEntries(context->getTransaction(), tableID);
     for (auto indexEntry : indexEntries) {
         if (indexEntry->getIndexType() == HNSWIndexCatalogEntry::TYPE_NAME) {
             vectorIndexes.push_back(indexEntry->getIndexName());

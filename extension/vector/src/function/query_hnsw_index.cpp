@@ -134,8 +134,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             stringFormat("Cannot find table or graph named as {}.", tableOrGraphName));
     }
     auto tableEntry = HNSWIndexUtils::bindTable(*context, tableName);
-    (void) HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName,
-            HNSWIndexUtils::IndexOperation::QUERY);
+    (void)HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName,
+        HNSWIndexUtils::IndexOperation::QUERY);
     auto nodeTableEntry = tableEntry->ptrCast<NodeTableCatalogEntry>();
     // Bind columns
     auto columnNames = std::vector<std::string>{QueryVectorIndexFunction::nnColumnName,
