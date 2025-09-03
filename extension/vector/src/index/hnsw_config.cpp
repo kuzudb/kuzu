@@ -191,6 +191,19 @@ MetricType HNSWIndexConfig::getMetricType(const std::string& metricName) {
     KU_UNREACHABLE;
 }
 
+DropHNSWConfig::DropHNSWConfig(const function::optional_params_t& optionalParams) {
+    for (auto& [name, value] : optionalParams) {
+        auto lowerCaseName = common::StringUtils::getLower(name);
+        if (SkipIfNotExists::NAME == lowerCaseName) {
+            value.validateType(SkipIfNotExists::TYPE);
+            skipIfNotExists = value.getValue<bool>();
+        } else {
+            throw common::BinderException{common::stringFormat(
+                "Unrecognized optional parameter {} in {}.", name, QueryVectorIndexFunction::name)};
+        }
+    }
+}
+
 QueryHNSWConfig::QueryHNSWConfig(const function::optional_params_t& optionalParams) {
     for (auto& [name, value] : optionalParams) {
         auto lowerCaseName = common::StringUtils::getLower(name);

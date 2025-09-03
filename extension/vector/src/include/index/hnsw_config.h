@@ -85,6 +85,12 @@ struct SkipIfExists {
     static constexpr bool DEFAULT_VALUE = false;
 };
 
+struct SkipIfNotExists {
+    static constexpr const char* NAME = "skip_if_not_exists";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = false;
+};
+
 struct BlindSearchUpSelThreshold {
     static constexpr const char* NAME = "blind_search_up_sel";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
@@ -130,6 +136,14 @@ private:
           skipIfExists(other.skipIfExists) {}
 
     static MetricType getMetricType(const std::string& metricName);
+};
+
+struct DropHNSWConfig {
+    bool skipIfNotExists = SkipIfNotExists::DEFAULT_VALUE;
+
+    DropHNSWConfig() = default;
+
+    explicit DropHNSWConfig(const function::optional_params_t& optionalParams);
 };
 
 struct QueryHNSWConfig {
