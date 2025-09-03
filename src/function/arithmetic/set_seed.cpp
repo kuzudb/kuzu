@@ -11,7 +11,8 @@ using namespace kuzu::common;
 struct SetSeed {
     static void operation(double& seed, void* dataPtr) {
         auto context = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
-        context->getRandomEngine()->setSeed((uint64_t)(seed * (double)UINT64_MAX));
+        context->getRandomEngine()->setSeed(
+            static_cast<uint64_t>(seed * static_cast<double>(UINT64_MAX)));
     }
 };
 
