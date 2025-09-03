@@ -383,16 +383,23 @@ void ColumnChunk::checkpoint(Column& column,
         auto& segment = data[i];
         KU_ASSERT(segment->getResidencyState() == ResidencyState::ON_DISK);
         for (auto& state : chunkCheckpointStates) {
+            const bool isLastSegment = (i == data.size() - 1);
             if (state.startRow + state.numRows > segmentStart &&
-                (i == data.size() - 1 || state.startRow < segmentStart + segment->getNumValues())) {
+                (isLastSegment || state.startRow < segmentStart + segment->getNumValues())) {
                 auto startOffsetInSegment = state.startRow - segmentStart;
                 uint64_t startRowInChunk = 0;
                 if (state.startRow < segmentStart) {
                     startRowInChunk = segmentStart - state.startRow;
                     startOffsetInSegment = 0;
                 }
+                // Generally, we only want to checkpoint the overlapping parts of the old segment
+                // and the new chunk. This is to prevent having duplicate segments. However, for the
+                // last old segment we allow extending it to account for any insertions we have made
+                // in the current checkpoint.
                 const auto endRowInChunk =
-                    std::min(startRowInChunk + segment->getNumValues(), state.numRows);
+                    isLastSegment ?
+                        state.numRows :
+                        std::min(startRowInChunk + segment->getNumValues(), state.numRows);
                 segmentCheckpointStates.push_back({*state.chunkData, startRowInChunk,
                     startOffsetInSegment, endRowInChunk - startRowInChunk});
             }
