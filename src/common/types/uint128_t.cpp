@@ -8,7 +8,7 @@
 #include "common/type_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
-#include <concurrencysal.h>
+// #include <concurrencysal.h>
 
 namespace kuzu::common {
 
@@ -312,34 +312,34 @@ uint128_t Uint128_t::Mul(uint128_t lhs, uint128_t rhs) {
     return result;
 }
 
-int128_t Int128_t::divMod(int128_t lhs, int128_t rhs, int128_t& remainder) {
-    bool lhs_negative = lhs.high < 0;
-    bool rhs_negative = rhs.high < 0;
-    if (lhs_negative) {
-        negateInPlace(lhs);
-    }
-    if (rhs_negative) {
-        negateInPlace(rhs);
-    }
+uint128_t Uint128_t::divMod(uint128_t lhs, uint128_t rhs, uint128_t& remainder) {
+    // bool lhs_negative = lhs.high < 0;
+    // bool rhs_negative = rhs.high < 0;
+    // if (lhs_negative) {
+    //     negateInPlace(lhs);
+    // }
+    // if (rhs_negative) {
+    //     negateInPlace(rhs);
+    // }
 
     // divMod code adapted from:
     // https://github.com/calccrypto/uint128_t/blob/master/uint128_t.cpp
 
     // initialize the result and remainder to 0
-    int128_t div_result{};
+    uint128_t div_result{};
     div_result.low = 0;
     div_result.high = 0;
     remainder.low = 0;
     remainder.high = 0;
 
     // now iterate over the amount of bits that are set in the LHS
-    for (uint8_t x = PositiveInt128BitsAmount(lhs); x > 0; x--) {
+    for (uint8_t x = Uint128BitsAmount(lhs); x > 0; x--) {
         // left-shift the current result and remainder by 1
-        div_result = PositiveInt128LeftShift(div_result, 1);
-        remainder = PositiveInt128LeftShift(remainder, 1);
+        div_result = Uint128LeftShift(div_result, 1);
+        remainder = Uint128LeftShift(remainder, 1);
 
         // we get the value of the bit at position X, where position 0 is the least-significant bit
-        if (PositiveInt128IsBitSet(lhs, x - 1)) {
+        if (Uint128IsBitSet(lhs, x - 1)) {
             // increment the remainder
             addInPlace(remainder, 1);
         }
@@ -349,140 +349,139 @@ int128_t Int128_t::divMod(int128_t lhs, int128_t rhs, int128_t& remainder) {
             addInPlace(div_result, 1);
         }
     }
-    if (lhs_negative ^ rhs_negative) {
-        negateInPlace(div_result);
-    }
-    if (lhs_negative) {
-        negateInPlace(remainder);
-    }
+    // if (lhs_negative ^ rhs_negative) {
+    //     negateInPlace(div_result);
+    // }
+    // if (lhs_negative) {
+    //     negateInPlace(remainder);
+    // }
     return div_result;
 }
 
-int128_t Int128_t::Div(int128_t lhs, int128_t rhs) {
+uint128_t Uint128_t::Div(uint128_t lhs, uint128_t rhs) {
     if (rhs.high == 0 && rhs.low == 0) {
         throw common::RuntimeException("Divide by zero.");
     }
-    int128_t remainder{};
+    uint128_t remainder{};
     return divMod(lhs, rhs, remainder);
 }
 
-int128_t Int128_t::Mod(int128_t lhs, int128_t rhs) {
+uint128_t Uint128_t::Mod(uint128_t lhs, uint128_t rhs) {
     if (rhs.high == 0 && rhs.low == 0) {
         throw common::RuntimeException("Modulo by zero.");
     }
-    int128_t result{};
+    uint128_t result{};
     divMod(lhs, rhs, result);
     return result;
 }
 
-int128_t Int128_t::Xor(int128_t lhs, int128_t rhs) {
-    int128_t result{lhs.low ^ rhs.low, lhs.high ^ rhs.high};
+uint128_t Uint128_t::Xor(uint128_t lhs, uint128_t rhs) {
+    uint128_t result{lhs.low ^ rhs.low, lhs.high ^ rhs.high};
     return result;
 }
 
-int128_t Int128_t::BinaryAnd(int128_t lhs, int128_t rhs) {
-    int128_t result{lhs.low & rhs.low, lhs.high & rhs.high};
+uint128_t Uint128_t::BinaryAnd(uint128_t lhs, uint128_t rhs) {
+    uint128_t result{lhs.low & rhs.low, lhs.high & rhs.high};
     return result;
 }
 
-int128_t Int128_t::BinaryOr(int128_t lhs, int128_t rhs) {
-    int128_t result{lhs.low | rhs.low, lhs.high | rhs.high};
+uint128_t Uint128_t::BinaryOr(uint128_t lhs, uint128_t rhs) {
+    uint128_t result{lhs.low | rhs.low, lhs.high | rhs.high};
     return result;
 }
 
-int128_t Int128_t::BinaryNot(int128_t val) {
-    return int128_t{~val.low, ~val.high};
+uint128_t Uint128_t::BinaryNot(uint128_t val) {
+    return uint128_t{~val.low, ~val.high};
 }
 
-int128_t Int128_t::LeftShift(int128_t lhs, int amount) {
-    // adapted from
-    // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
-    return amount >= 64 ? int128_t(0, lhs.low << (amount - 64)) :
+uint128_t Uint128_t::LeftShift(uint128_t lhs, int amount) {
+    return amount >= 64 ? uint128_t(0, lhs.low << (amount - 64)) :
            amount == 0  ? lhs :
-                          int128_t{lhs.low << amount,
+                          uint128_t{lhs.low << amount,
                              (lhs.high << amount) |
-                                 (numeric_utils::makeValueSigned(lhs.low >> (64 - amount)))};
+                                 (lhs.low >> (64 - amount))};
 }
 
-int128_t Int128_t::RightShift(int128_t lhs, int amount) {
-    // adapted from
-    // https://github.com/abseil/abseil-cpp/blob/master/absl/numeric/int128.h
+uint128_t Uint128_t::RightShift(uint128_t lhs, int amount) {
     return amount >= 64 ?
-               // we shift the high value regardless for sign extension
-               int128_t(lhs.high >> (amount - 64), lhs.high >> 63) :
+               uint128_t(lhs.high >> (amount - 64), lhs.high >> 63) :
                amount == 0 ?
                lhs :
-               int128_t((lhs.low >> amount) | (lhs.high << (64 - amount)), lhs.high >> amount);
+               uint128_t((lhs.low >> amount) | (lhs.high << (64 - amount)), lhs.high >> amount);
 }
 
 //===============================================================================================
 // Cast operation
 //===============================================================================================
 template<class DST, bool SIGNED = true>
-bool TryCastInt128Template(int128_t input, DST& result) {
-    switch (input.high) {
-    case 0:
-        if (input.low <= uint64_t(function::NumericLimits<DST>::maximum())) {
-            result = static_cast<DST>(input.low);
-            return true;
-        }
-        break;
-    case -1:
-        if constexpr (!SIGNED) {
-            throw common::OverflowException(
-                "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
-        }
-        if (input.low >= function::NumericLimits<uint64_t>::maximum() -
-                             uint64_t(function::NumericLimits<DST>::maximum())) {
-            result = -DST(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
-            return true;
-        }
-        break;
-    default:
-        break;
+bool TryCastUint128Template(uint128_t input, DST& result) {
+    // switch (input.high) {
+    // case 0:
+    //     if (input.low <= uint64_t(function::NumericLimits<DST>::maximum())) {
+    //         result = static_cast<DST>(input.low);
+    //         return true;
+    //     }
+    //     break;
+    // case -1:
+    //     if constexpr (!SIGNED) {
+    //         throw common::OverflowException(
+    //             "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
+    //     }
+    //     if (input.low >= function::NumericLimits<uint64_t>::maximum() -
+    //                          uint64_t(function::NumericLimits<DST>::maximum())) {
+    //         result = -DST(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
+    //         return true;
+    //     }
+    //     break;
+    // default:
+    //     break;
+    // }
+    if (input.high == 0 && input.low <= uint64_t(function::NumericLimits<DST>::maximum())) {
+        result = static_cast<DST>(input.low);
+        return true;
     }
     return false;
 }
 // we can use the above template if we can get max using something like DST.max
 
 template<>
-bool Int128_t::tryCast(int128_t input, int8_t& result) {
-    return TryCastInt128Template<int8_t>(input, result);
+bool Uint128_t::tryCast(uint128_t input, int8_t& result) {
+    return TryCastUint128Template<int8_t>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, int16_t& result) {
-    return TryCastInt128Template<int16_t>(input, result);
+bool Uint128_t::tryCast(uint128_t input, int16_t& result) {
+    return TryCastUint128Template<int16_t>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, int32_t& result) {
-    return TryCastInt128Template<int32_t>(input, result);
+bool Uint128_t::tryCast(uint128_t input, int32_t& result) {
+    return TryCastUint128Template<int32_t>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, int64_t& result) {
-    return TryCastInt128Template<int64_t>(input, result);
+bool Uint128_t::tryCast(uint128_t input, int64_t& result) {
+    return TryCastUint128Template<int64_t>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, uint8_t& result) {
-    return TryCastInt128Template<uint8_t, false>(input, result);
+bool Uint128_t::tryCast(uint128_t input, uint8_t& result) {
+    return TryCastUint128Template<uint8_t, false>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, uint16_t& result) {
-    return TryCastInt128Template<uint16_t, false>(input, result);
+bool Uint128_t::tryCast(uint128_t input, uint16_t& result) {
+    return TryCastUint128Template<uint16_t, false>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, uint32_t& result) {
-    return TryCastInt128Template<uint32_t, false>(input, result);
+bool Uint128_t::tryCast(uint128_t input, uint32_t& result) {
+    return TryCastUint128Template<uint32_t, false>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, uint64_t& result) {
-    return TryCastInt128Template<uint64_t, false>(input, result);
+bool Uint128_t::tryCast(uint128_t input, uint64_t& result) {
+    return TryCastUint128Template<uint64_t, false>(input, result);
 }
 
 template<>
@@ -517,307 +516,312 @@ bool Int128_t::tryCast(int128_t input, long double& result) {
     return CastInt128ToFloating<long double>(input, result);
 }
 
+// currently casting negative numbers to uint128_t is allowed
 template<class DST>
-int128_t tryCastToTemplate(DST value) {
-    int128_t result{};
+uint128_t tryCastToTemplate(DST value) {
+    uint128_t result{};
     result.low = (uint64_t)value;
-    result.high = (value < 0) * -1;
+    //result.high = (value < 0) * -1;
+    result.high = 0;
     return result;
 }
 
 template<>
-bool Int128_t::tryCastTo(int8_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(int8_t value, uint128_t& result) {
     result = tryCastToTemplate<int8_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(int16_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(int16_t value, uint128_t& result) {
     result = tryCastToTemplate<int16_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(int32_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(int32_t value, uint128_t& result) {
     result = tryCastToTemplate<int32_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(int64_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(int64_t value, uint128_t& result) {
     result = tryCastToTemplate<int64_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(uint8_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(uint8_t value, uint128_t& result) {
     result = tryCastToTemplate<uint8_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(uint16_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(uint16_t value, uint128_t& result) {
     result = tryCastToTemplate<uint16_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(uint32_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(uint32_t value, uint128_t& result) {
     result = tryCastToTemplate<uint32_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(uint64_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(uint64_t value, uint128_t& result) {
     result = tryCastToTemplate<uint64_t>(value);
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(int128_t value, int128_t& result) {
+bool Uint128_t::tryCastTo(int128_t value, uint128_t& result) {
     result = value;
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(float value, int128_t& result) {
+bool Uint128_t::tryCastTo(float value, uint128_t& result) {
     return tryCastTo(double(value), result);
 }
 
 template<class REAL_T>
-bool castFloatingToInt128(REAL_T value, int128_t& result) {
+bool castFloatingToUint128(REAL_T value, uint128_t& result) {
     // TODO: Maybe need to add func isFinite in value.h to see if every type is finite.
-    if (value <= -170141183460469231731687303715884105728.0 ||
-        value >= 170141183460469231731687303715884105727.0) {
+    // if (value <= -170141183460469231731687303715884105728.0 ||
+    //     value >= 170141183460469231731687303715884105727.0) {
+    //     return false;
+    // }
+    // bool negative = value < 0;
+    // if (negative) {
+    //     value = -value;
+    // }
+    if (value < 0.0 || value >= 340282366920938463463374607431768211455.0) {
         return false;
-    }
-    bool negative = value < 0;
-    if (negative) {
-        value = -value;
     }
     value = std::nearbyint(value);
     result.low = (uint64_t)fmod(value, REAL_T(function::NumericLimits<uint64_t>::maximum()));
     result.high = (uint64_t)(value / REAL_T(function::NumericLimits<uint64_t>::maximum()));
-    if (negative) {
-        Int128_t::negateInPlace(result);
-    }
+    // if (negative) {
+    //     Int128_t::negateInPlace(result);
+    // }
     return true;
 }
 
 template<>
-bool Int128_t::tryCastTo(double value, int128_t& result) {
-    return castFloatingToInt128<double>(value, result);
+bool Uint128_t::tryCastTo(double value, uint128_t& result) {
+    return castFloatingToUint128<double>(value, result);
 }
 
 template<>
-bool Int128_t::tryCastTo(long double value, int128_t& result) {
-    return castFloatingToInt128<long double>(value, result);
+bool Uint128_t::tryCastTo(long double value, uint128_t& result) {
+    return castFloatingToUint128<long double>(value, result);
 }
 //===============================================================================================
 
-int128_t::int128_t(int64_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(int64_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(int32_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(int32_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(int16_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(int16_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(int8_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(int8_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(uint64_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(uint64_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(uint32_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(uint32_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(uint16_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(uint16_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(uint8_t value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(uint8_t value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(double value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(double value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-int128_t::int128_t(float value) {
-    auto result = Int128_t::castTo(value);
+uint128_t::uint128_t(float value) {
+    auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
 //============================================================================================
-bool operator==(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Equals(lhs, rhs);
+bool operator==(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Equals(lhs, rhs);
 }
 
-bool operator!=(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::notEquals(lhs, rhs);
+bool operator!=(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::notEquals(lhs, rhs);
 }
 
-bool operator>(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::greaterThan(lhs, rhs);
+bool operator>(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::greaterThan(lhs, rhs);
 }
 
-bool operator>=(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::greaterThanOrEquals(lhs, rhs);
+bool operator>=(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::greaterThanOrEquals(lhs, rhs);
 }
 
-bool operator<(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::lessThan(lhs, rhs);
+bool operator<(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::lessThan(lhs, rhs);
 }
 
-bool operator<=(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::lessThanOrEquals(lhs, rhs);
+bool operator<=(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::lessThanOrEquals(lhs, rhs);
 }
 
-int128_t int128_t::operator-() const {
-    return Int128_t::negate(*this);
+// int128_t int128_t::operator-() const {
+//     return Int128_t::negate(*this);
+// }
+
+// support for operations like (int32_t)x + (uint128_t)y
+
+uint128_t operator+(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Add(lhs, rhs);
+}
+uint128_t operator-(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Sub(lhs, rhs);
+}
+uint128_t operator*(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Mul(lhs, rhs);
+}
+uint128_t operator/(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Div(lhs, rhs);
+}
+uint128_t operator%(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Mod(lhs, rhs);
 }
 
-// support for operations like (int32_t)x + (int128_t)y
-
-int128_t operator+(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Add(lhs, rhs);
-}
-int128_t operator-(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Sub(lhs, rhs);
-}
-int128_t operator*(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Mul(lhs, rhs);
-}
-int128_t operator/(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Div(lhs, rhs);
-}
-int128_t operator%(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Mod(lhs, rhs);
+uint128_t operator^(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::Xor(lhs, rhs);
 }
 
-int128_t operator^(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Xor(lhs, rhs);
+uint128_t operator&(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::BinaryAnd(lhs, rhs);
 }
 
-int128_t operator&(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::BinaryAnd(lhs, rhs);
+uint128_t operator|(const uint128_t& lhs, const uint128_t& rhs) {
+    return Uint128_t::BinaryOr(lhs, rhs);
 }
 
-int128_t operator|(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::BinaryOr(lhs, rhs);
+uint128_t operator~(const uint128_t& val) {
+    return Uint128_t::BinaryNot(val);
 }
 
-int128_t operator~(const int128_t& val) {
-    return Int128_t::BinaryNot(val);
+uint128_t operator<<(const uint128_t& lhs, int amount) {
+    return Uint128_t::LeftShift(lhs, amount);
 }
 
-int128_t operator<<(const int128_t& lhs, int amount) {
-    return Int128_t::LeftShift(lhs, amount);
-}
-
-int128_t operator>>(const int128_t& lhs, int amount) {
-    return Int128_t::RightShift(lhs, amount);
+uint128_t operator>>(const uint128_t& lhs, int amount) {
+    return Uint128_t::RightShift(lhs, amount);
 }
 
 // inplace arithmetic operators
-int128_t& int128_t::operator+=(const int128_t& rhs) {
-    if (!Int128_t::addInPlace(*this, rhs)) {
+uint128_t& uint128_t::operator+=(const uint128_t& rhs) {
+    if (!Uint128_t::addInPlace(*this, rhs)) {
         throw common::OverflowException("INT128 is out of range: cannot add in place.");
     }
     return *this;
 }
 
-int128_t& int128_t::operator*=(const int128_t& rhs) {
-    *this = Int128_t::Mul(*this, rhs);
+uint128_t& uint128_t::operator*=(const uint128_t& rhs) {
+    *this = Uint128_t::Mul(*this, rhs);
     return *this;
 }
 
-int128_t& int128_t::operator|=(const int128_t& rhs) {
-    *this = Int128_t::BinaryOr(*this, rhs);
+uint128_t& uint128_t::operator|=(const uint128_t& rhs) {
+    *this = Uint128_t::BinaryOr(*this, rhs);
     return *this;
 }
 
-int128_t& int128_t::operator&=(const int128_t& rhs) {
-    *this = Int128_t::BinaryAnd(*this, rhs);
+uint128_t& uint128_t::operator&=(const uint128_t& rhs) {
+    *this = Uint128_t::BinaryAnd(*this, rhs);
     return *this;
 }
 
 template<class T>
-static T NarrowCast(const int128_t& input) {
+static T NarrowCast(const uint128_t& input) {
     return static_cast<T>(input.low);
 }
 
-int128_t::operator int64_t() const {
+uint128_t::operator int64_t() const {
     return NarrowCast<int64_t>(*this);
 }
 
-int128_t::operator int32_t() const {
+uint128_t::operator int32_t() const {
     return NarrowCast<int32_t>(*this);
 }
 
-int128_t::operator int16_t() const {
+uint128_t::operator int16_t() const {
     return NarrowCast<int16_t>(*this);
 }
 
-int128_t::operator int8_t() const {
+uint128_t::operator int8_t() const {
     return NarrowCast<int8_t>(*this);
 }
 
-int128_t::operator uint64_t() const {
+uint128_t::operator uint64_t() const {
     return NarrowCast<uint64_t>(*this);
 }
 
-int128_t::operator uint32_t() const {
+uint128_t::operator uint32_t() const {
     return NarrowCast<uint32_t>(*this);
 }
 
-int128_t::operator uint16_t() const {
+uint128_t::operator uint16_t() const {
     return NarrowCast<uint16_t>(*this);
 }
 
-int128_t::operator uint8_t() const {
+uint128_t::operator uint8_t() const {
     return NarrowCast<uint8_t>(*this);
 }
 
-int128_t::operator double() const {
+uint128_t::operator double() const {
     double result = NAN;
-    if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+    if (!Uint128_t::tryCast(*this, result)) { // LCOV_EXCL_START
         throw common::OverflowException(common::stringFormat("Value {} is not within DOUBLE range",
             common::TypeUtils::toString(*this)));
     } // LCOV_EXCL_STOP
     return result;
 }
 
-int128_t::operator float() const {
+uint128_t::operator float() const {
     float result = NAN;
-    if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+    if (!Uint128_t::tryCast(*this, result)) { // LCOV_EXCL_START
         throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
             common::TypeUtils::toString(*this)));
     } // LCOV_EXCL_STOP
@@ -826,8 +830,8 @@ int128_t::operator float() const {
 
 } // namespace kuzu::common
 
-std::size_t std::hash<kuzu::common::int128_t>::operator()(
-    const kuzu::common::int128_t& v) const noexcept {
+std::size_t std::hash<kuzu::common::uint128_t>::operator()(
+    const kuzu::common::uint128_t& v) const noexcept {
     kuzu::common::hash_t hash = 0;
     kuzu::function::Hash::operation(v, hash);
     return hash;
