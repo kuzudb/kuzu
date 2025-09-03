@@ -391,8 +391,10 @@ void ColumnChunk::checkpoint(Column& column,
                     startRowInChunk = segmentStart - state.startRow;
                     startOffsetInSegment = 0;
                 }
+                const auto endRowInChunk =
+                    std::min(startRowInChunk + segment->getNumValues(), state.numRows);
                 segmentCheckpointStates.push_back({*state.chunkData, startRowInChunk,
-                    startOffsetInSegment, state.numRows - startRowInChunk});
+                    startOffsetInSegment, endRowInChunk - startRowInChunk});
             }
         }
         auto segmentEnd = segmentStart + segment->getNumValues();
@@ -407,7 +409,9 @@ void ColumnChunk::checkpoint(Column& column,
             for (size_t j = 0; j < newSegments.size(); j++) {
                 data[i + j] = std::move(newSegments[j]);
             }
-            i += newSegments.size();
+            // We want to increment by a total of newSegments.size() but we increment i at the end
+            // of each loop body
+            i += newSegments.size() - 1;
         }
         segmentStart = segmentEnd;
     }

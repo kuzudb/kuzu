@@ -197,7 +197,7 @@ public:
             auto startOffsetInSegment =
                 std::max(std::min(segment->getNumValues(), startOffset), uint64_t{0});
             for (size_t i = startOffsetInSegment;
-                 i < segment->getNumValues() && startPos + i < endOffset; i++) {
+                i < segment->getNumValues() && startPos + i < endOffset; i++) {
                 func(segmentData[i], startPos + i);
             }
             startPos += segment->getNumValues();
