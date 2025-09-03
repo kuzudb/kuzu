@@ -1752,7 +1752,7 @@ TEST_F(CApiValueTest, GetBlob) {
     kuzu_flat_tuple flatTuple;
     kuzu_state state;
     auto connection = getConnection();
-    state = kuzu_connection_query(connection, (char*)R"(RETURN BLOB('\\xAA\\xBB\\xCD\\x1A');)",
+    state = kuzu_connection_query(connection, (char*)R"(RETURN BLOB('\xAA\xBB\xCD\x1A');)",
         &result);
     ASSERT_EQ(state, KuzuSuccess);
     ASSERT_TRUE(kuzu_query_result_is_success(&result));

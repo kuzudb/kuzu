@@ -171,3 +171,8 @@ TEST_F(CApiDatabaseTest, UseConnectionAfterDatabaseDestroy) {
 
     kuzu_connection_destroy(&conn);
 }
+
+TEST_F(CApiDatabaseTest, dasdsad) {
+    createDBAndConn();
+    printf("%s", conn->query("RETURN BLOB('\\xAA\\xBB\\xCD\\x1A')")->toString().c_str());
+}

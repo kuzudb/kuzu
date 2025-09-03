@@ -92,7 +92,7 @@ std::string Transformer::transformSchemaName(CypherParser::OC_SchemaNameContext&
 
 std::string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral) {
     auto str = stringLiteral.getText();
-    return StringUtils::removeEscapedCharacters(str);
+    return str.substr(1, str.length() - 2);
 }
 
 std::string Transformer::transformVariable(CypherParser::OC_VariableContext& ctx) {
