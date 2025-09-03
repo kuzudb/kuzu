@@ -37,6 +37,7 @@ void VectorExtension::load(main::ClientContext* context) {
     extension::ExtensionUtils::addStandaloneTableFunc<CreateVectorIndexFunction>(db);
     extension::ExtensionUtils::addInternalStandaloneTableFunc<InternalDropHNSWIndexFunction>(db);
     extension::ExtensionUtils::addStandaloneTableFunc<DropVectorIndexFunction>(db);
+    extension::ExtensionUtils::addStandaloneTableFunc<DropAllVectorIndexesFunction>(db);
     extension::ExtensionUtils::registerIndexType(db, OnDiskHNSWIndex::getIndexType());
     initHNSWEntries(context);
 }

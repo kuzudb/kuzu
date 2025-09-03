@@ -30,12 +30,12 @@ struct HNSWIndexUtils {
     static bool indexExists(const main::ClientContext& context,
         const catalog::TableCatalogEntry* tableEntry, const std::string& indexName);
 
-    static void validateIndexExistence(const main::ClientContext& context,
+    static bool validateIndexExistence(const main::ClientContext& context,
         const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
         IndexOperation indexOperation);
 
-    static catalog::NodeTableCatalogEntry* bindNodeTable(const main::ClientContext& context,
-        const std::string& tableName, const std::string& indexName, IndexOperation indexOperation);
+    static catalog::TableCatalogEntry* bindTable(const main::ClientContext& context,
+        const std::string& tableName);
 
     static void validateAutoTransaction(const main::ClientContext& context,
         const std::string& funcName);

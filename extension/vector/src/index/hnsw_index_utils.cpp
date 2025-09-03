@@ -17,7 +17,7 @@ bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
         tableEntry->getTableID(), indexName);
 }
 
-void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
+bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation) {
     switch (indexOperation) {
@@ -26,6 +26,7 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
         }
+        return false;
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
@@ -33,10 +34,11 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }
+        return true;
     } break;
     case IndexOperation::CREATE_IF_NOT_EXISTS:
     case IndexOperation::DROP_IF_EXISTS: {
-        // Do nothing.
+        return indexExists(context, tableEntry, indexName);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -44,14 +46,13 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     }
 }
 
-catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::ClientContext& context,
-    const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
+catalog::TableCatalogEntry* HNSWIndexUtils::bindTable(const main::ClientContext& context,
+    const std::string& tableName) {
     binder::Binder::validateTableExistence(context, tableName);
     const auto tableEntry =
         catalog::Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
-    validateIndexExistence(context, tableEntry, indexName, indexOperation);
-    return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
+    return tableEntry;
 }
 
 void HNSWIndexUtils::validateAutoTransaction(const main::ClientContext& context,

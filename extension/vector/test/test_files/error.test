@@ -33,6 +33,9 @@ Binder exception: Table embeddings doesn't have an index with name e_hnsw_index2
 -STATEMENT CALL DROP_VECTOR_INDEX('embeddingssss', 'e_hnsw_indexxxx');
 ---- error
 Binder exception: Table embeddingssss does not exist.
+-STATEMENT CALL DROP_ALL_VECTOR_INDEXES('embeddingssss');
+---- error
+Binder exception: Table embeddingssss does not exist.
 
 -CASE ParamError
 -LOAD_DYNAMIC_EXTENSION vector

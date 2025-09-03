@@ -49,17 +49,17 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto operation = config.skipIfExists ?
                                HNSWIndexUtils::IndexOperation::CREATE_IF_NOT_EXISTS :
                                HNSWIndexUtils::IndexOperation::CREATE;
-    const auto tableEntry =
-        HNSWIndexUtils::bindNodeTable(*context, tableName, indexName, operation);
-    if (config.skipIfExists && HNSWIndexUtils::indexExists(*context, tableEntry, indexName)) {
+    const auto tableEntry = HNSWIndexUtils::bindTable(*context, tableName);
+    if (HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName, operation)) {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
-            std::move(config), true); // Bad because magic numbers: what is a better solution?
+                std::move(config), true);
     }
-    const auto tableID = tableEntry->getTableID();
-    HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
+    const auto nodeTableEntry = tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
+    const auto tableID = nodeTableEntry->getTableID();
+    HNSWIndexUtils::validateColumnType(*nodeTableEntry, columnName);
     const auto& table =
         storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
-    auto propertyID = tableEntry->getPropertyID(columnName);
+    auto propertyID = nodeTableEntry->getPropertyID(columnName);
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, std::move(config));
