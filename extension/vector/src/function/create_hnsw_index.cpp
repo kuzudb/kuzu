@@ -46,28 +46,23 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
     auto config = HNSWIndexConfig{input->optionalParams};
-    try {
-        auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
-            HNSWIndexUtils::IndexOperation::CREATE);
-        const auto tableID = tableEntry->getTableID();
-        HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
-        const auto& table =
-            storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
-        auto propertyID = tableEntry->getPropertyID(columnName);
-        auto numNodes = table.getStats(context->getTransaction()).getTableCard();
-        return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-            numNodes, std::move(config));
-    } catch (common::BinderException& e) {
-        if (std::string(e.what()) ==
-                common::stringFormat("Binder exception: Index {} already exists in table {}.",
-                    indexName, tableName) &&
-            config.skipIfExists) {
-            // Swallow the exception if the index already exists and skip_if_exists is true.
-            return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
+    const auto operation = config.skipIfExists ?
+                               HNSWIndexUtils::IndexOperation::CREATE_IF_NOT_EXISTS :
+                               HNSWIndexUtils::IndexOperation::CREATE;
+    const auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
+            operation);
+    if (config.skipIfExists && HNSWIndexUtils::indexExists(*context, tableEntry, indexName)) {
+        return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
                 std::move(config), true); // Bad because magic numbers: what is a better solution?
-        }
-        throw std::move(e);
     }
+    const auto tableID = tableEntry->getTableID();
+    HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
+    const auto& table =
+        storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
+    auto propertyID = tableEntry->getPropertyID(columnName);
+    auto numNodes = table.getStats(context->getTransaction()).getTableCard();
+    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
+            numNodes, std::move(config));
 }
 
 static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(

@@ -33,20 +33,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     auto config = DropHNSWConfig{input->optionalParams};
-    try {
-        const auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
-            HNSWIndexUtils::IndexOperation::DROP);
-        return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
-    } catch (common::BinderException& e) {
-        if (config.skipIfNotExists &&
-            std::string(e.what()) ==
-                common::stringFormat(
-                    "Binder exception: Table {} doesn't have an index with name {}.", tableName,
-                    indexName)) {
-            return std::make_unique<DropHNSWIndexBindData>(nullptr, indexName, true);
-        }
-        throw std::move(e);
+    const auto operation = config.skipIfNotExists ?
+                               HNSWIndexUtils::IndexOperation::DROP_IF_EXISTS :
+                               HNSWIndexUtils::IndexOperation::DROP;
+    const auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
+            operation);
+    if (config.skipIfNotExists && !HNSWIndexUtils::indexExists(*context, tableEntry, indexName)) {
+        return std::make_unique<DropHNSWIndexBindData>(nullptr, indexName, true);
     }
+    return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
 }
 
 static common::offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -65,7 +60,7 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     if (dropHNSWIndexBindData->skipAfterBind) {
-        "";
+        return "";
     }
     std::string query = "";
     const auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
