@@ -83,5 +83,15 @@ struct SpanningForestAliasFunction {
     static constexpr const char* name = "SF";
 };
 
+struct BetweennessCentrality {
+    static constexpr const char* name = "BETWEENNESS_CENTRALITY";
+    static function::function_set getFunctionSet();
+};
+
+struct BetweennessCentralityAliasFunction {
+    using alias = BetweennessCentrality;
+    static constexpr const char* name = "BC";
+};
+
 } // namespace algo_extension
 } // namespace kuzu
