@@ -65,7 +65,7 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     if (dropHNSWIndexBindData->skipAfterBind) {
-        return std::string{""};
+        "";
     }
     std::string query = "";
     const auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();

@@ -340,7 +340,7 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
     if (hnswBindData->skipAfterBind) {
-        return std::string{""};
+        return "";
     }
     std::string query = "BEGIN TRANSACTION;";
     auto indexName = hnswBindData->indexName;
