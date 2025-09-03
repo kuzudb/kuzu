@@ -126,7 +126,8 @@ struct HNSWIndexConfig {
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
         : mu{other.mu}, ml{other.ml}, pu{other.pu}, metric{other.metric}, alpha{other.alpha},
-          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn), skipIfExists(other.skipIfExists) {}
+          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn),
+          skipIfExists(other.skipIfExists) {}
 
     static MetricType getMetricType(const std::string& metricName);
 };

@@ -58,10 +58,13 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
             numNodes, std::move(config), false);
     } catch (common::BinderException& e) {
-        if (std::string(e.what()) == common::stringFormat("Binder exception: Index {} already exists in table {}.",
-                indexName, tableName) && config.skipIfExists) {
+        if (std::string(e.what()) ==
+                common::stringFormat("Binder exception: Index {} already exists in table {}.",
+                    indexName, tableName) &&
+            config.skipIfExists) {
             // Swallow the exception if the index already exists and skip_if_exists is true.
-            return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0, std::move(config), true); // Bad because magic numbers: what is a better solution?
+            return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
+                std::move(config), true); // Bad because magic numbers: what is a better solution?
         }
         throw e;
     }
