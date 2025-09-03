@@ -446,7 +446,7 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
     nullColumn->checkpointSegment(
         ColumnCheckpointState(*checkpointState.persistentData.getNullData(),
             std::move(nullSegmentCheckpointStates)),
-        pageAllocator);
+        pageAllocator, false);
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOfPlace(
