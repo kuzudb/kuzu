@@ -18,8 +18,10 @@ struct DropHNSWIndexBindData final : TableFuncBindData {
     std::string indexName;
     bool skipAfterBind;
 
-    DropHNSWIndexBindData(catalog::NodeTableCatalogEntry* tableEntry, std::string indexName, bool skipAfterBind = false)
-        : TableFuncBindData{0}, tableEntry{tableEntry}, indexName{std::move(indexName)}, skipAfterBind{skipAfterBind} {}
+    DropHNSWIndexBindData(catalog::NodeTableCatalogEntry* tableEntry, std::string indexName,
+        bool skipAfterBind = false)
+        : TableFuncBindData{0}, tableEntry{tableEntry}, indexName{std::move(indexName)},
+          skipAfterBind{skipAfterBind} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName, skipAfterBind);
@@ -36,9 +38,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
             HNSWIndexUtils::IndexOperation::DROP);
         return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
     } catch (common::BinderException& e) {
-        if (config.skipIfNotExists && std::string(e.what()) ==
-                common::stringFormat("Binder exception: Table {} doesn't have an index with name {}.",
-                    tableName, indexName)) {
+        if (config.skipIfNotExists &&
+            std::string(e.what()) ==
+                common::stringFormat(
+                    "Binder exception: Table {} doesn't have an index with name {}.", tableName,
+                    indexName)) {
             return std::make_unique<DropHNSWIndexBindData>(nullptr, indexName, true);
         }
         throw std::move(e);
