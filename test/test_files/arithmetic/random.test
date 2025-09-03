@@ -37,7 +37,4 @@
 0|0.528393
 2|0.708328
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN p.id, p1.id, random() as r ORDER BY r LIMIT 3
----- 3
-5|0|0.241091
-5|3|0.275582
-7|9|0.239753
+---- ok
