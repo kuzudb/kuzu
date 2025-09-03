@@ -45,7 +45,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
-    const auto config = HNSWIndexConfig{input->optionalParams};
+    auto config = HNSWIndexConfig{input->optionalParams};
     try {
         auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
             HNSWIndexUtils::IndexOperation::CREATE);
@@ -56,12 +56,12 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
         auto propertyID = tableEntry->getPropertyID(columnName);
         auto numNodes = table.getStats(context->getTransaction()).getTableCard();
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-            numNodes, std::move(config));
-    } catch (const common::BinderException& e) {
-        if (e.what() == common::stringFormat("Index {} already exists in table {}.",
+            numNodes, std::move(config), false);
+    } catch (common::BinderException& e) {
+        if (std::string(e.what()) == common::stringFormat("Binder exception: Index {} already exists in table {}.",
                 indexName, tableName) && config.skipIfExists) {
             // Swallow the exception if the index already exists and skip_if_exists is true.
-            return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, -1, -1, std::move(config), true); // Bad because magic numbers: what is a better solution?
+            return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0, std::move(config), true); // Bad because magic numbers: what is a better solution?
         }
         throw e;
     }
@@ -357,8 +357,6 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     params += stringFormat("pu := {}, ", config.pu);
     params +=
         stringFormat("cache_embeddings := {}", config.cacheEmbeddingsColumn ? "true" : "false");
-    params += 
-        stringFormat("skip_if_exists := {}", config.skipIfExists ? "true" : "false");
     auto columnName = hnswBindData->tableEntry->getProperty(hnswBindData->propertyID).getName();
     if (config.cacheEmbeddingsColumn) {
         query +=
