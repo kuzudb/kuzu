@@ -13,8 +13,8 @@ namespace vector_extension {
 
 bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName) {
-    return catalog::Catalog::Get(context)->containsIndex(
-        context.getTransaction(), tableEntry->getTableID(), indexName);
+    return catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+        tableEntry->getTableID(), indexName);
 }
 
 void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,

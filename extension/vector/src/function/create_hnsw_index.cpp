@@ -49,11 +49,11 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto operation = config.skipIfExists ?
                                HNSWIndexUtils::IndexOperation::CREATE_IF_NOT_EXISTS :
                                HNSWIndexUtils::IndexOperation::CREATE;
-    const auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
-            operation);
+    const auto tableEntry =
+        HNSWIndexUtils::bindNodeTable(*context, tableName, indexName, operation);
     if (config.skipIfExists && HNSWIndexUtils::indexExists(*context, tableEntry, indexName)) {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
-                std::move(config), true); // Bad because magic numbers: what is a better solution?
+            std::move(config), true); // Bad because magic numbers: what is a better solution?
     }
     const auto tableID = tableEntry->getTableID();
     HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
@@ -62,7 +62,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto numNodes = table.getStats(context->getTransaction()).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
-            numNodes, std::move(config));
+        numNodes, std::move(config));
 }
 
 static std::unique_ptr<TableFuncSharedState> initCreateInMemHNSWSharedState(
