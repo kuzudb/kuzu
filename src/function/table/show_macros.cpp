@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
-#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
 #include "main/client_context.h"
@@ -56,10 +56,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     std::vector<MacroInfo> macroInfos;
     auto transaction = context->getTransaction();
     if (!context->hasDefaultDatabase()) {
-        auto catalog =Catalog::Get(*context);
+        auto catalog = Catalog::Get(*context);
         for (auto& entry : catalog->getFunctionEntries(transaction)) {
-            if (entry->getType()==CatalogEntryType::SCALAR_MACRO_ENTRY){
-                std::string name=entry->getName();
+            if (entry->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {
+                std::string name = entry->getName();
                 auto macroFunction = catalog->getScalarMacroFunction(transaction, name);
                 macroInfos.emplace_back(MacroInfo{name, macroFunction->toCypher(name)});
             }
@@ -69,11 +69,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     for (auto attachedDatabase : main::DatabaseManager::Get(*context)->getAttachedDatabases()) {
         auto databaseName = attachedDatabase->getDBName();
         auto databaseType = attachedDatabase->getDBType();
-        for (auto& entry : 
-                attachedDatabase->getCatalog()->getFunctionEntries(context->getTransaction())) {
-            if (entry->getType()==CatalogEntryType::SCALAR_MACRO_ENTRY){      
-                std::string name=entry->getName();
-                auto macroFunction = attachedDatabase->getCatalog()->getScalarMacroFunction(transaction, name);
+        for (auto& entry :
+            attachedDatabase->getCatalog()->getFunctionEntries(context->getTransaction())) {
+            if (entry->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {
+                std::string name = entry->getName();
+                auto macroFunction =
+                    attachedDatabase->getCatalog()->getScalarMacroFunction(transaction, name);
                 auto macroInfo = MacroInfo{entry->getName(), macroFunction->toCypher(name)};
                 macroInfos.emplace_back(macroInfo);
             }
@@ -81,9 +82,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     }
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
-    return std::make_unique<ShowMacrosBindData>(std::move(macroInfos), std::move(columns), macroInfos.size());    
+    return std::make_unique<ShowMacrosBindData>(std::move(macroInfos), std::move(columns),
+        macroInfos.size());
 }
-
 
 function_set ShowMacrosFunction::getFunctionSet() {
     function_set functionSet;
