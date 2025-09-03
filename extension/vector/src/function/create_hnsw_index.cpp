@@ -66,7 +66,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
             return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
                 std::move(config), true); // Bad because magic numbers: what is a better solution?
         }
-        throw e;
+        throw std::move(e);
     }
 }
 
