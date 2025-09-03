@@ -451,7 +451,7 @@ void Column::checkpointNullData(const ColumnCheckpointState& checkpointState,
 
 std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOfPlace(
     const SegmentState& state, const ColumnCheckpointState& checkpointState,
-    PageAllocator& pageAllocator) const {
+    PageAllocator& pageAllocator, bool canSplitSegment) const {
     const auto numRows = std::max(checkpointState.endRowIdxToWrite, state.metadata.numValues);
     checkpointState.persistentData.setToInMemory();
     checkpointState.persistentData.resize(numRows);
@@ -467,7 +467,7 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOf
     }
     checkpointState.persistentData.finalize();
     // TODO(bmwinger): this should use the on-disk size, not the in-memory size
-    if (checkpointState.persistentData.shouldSplit()) {
+    if (canSplitSegment && checkpointState.persistentData.shouldSplit()) {
         auto newSegments = checkpointState.persistentData.split();
         for (auto& segment : newSegments) {
             segment->flush(pageAllocator);
@@ -502,7 +502,8 @@ bool Column::canCheckpointInPlace(const SegmentState& state,
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
+    bool canSplitSegment) const {
     SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {
@@ -521,7 +522,8 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointSegment(
         }
         return {};
     } else {
-        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
+        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator,
+            canSplitSegment);
     }
 }
 
