@@ -581,7 +581,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(const NodePattern& nodePat
     for (auto& [propertyName, rhs] : nodePattern.getPropertyKeyVals()) {
         auto boundLhs = expressionBinder.bindNodeOrRelPropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
-        boundRhs = expressionBinder.implicitCastIfNecessary(boundRhs, boundLhs->dataType);
+        boundRhs = expressionBinder.forceCast(boundRhs, boundLhs->dataType);
         queryNode->addPropertyDataExpr(propertyName, std::move(boundRhs));
     }
     queryGraph.addQueryNode(queryNode);
