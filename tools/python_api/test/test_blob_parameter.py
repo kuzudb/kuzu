@@ -124,6 +124,7 @@ def test_bytes_param_relationship(conn_db_empty: ConnDB) -> None:
     assert result.get_next() == [data]
     result.close()
 
+
 def test_bytes_param_udf(conn_db_empty: ConnDB) -> None:
     conn, _ = conn_db_empty
 
