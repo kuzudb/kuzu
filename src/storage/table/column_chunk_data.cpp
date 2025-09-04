@@ -276,7 +276,7 @@ ColumnChunkMetadata ColumnChunkData::getMetadataToFlush() const {
         maxValue = max.value_or(StorageValue());
     }
     KU_ASSERT(getBufferSize() == getBufferSize(capacity));
-    return getMetadataFunction(buffer->getBuffer(), capacity, numValues, minValue, maxValue);
+    return getMetadataFunction(buffer->getBuffer(), numValues, minValue, maxValue);
 }
 
 void ColumnChunkData::append(ValueVector* vector, const SelectionView& selView) {

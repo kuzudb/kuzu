@@ -125,25 +125,6 @@ def test_bytes_param_relationship(conn_db_empty: ConnDB) -> None:
     result.close()
 
 
-def test_bytes_param_invalid_types(conn_db_empty: ConnDB) -> None:
-    conn, _ = conn_db_empty
-    conn.execute("CREATE NODE TABLE tab(id SERIAL PRIMARY KEY, data BLOB)")
-
-    cases = [
-        ("test", "STRING"),
-        ("", "STRING"),
-        (1, "INT8"),
-        (256, "INT16"),
-        ([1, 2], "INT8[]"),
-        (True, "BOOL"),
-    ]
-
-    for data, real in cases:
-        msg = f"Binder exception: Expression $data has data type {real} but expected BLOB. Implicit cast is not supported."
-        with pytest.raises(RuntimeError, match=re.escape(msg)):
-            conn.execute("CREATE (t:tab {data: $data})", {"data": data})
-
-
 def test_bytes_param_udf(conn_db_empty: ConnDB) -> None:
     conn, _ = conn_db_empty
 

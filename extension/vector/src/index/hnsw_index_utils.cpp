@@ -7,22 +7,24 @@
 #include "common/types/types.h"
 #include "main/client_context.h"
 #include "simsimd.h"
+#include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace vector_extension {
 
 bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
-    const catalog::TableCatalogEntry* tableEntry, const std::string& indexName) {
-    return catalog::Catalog::Get(context)->containsIndex(context.getTransaction(),
+    const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry, const std::string& indexName) {
+    return catalog::Catalog::Get(context)->containsIndex(transaction,
         tableEntry->getTableID(), indexName);
 }
 
 bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation, common::ConflictAction conflictAction) {
+    auto transaction = transaction::Transaction::Get(context);
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (indexExists(context, tableEntry, indexName)) {
+        if (indexExists(context, transaction, tableEntry, indexName)) {
             switch (conflictAction) {
             case common::ConflictAction::ON_CONFLICT_THROW:
                 throw common::BinderException{common::stringFormat(
@@ -37,7 +39,7 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!indexExists(context, tableEntry, indexName)) {
+        if (!indexExists(context, transaction, tableEntry, indexName)) {
             switch (conflictAction) {
             case common::ConflictAction::ON_CONFLICT_THROW:
                 throw common::BinderException{common::stringFormat(
@@ -59,8 +61,9 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
 catalog::TableCatalogEntry* HNSWIndexUtils::bindTable(const main::ClientContext& context,
     const std::string& tableName) {
     binder::Binder::validateTableExistence(context, tableName);
+    auto transaction = transaction::Transaction::Get(context);
     const auto tableEntry =
-        catalog::Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
+        catalog::Catalog::Get(context)->getTableCatalogEntry(transaction, tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     return tableEntry;
 }

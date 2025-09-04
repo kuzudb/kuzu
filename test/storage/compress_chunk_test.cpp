@@ -96,9 +96,8 @@ ColumnChunkMetadata compressBuffer(const std::vector<T>& bufferToCompress,
     const std::shared_ptr<FloatCompression<T>>& alg, const CompressionMetadata* metadata,
     FileHandle* dataFH, const LogicalType& dataType) {
 
-    auto preScanMetadata =
-        GetFloatCompressionMetadata<T>{alg, dataType}.operator()(byteSpan(bufferToCompress),
-            bufferToCompress.size(), bufferToCompress.size(), metadata->min, metadata->max);
+    auto preScanMetadata = GetFloatCompressionMetadata<T>{alg, dataType}.operator()(
+        byteSpan(bufferToCompress), bufferToCompress.size(), metadata->min, metadata->max);
     auto allocatedBlock =
         dataFH->getPageManager()->allocatePageRange(preScanMetadata.getNumPages());
 

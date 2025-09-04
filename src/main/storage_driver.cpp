@@ -22,7 +22,7 @@ StorageDriver::StorageDriver(Database* database) {
 StorageDriver::~StorageDriver() = default;
 
 static TableCatalogEntry* getEntry(const ClientContext& context, const std::string& tableName) {
-    return Catalog::Get(context)->getTableCatalogEntry(context.getTransaction(), tableName);
+    return Catalog::Get(context)->getTableCatalogEntry(Transaction::Get(context), tableName);
 }
 
 static Table* getTable(const ClientContext& context, const std::string& tableName) {
@@ -109,16 +109,16 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
 
 uint64_t StorageDriver::getNumNodes(const std::string& nodeName) const {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
-    auto result =
-        getTable(*clientContext, nodeName)->getNumTotalRows(clientContext->getTransaction());
+    auto transaction = Transaction::Get(*clientContext);
+    auto result = getTable(*clientContext, nodeName)->getNumTotalRows(transaction);
     clientContext->query("COMMIT");
     return result;
 }
 
 uint64_t StorageDriver::getNumRels(const std::string& relName) const {
     clientContext->query("BEGIN TRANSACTION READ ONLY;");
-    auto result =
-        getTable(*clientContext, relName)->getNumTotalRows(clientContext->getTransaction());
+    auto transaction = Transaction::Get(*clientContext);
+    auto result = getTable(*clientContext, relName)->getNumTotalRows(transaction);
     clientContext->query("COMMIT");
     return result;
 }
@@ -137,6 +137,7 @@ void StorageDriver::scanColumn(Table* table, column_id_t columnID, const offset_
     columnVector->state = vectorState;
     auto scanState = std::make_unique<NodeTableScanState>(idVector.get(),
         std::vector{columnVector.get()}, vectorState);
+    auto transaction = Transaction::Get(*clientContext);
     switch (auto physicalType = column->getDataType().getPhysicalType()) {
     case PhysicalTypeID::BOOL:
     case PhysicalTypeID::INT128:
@@ -152,8 +153,7 @@ void StorageDriver::scanColumn(Table* table, column_id_t columnID, const offset_
     case PhysicalTypeID::FLOAT: {
         for (auto i = 0u; i < size; ++i) {
             idVector->setValue(0, nodeID_t{offsets[i], table->getTableID()});
-            [[maybe_unused]] auto res =
-                nodeTable->lookup(clientContext->getTransaction(), *scanState);
+            [[maybe_unused]] auto res = nodeTable->lookup(transaction, *scanState);
             memcpy(result, columnVector->getData(),
                 PhysicalTypeUtils::getFixedTypeSize(physicalType));
         }
@@ -165,8 +165,7 @@ void StorageDriver::scanColumn(Table* table, column_id_t columnID, const offset_
         auto arraySize = elementSize * numElements;
         for (auto i = 0u; i < size; ++i) {
             idVector->setValue(0, nodeID_t{offsets[i], table->getTableID()});
-            [[maybe_unused]] auto res =
-                nodeTable->lookup(clientContext->getTransaction(), *scanState);
+            [[maybe_unused]] auto res = nodeTable->lookup(transaction, *scanState);
             auto dataVector = ListVector::getDataVector(columnVector.get());
             memcpy(result, dataVector->getData() + i * arraySize, arraySize);
         }

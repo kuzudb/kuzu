@@ -25,7 +25,7 @@ public:
         conn->query("BEGIN TRANSACTION");
         context = getClientContext(*conn);
         catalog = catalog::Catalog::Get(*context);
-        auto transaction = context->getTransaction();
+        auto transaction = transaction::Transaction::Get(*context);
         std::vector<catalog::TableCatalogEntry*> nodeEntries;
         for (auto& entry : catalog->getNodeTableEntries(transaction)) {
             nodeEntries.push_back(entry);
@@ -62,7 +62,7 @@ public:
 
 // Test correctness of scan fwd
 TEST_F(RelScanTest, ScanFwd) {
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, "person");
     auto tableID = nodeEntry->getTableID();
     auto relEntry = catalog->getTableCatalogEntry(transaction, "knows");
@@ -154,7 +154,7 @@ TEST_F(RelScanTest, ScanFwd) {
 }
 
 TEST_F(VertexScanTest, ScanVertexProperties) {
-    auto entry = catalog->getTableCatalogEntry(context->getTransaction(), "person");
+    auto entry = catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), "person");
     std::vector<std::string> properties = {"fname", "height"};
 
     auto scanState = graph->prepareVertexScan(entry, properties);
@@ -189,7 +189,7 @@ TEST_F(EmptyVertexScanTest, ScanVertexProperties) {
     conn->query("BEGIN TRANSACTION");
     context = getClientContext(*conn);
     catalog = catalog::Catalog::Get(*context);
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     std::vector<catalog::TableCatalogEntry*> nodeEntries;
     for (auto& entry : catalog->getNodeTableEntries(transaction)) {
         nodeEntries.push_back(entry);
@@ -197,7 +197,8 @@ TEST_F(EmptyVertexScanTest, ScanVertexProperties) {
     auto entry = graph::NativeGraphEntry(nodeEntries, {});
     graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
 
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    auto tableEntry =
+        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), "account");
     std::vector<std::string> properties = {"id"};
     auto scanState = graph->prepareVertexScan(tableEntry, properties);
     const auto compare = [&](offset_t startNode, offset_t endNode) {
@@ -242,7 +243,7 @@ TEST_F(EmptyVertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
     conn->query("BEGIN TRANSACTION");
     context = getClientContext(*conn);
     catalog = catalog::Catalog::Get(*context);
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     std::vector<catalog::TableCatalogEntry*> nodeEntries;
     for (auto& entry : catalog->getNodeTableEntries(transaction)) {
         nodeEntries.push_back(entry);
@@ -250,7 +251,8 @@ TEST_F(EmptyVertexScanTest, ScanVertexPropertiesAfterDeletionReInsert) {
     auto entry = graph::NativeGraphEntry(nodeEntries, {});
     graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
 
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    auto tableEntry =
+        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), "account");
     std::vector<std::string> properties = {"id"};
     auto scanState = graph->prepareVertexScan(tableEntry, properties);
     const auto compare = [&](offset_t startNode, offset_t endNode) {
@@ -308,7 +310,7 @@ TEST_F(EmptyVertexScanTest, ScanVertexPropertiesDuringTransaction) {
 
     context = getClientContext(*conn);
     catalog = catalog::Catalog::Get(*context);
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     std::vector<catalog::TableCatalogEntry*> nodeEntries;
     for (auto& entry : catalog->getNodeTableEntries(transaction)) {
         nodeEntries.push_back(entry);
@@ -316,7 +318,8 @@ TEST_F(EmptyVertexScanTest, ScanVertexPropertiesDuringTransaction) {
     auto entry = graph::NativeGraphEntry(nodeEntries, {});
     graph = std::make_unique<graph::OnDiskGraph>(context, std::move(entry));
 
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), "account");
+    auto tableEntry =
+        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), "account");
     std::vector<std::string> properties = {"id"};
     auto scanState = graph->prepareVertexScan(tableEntry, properties);
     const auto compare = [&](offset_t startNode, offset_t endNode) {

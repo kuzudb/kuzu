@@ -3,6 +3,7 @@
 #include "common/cast.h"
 #include "common/exception/io.h"
 #include "common/exception/not_implemented.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace httpfs_extension {
@@ -110,8 +111,8 @@ void HTTPFileInfo::initMetadata() {
 void HTTPFileInfo::initialize(main::ClientContext* context) {
     if (httpConfig.cacheFile && !VirtualFileSystem::GetUnsafe(*context)->isCompressedFile(path)) {
         auto hfs = fileSystem->ptrCast<HTTPFileSystem>();
-        cachedFileInfo =
-            hfs->getCachedFileManager().getCachedFileInfo(this, context->getTransaction()->getID());
+        cachedFileInfo = hfs->getCachedFileManager().getCachedFileInfo(this,
+            transaction::Transaction::Get(*context)->getID());
         return;
     }
     initMetadata();

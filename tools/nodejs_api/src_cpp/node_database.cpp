@@ -26,6 +26,8 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     maxDBSize = info[4].As<Napi::Number>().Int64Value();
     autoCheckpoint = info[5].As<Napi::Boolean>().Value();
     checkpointThreshold = info[6].As<Napi::Number>().Int64Value();
+    throwOnWalReplayFailure = info[7].As<Napi::Boolean>().Value();
+    enableChecksums = info[8].As<Napi::Boolean>().Value();
 }
 
 Napi::Value NodeDatabase::InitSync(const Napi::CallbackInfo& info) {
@@ -63,6 +65,8 @@ void NodeDatabase::InitCppDatabase() {
         systemConfig.maxDBSize = maxDBSize;
     }
     systemConfig.autoCheckpoint = autoCheckpoint;
+    systemConfig.throwOnWalReplayFailure = throwOnWalReplayFailure;
+    systemConfig.enableChecksums = enableChecksums;
     if (checkpointThreshold >= 0) {
         systemConfig.checkpointThreshold = checkpointThreshold;
     }

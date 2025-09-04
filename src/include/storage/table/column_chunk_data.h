@@ -266,7 +266,7 @@ private:
 
 protected:
     using get_metadata_func_t = std::function<ColumnChunkMetadata(const std::span<uint8_t>,
-        uint64_t, uint64_t, StorageValue, StorageValue)>;
+        uint64_t, StorageValue, StorageValue)>;
     using get_min_max_func_t =
         std::function<std::pair<StorageValue, StorageValue>(const uint8_t*, uint64_t)>;
 

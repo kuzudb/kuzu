@@ -26,7 +26,7 @@ struct HNSWIndexUtils {
     };
 
     static bool indexExists(const main::ClientContext& context,
-        const catalog::TableCatalogEntry* tableEntry, const std::string& indexName);
+        const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry, const std::string& indexName);
 
     static bool validateIndexExistence(const main::ClientContext& context,
         const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,

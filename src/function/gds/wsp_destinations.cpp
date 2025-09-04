@@ -2,8 +2,8 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds/weight_utils.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -306,8 +306,8 @@ private:
         auto nextDenseFrontier = DenseFrontier::getUninitializedFrontier(context, graph);
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
-        auto costsPair =
-            std::make_unique<CostsPair>(graph->getMaxOffsetMap(clientContext->getTransaction()));
+        auto costsPair = std::make_unique<CostsPair>(
+            graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)));
         auto costPairPtr = costsPair.get();
         auto auxiliaryState = std::make_unique<WSPDestinationsAuxiliaryState>(std::move(costsPair));
         std::unique_ptr<GDSComputeState> gdsState;
@@ -328,7 +328,7 @@ private:
         auto clientContext = context->clientContext;
         return std::make_unique<WSPDestinationsOutputWriter>(clientContext,
             sharedState->getOutputNodeMaskMap(), sourceNodeID, costs,
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()));
+            sharedState->graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)));
     }
 };
 

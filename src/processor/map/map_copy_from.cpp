@@ -123,7 +123,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     KU_ASSERT(partitioner->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     auto partitionerSharedState = partitioner->ptrCast<Partitioner>()->getSharedState();
     const auto catalog = Catalog::Get(*clientContext);
-    const auto transaction = clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     auto extraInfo = copyFromInfo->extraInfo->constCast<ExtraBoundCopyRelInfo>();
     auto fromTableID =
         catalog->getTableCatalogEntry(transaction, extraInfo.fromTableName)->getTableID();
