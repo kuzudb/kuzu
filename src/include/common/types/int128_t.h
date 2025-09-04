@@ -11,10 +11,14 @@
 
 #include "common/api.h"
 
+#include "uint128_t.h" // for conversion between signed and unsigned
+
 namespace kuzu {
 namespace common {
 
 struct KUZU_API int128_t;
+
+struct uint128_t; // forward-declaration
 
 // System representation for int128_t.
 struct int128_t {
@@ -30,6 +34,7 @@ struct int128_t {
     int128_t(uint32_t value); // NOLINT: Allow implicit conversion from numeric values
     int128_t(uint16_t value); // NOLINT: Allow implicit conversion from numeric values
     int128_t(uint8_t value);  // NOLINT: Allow implicit conversion from numeric values
+    int128_t(uint128_t value);// NOLINT: Allow implicit conversion from numeric values
     int128_t(double value);   // NOLINT: Allow implicit conversion from numeric values
     int128_t(float value);    // NOLINT: Allow implicit conversion from numeric values
 
@@ -186,6 +191,8 @@ bool Int128_t::tryCast(int128_t input, uint32_t& result);
 template<>
 bool Int128_t::tryCast(int128_t input, uint64_t& result);
 template<>
+bool Int128_t::tryCast(int128_t input, uint128_t& result); // signed to unsigned
+template<>
 bool Int128_t::tryCast(int128_t input, float& result);
 template<>
 bool Int128_t::tryCast(int128_t input, double& result);
@@ -210,6 +217,8 @@ template<>
 bool Int128_t::tryCastTo(uint64_t value, int128_t& result);
 template<>
 bool Int128_t::tryCastTo(int128_t value, int128_t& result);
+template<>
+bool Int128_t::tryCastTo(uint128_t value, int128_t& result); // unsigned to signed
 template<>
 bool Int128_t::tryCastTo(float value, int128_t& result);
 template<>
