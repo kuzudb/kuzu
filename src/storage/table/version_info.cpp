@@ -255,7 +255,7 @@ row_idx_t VectorVersionInfo::getNumDeletions(transaction_t startTS, transaction_
 void VectorVersionInfo::rollbackInsertions(row_idx_t startRowInVector, row_idx_t numRows) {
     if (isSameInsertionVersion()) {
         // This implicitly assumes that all rows are inserted in the same transaction, so regardless
-        // which rows to be roll backed, we just reset the sameInsertionVersion.
+        // which rows to be rolled back, we just reset the sameInsertionVersion.
         sameInsertionVersion = INVALID_TRANSACTION;
     } else {
         if (insertedVersions) {

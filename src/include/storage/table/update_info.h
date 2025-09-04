@@ -41,12 +41,10 @@ struct VectorUpdateInfo {
     }
 
     std::unique_ptr<VectorUpdateInfo> movePrev() { return std::move(prev); }
-    std::unique_ptr<VectorUpdateInfo> movePrevNoLock() { return std::move(prev); }
     void setPrev(std::unique_ptr<VectorUpdateInfo> prev_) { this->prev = std::move(prev_); }
     VectorUpdateInfo* getPrev() const { return prev.get(); }
     void setNext(VectorUpdateInfo* next_) { this->next = next_; }
     VectorUpdateInfo* getNext() const { return next; }
-    VectorUpdateInfo* getNextNoLock() const { return next; }
 };
 
 struct UpdateNode {
@@ -56,7 +54,7 @@ struct UpdateNode {
     UpdateNode() : info{nullptr} {}
     UpdateNode(UpdateNode&& other) noexcept : info{std::move(other.info)} {}
 
-    bool isSet() const {
+    bool isEmpty() const {
         std::shared_lock lock{mtx};
         return info != nullptr;
     }
@@ -114,13 +112,15 @@ public:
     }
 
 private:
+    using iterate_read_from_row_func_t =
+        std::function<void(const VectorUpdateInfo&, uint64_t, uint64_t)>;
+
     UpdateNode& getUpdateNode(common::idx_t vectorIdx);
     UpdateNode& getOrCreateUpdateNode(common::idx_t vectorIdx);
 
     void iterateScan(const transaction::Transaction* transaction, uint64_t startOffsetToScan,
         uint64_t numRowsToScan, uint64_t startPosInOutput,
-        const std::function<void(const VectorUpdateInfo&, uint64_t, uint64_t)>& readFromRowFunc)
-        const;
+        const iterate_read_from_row_func_t& readFromRowFunc) const;
 
 private:
     mutable std::shared_mutex mtx;

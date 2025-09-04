@@ -1,6 +1,7 @@
 #include "storage/table/update_info.h"
 
 #include <algorithm>
+#include <bitset>
 
 #include "common/exception/runtime.h"
 #include "common/vector/value_vector.h"
@@ -116,7 +117,7 @@ void UpdateInfo::iterateVectorInfo(const Transaction* transaction, idx_t idx,
     const UpdateNode* head = nullptr;
     {
         std::shared_lock lock{mtx};
-        if (idx >= updates.size() || !updates[idx].isSet()) {
+        if (idx >= updates.size() || !updates[idx].isEmpty()) {
             return;
         }
         head = &updates[idx];
@@ -140,9 +141,22 @@ void UpdateInfo::iterateVectorInfo(const Transaction* transaction, idx_t idx,
     }
 }
 
+// Assert that info is in the updatedNode version chain.
+static bool validateUpdateChain(const UpdateNode& updatedNode, const VectorUpdateInfo* info) {
+    auto current = updatedNode.info.get();
+    while (current) {
+        if (current == info) {
+            return true;
+        }
+        current = current->getPrev();
+    }
+    return false;
+}
+
 void UpdateInfo::commit(idx_t vectorIdx, VectorUpdateInfo* info, transaction_t commitTS) {
     auto& updateNode = getUpdateNode(vectorIdx);
     std::unique_lock chainLock{updateNode.mtx};
+    KU_ASSERT(validateUpdateChain(updateNode, info));
     info->version = commitTS;
 }
 
@@ -169,7 +183,7 @@ void UpdateInfo::rollback(idx_t vectorIdx, VectorUpdateInfo* info) {
         if (info->next) {
             // Has newer version. Remove this from the version chain.
             const auto newerVersion = info->next;
-            auto prevVersion = info->movePrevNoLock();
+            auto prevVersion = info->movePrev();
             if (prevVersion) {
                 prevVersion->next = newerVersion;
             }
@@ -197,42 +211,16 @@ row_idx_t UpdateInfo::getNumUpdatedRows(const Transaction* transaction) const {
 
 bool UpdateInfo::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     length_t numRows) const {
-    auto [startVector, rowInStartVector] =
-        StorageUtils::getQuotientRemainder(startRow, DEFAULT_VECTOR_CAPACITY);
-    auto [endVectorIdx, rowInEndVector] =
-        StorageUtils::getQuotientRemainder(startRow + numRows, DEFAULT_VECTOR_CAPACITY);
-    if (!isSet()) {
-        return false;
-    }
     bool hasUpdates = false;
-    for (idx_t vectorIdx = startVector; vectorIdx <= endVectorIdx; ++vectorIdx) {
-        if (hasUpdates) {
-            break;
-        }
-        iterateVectorInfo(transaction, vectorIdx, [&](const VectorUpdateInfo& info) {
-            if (info.numRowsUpdated == 0) {
-                return;
-            }
-            const auto startRowInVector = (vectorIdx == startVector) ? rowInStartVector : 0;
-            const auto endRowInVector =
-                (vectorIdx == endVectorIdx) ? rowInEndVector : DEFAULT_VECTOR_CAPACITY;
-            for (auto row = startRowInVector; row <= endRowInVector; row++) {
-                if (std::any_of(info.rowsInVector.begin(),
-                        info.rowsInVector.begin() + info.numRowsUpdated,
-                        [&](row_idx_t updatedRow) { return row == updatedRow; })) {
-                    hasUpdates = true;
-                    return;
-                }
-            }
-        });
-    }
+    iterateScan(transaction, startRow, numRows, 0 /* startPosInOutput */,
+        [&](const VectorUpdateInfo&, uint64_t, uint64_t) -> void { hasUpdates = true; });
     return hasUpdates;
 }
 
 UpdateNode& UpdateInfo::getUpdateNode(idx_t vectorIdx) {
     std::shared_lock lock{mtx};
     if (vectorIdx >= updates.size()) {
-        throw RuntimeException(
+        throw InternalException(
             "UpdateInfo does not have update node for vector index: " + std::to_string(vectorIdx));
     }
     return updates[vectorIdx];
@@ -248,7 +236,7 @@ UpdateNode& UpdateInfo::getOrCreateUpdateNode(idx_t vectorIdx) {
 
 void UpdateInfo::iterateScan(const Transaction* transaction, uint64_t startOffsetToScan,
     uint64_t numRowsToScan, uint64_t startPosInOutput,
-    const std::function<void(const VectorUpdateInfo&, uint64_t, uint64_t)>& readFromRowFunc) const {
+    const iterate_read_from_row_func_t& readFromRowFunc) const {
     if (!isSet()) {
         return;
     }
@@ -268,12 +256,12 @@ void UpdateInfo::iterateScan(const Transaction* transaction, uint64_t startOffse
         // the tail. For each tuple, we iterate through the chain to merge the updates from latest
         // visible version. If a row has been updated in the current vectorInfo, we should skip it
         // in older versions.
-        std::vector rowsUpdated(numRowsInVector, false);
+        std::bitset<DEFAULT_VECTOR_CAPACITY> rowsUpdated;
         iterateVectorInfo(transaction, idx, [&](const VectorUpdateInfo& vecUpdateInfo) -> void {
             if (vecUpdateInfo.numRowsUpdated == 0) {
                 return;
             }
-            if (std::ranges::none_of(rowsUpdated, [](auto val) { return !val; })) {
+            if (rowsUpdated.count() == numRowsInVector) {
                 // All rows in this vector have been updated with a newer visible version already.
                 return;
             }
