@@ -2,8 +2,8 @@
 
 #include <cmath>
 
-#include "common/types/types.h"
 #include "common/enums/conflict_action.h"
+#include "common/types/types.h"
 #include "function/table/bind_input.h"
 
 namespace kuzu {
@@ -83,13 +83,15 @@ struct CacheEmbeddings {
 struct SkipIfExists {
     static constexpr const char* NAME = "skip_if_exists";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
-    static constexpr common::ConflictAction DEFAULT_VALUE = common::ConflictAction::ON_CONFLICT_THROW;
+    static constexpr common::ConflictAction DEFAULT_VALUE =
+        common::ConflictAction::ON_CONFLICT_THROW;
 };
 
 struct SkipIfNotExists {
     static constexpr const char* NAME = "skip_if_not_exists";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
-    static constexpr common::ConflictAction DEFAULT_VALUE = common::ConflictAction::ON_CONFLICT_THROW;
+    static constexpr common::ConflictAction DEFAULT_VALUE =
+        common::ConflictAction::ON_CONFLICT_THROW;
 };
 
 struct BlindSearchUpSelThreshold {

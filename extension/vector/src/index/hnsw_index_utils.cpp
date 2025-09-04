@@ -13,9 +13,10 @@ namespace kuzu {
 namespace vector_extension {
 
 bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
-    const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry, const std::string& indexName) {
-    return catalog::Catalog::Get(context)->containsIndex(transaction,
-        tableEntry->getTableID(), indexName);
+    const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry,
+    const std::string& indexName) {
+    return catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
+        indexName);
 }
 
 bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
@@ -28,7 +29,7 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
             switch (conflictAction) {
             case common::ConflictAction::ON_CONFLICT_THROW:
                 throw common::BinderException{common::stringFormat(
-                "Index {} already exists in table {}.", indexName, tableEntry->getName())};
+                    "Index {} already exists in table {}.", indexName, tableEntry->getName())};
             case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
                 return true;
             case common::ConflictAction::INVALID:
@@ -42,8 +43,9 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
         if (!indexExists(context, transaction, tableEntry, indexName)) {
             switch (conflictAction) {
             case common::ConflictAction::ON_CONFLICT_THROW:
-                throw common::BinderException{common::stringFormat(
-                "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
+                throw common::BinderException{
+                    common::stringFormat("Table {} doesn't have an index with name {}.",
+                        tableEntry->getName(), indexName)};
             case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
                 return false;
             case common::ConflictAction::INVALID:
