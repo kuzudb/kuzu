@@ -336,7 +336,9 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
         const auto numRelsScanned = tempState->getSelVector().getSelSize();
         tempState->getSelVectorUnsafe().setToFiltered(1);
         for (auto i = 0u; i < numRelsScanned; i++) {
-            tempState->getSelVectorUnsafe()[0] = i;
+            // rel table data delete() expects the input to be flat
+            // so we manually flatten the scanned rels here
+            tempState->getSelVectorUnsafe()[0] = deleteState->relIDVector.state->getSelVector()[i];
             const auto relIDPos = deleteState->relIDVector.state->getSelVector()[0];
             const auto relOffset = deleteState->relIDVector.readNodeOffset(relIDPos);
             if (relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {

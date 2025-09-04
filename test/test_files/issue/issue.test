@@ -2,6 +2,29 @@
 
 --
 
+-CASE 5954
+-STATEMENT CREATE NODE TABLE Device(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE Execution(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE Request(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE REQUESTED_BY(FROM Execution TO Request);
+---- ok
+-STATEMENT CREATE REL TABLE TARGET(FROM Request TO Device);
+---- ok
+-STATEMENT CREATE (:Execution { id: 'E1' })-[:REQUESTED_BY]->(:Request { id: 'R1' })-[:TARGET]->(:Device { id: 'D1' });
+---- ok
+-STATEMENT MATCH (execution:Execution { id: 'E1' }) CREATE (execution)-[:REQUESTED_BY]->(r:Request { id: 'R2' })-[:TARGET]->(d:Device { id: 'D2' }) return execution.id, r.id, d.id;
+---- ok
+-STATEMENT MATCH (request:Request { id: 'R1' }) DETACH DELETE request;
+---- ok
+-STATEMENT MATCH (execution:Execution { id: 'E1' }) DETACH DELETE execution;
+---- ok
+-STATEMENT MATCH (a)-[r]->(b) HINT a JOIN (r join b) RETURN a.id, b.id;
+---- 1
+R2|D2
+
 -CASE 4080
 -STATEMENT CREATE NODE TABLE V(id INT, PRIMARY KEY(id));
 ---- ok
