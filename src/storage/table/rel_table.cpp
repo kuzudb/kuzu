@@ -327,6 +327,26 @@ void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     }
 }
 
+struct SavedScannedRelState {
+    bool isUnfiltered;
+};
+
+static SavedScannedRelState flattenScannedRelState(DataChunkState& stateToSave, sel_t selectedPos) {
+    auto ret = SavedScannedRelState{stateToSave.getSelVector().isUnfiltered()};
+    stateToSave.getSelVectorUnsafe().setToFiltered(1);
+    stateToSave.getSelVectorUnsafe()[0] = selectedPos;
+    return ret;
+}
+
+static void restoreScannedRelState(DataChunkState& stateToRestore,
+    SavedScannedRelState savedState) {
+    if (savedState.isUnfiltered) {
+        stateToRestore.getSelVectorUnsafe().setToUnfiltered();
+    }
+    // We don't bother restoring the original selected pos at index 0 because we don't need to use
+    // it later
+}
+
 void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
     RelTableData* reverseTableData, RelTableScanState* relDataReadState,
     RelTableDeleteState* deleteState) {
@@ -334,11 +354,12 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
     const auto tempState = deleteState->dstNodeIDVector.state.get();
     while (scan(transaction, *relDataReadState)) {
         const auto numRelsScanned = tempState->getSelVector().getSelSize();
-        tempState->getSelVectorUnsafe().setToFiltered(1);
         for (auto i = 0u; i < numRelsScanned; i++) {
             // rel table data delete() expects the input to be flat
             // so we manually flatten the scanned rels here
-            tempState->getSelVectorUnsafe()[0] = deleteState->relIDVector.state->getSelVector()[i];
+            const auto selectedPosToDelete = deleteState->relIDVector.state->getSelVector()[i];
+            const auto savedScanState = flattenScannedRelState(*tempState, selectedPosToDelete);
+
             const auto relIDPos = deleteState->relIDVector.state->getSelVector()[0];
             const auto relOffset = deleteState->relIDVector.readNodeOffset(relIDPos);
             if (relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
@@ -353,6 +374,8 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
                     deleteState->dstNodeIDVector, deleteState->relIDVector);
                 KU_ASSERT(deleted == reverseDeleted);
             }
+
+            restoreScannedRelState(*tempState, savedScanState);
         }
         tempState->getSelVectorUnsafe().setToUnfiltered();
     }

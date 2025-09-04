@@ -21,6 +21,9 @@
 ---- ok
 -STATEMENT MATCH (execution:Execution { id: 'E1' }) DETACH DELETE execution;
 ---- ok
+-STATEMENT MATCH ()-[r]->() RETURN COUNT(*)
+---- 1
+1
 -STATEMENT MATCH (a)-[r]->(b) HINT a JOIN (r join b) RETURN a.id, b.id;
 ---- 1
 R2|D2
