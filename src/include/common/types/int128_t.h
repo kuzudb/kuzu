@@ -11,14 +11,12 @@
 
 #include "common/api.h"
 
-#include "uint128_t.h" // for conversion between signed and unsigned
-
 namespace kuzu {
 namespace common {
 
 struct KUZU_API int128_t;
 
-struct uint128_t; // forward-declaration
+struct uint128_t; // forward-declaration, for conversion between signed and unsigned
 
 // System representation for int128_t.
 struct int128_t {

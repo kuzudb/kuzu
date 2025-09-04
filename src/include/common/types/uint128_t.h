@@ -7,8 +7,6 @@
 
 #include "common/api.h"
 
-#include "int128_t.h" // for conversion between signed and unsigned
-
 namespace kuzu {
 namespace common {
 
