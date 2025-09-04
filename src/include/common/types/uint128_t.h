@@ -14,6 +14,8 @@ namespace common {
 
 struct KUZU_API uint128_t;
 
+struct int128_t; // forward-declaration
+
 struct uint128_t {
     uint64_t low;
     uint64_t high;
@@ -27,7 +29,7 @@ struct uint128_t {
     uint128_t(uint32_t value); // NOLINT: Allow implicit conversion from numeric values
     uint128_t(uint16_t value); // NOLINT: Allow implicit conversion from numeric values
     uint128_t(uint8_t value);  // NOLINT: Allow implicit conversion from numeric values
-    uint128_t(int128_t value); // conversion from signed 128-bit int
+    uint128_t(int128_t value); // NOLINT: Allow implicit conversion from numeric values
     uint128_t(double value);   // NOLINT: Allow implicit conversion from numeric values
     uint128_t(float value);    // NOLINT: Allow implicit conversion from numeric values
 
@@ -106,20 +108,6 @@ public:
         return result;
     }
 
-    // negate
-    // static void negateInPlace(uint128_t& input) {
-    //     if (input.high == INT64_MIN && input.low == 0) {
-    //         throw std::overflow_error("UINT128 is out of range: cannot negate UINT128_MIN");
-    //     }
-    //     input.low = UINT64_MAX + 1 - input.low;
-    //     input.high = -input.high - 1 + (input.low == 0);
-    // }
-
-    // static uint128_t negate(uint128_t input) {
-    //     negateInPlace(input);
-    //     return input;
-    // }
-
     static bool tryMultiply(uint128_t lhs, uint128_t rhs, uint128_t& result);
 
     static uint128_t Add(uint128_t lhs, uint128_t rhs);
@@ -184,6 +172,8 @@ bool Uint128_t::tryCast(uint128_t input, uint32_t& result);
 template<>
 bool Uint128_t::tryCast(uint128_t input, uint64_t& result);
 template<>
+bool Uint128_t::tryCast(uint128_t input, int128_t& result); // unsigned to signed
+template<>
 bool Uint128_t::tryCast(uint128_t input, float& result);
 template<>
 bool Uint128_t::tryCast(uint128_t input, double& result);
@@ -207,7 +197,7 @@ bool Uint128_t::tryCastTo(uint32_t value, uint128_t& result);
 template<>
 bool Uint128_t::tryCastTo(uint64_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(int128_t value, uint128_t& result);
+bool Uint128_t::tryCastTo(uint128_t value, uint128_t& result);
 template<>
 bool Uint128_t::tryCastTo(int128_t value, uint128_t& result); // signed to unsigned
 template<>

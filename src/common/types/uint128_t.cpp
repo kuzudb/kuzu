@@ -4,7 +4,6 @@
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
-#include "common/numeric_utils.h"
 #include "common/type_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
@@ -115,25 +114,6 @@ uint128_t Uint128_t::divModPositive(uint128_t lhs, uint64_t rhs, uint64_t& remai
 }
 
 std::string Uint128_t::ToString(uint128_t input) {
-    // bool isMin = (input.high == INT64_MIN && input.low == 0);
-    // bool negative = input.high < 0;
-
-    // if (isMin) {
-
-    //     uint64_t remainder = 0;
-    //     uint128_t quotient = divModPositive(input, 10, remainder);
-
-    //     std::string result = ToString(quotient);
-
-    //     result += static_cast<char>('0' + remainder);
-
-    //     return "-" + result;
-    // }
-
-    // if (negative) {
-    //     negateInPlace(input);
-    // }
-
     std::string result;
     uint64_t remainder = 0;
 
@@ -146,28 +126,16 @@ std::string Uint128_t::ToString(uint128_t input) {
         result = "0";
     }
 
-    return /*negative ? "-" + result :*/ result;
+    return result;
 }
 
 bool Uint128_t::addInPlace(uint128_t& lhs, uint128_t rhs) {
-    // bool lhsPositive = lhs.high >= 0;
-    // bool rhsPositive = rhs.high >= 0;
     int overflow = lhs.low + rhs.low < lhs.low;
-    // if (rhs.high >= 0) {
-        if (lhs.high > UINT64_MAX - rhs.high - overflow) { // check against UINT64_MAX for overflow instead of INT64_MAX
-            return false;
-        }
-        lhs.high = lhs.high + rhs.high + overflow;
-    // } else {
-    //     if (lhs.high < INT64_MIN - rhs.high - overflow) {
-    //         return false;
-    //     }
-    //     lhs.high = lhs.high + rhs.high + overflow;
-    // }
+    if (lhs.high > UINT64_MAX - rhs.high - overflow) { // check against UINT64_MAX for overflow instead of INT64_MAX
+        return false;
+    }
+    lhs.high = lhs.high + rhs.high + overflow;
     lhs.low += rhs.low;
-    // if (lhsPositive && rhsPositive && lhs.high == INT64_MIN && lhs.low == 0) {
-    //     return false;
-    // }
     return true;
 }
 
@@ -177,21 +145,8 @@ bool Uint128_t::subInPlace(uint128_t& lhs, uint128_t rhs) {
         return false;
     }
     int underflow = lhs.low - rhs.low > lhs.low;
-    // if (rhs.high >= 0) {
-    //     if (lhs.high < INT64_MIN + rhs.high + underflow) {
-    //         return false;
-    //     }
-        lhs.high = lhs.high - rhs.high - underflow;
-    // } else {
-    //     if (lhs.high > INT64_MIN && lhs.high - 1 >= INT64_MAX + rhs.high + underflow) {
-    //         return false;
-    //     }
-    //     lhs.high = lhs.high - rhs.high - underflow;
-    // }
+    lhs.high = lhs.high - rhs.high - underflow;
     lhs.low -= rhs.low;
-    // if (lhs.high == INT64_MIN && lhs.low == 0) {
-    //     return false;
-    // }
     return true;
 }
 
@@ -210,14 +165,6 @@ uint128_t Uint128_t::Sub(uint128_t lhs, const uint128_t rhs) {
 }
 
 bool Uint128_t::tryMultiply(uint128_t lhs, uint128_t rhs, uint128_t& result) {
-    // bool lhs_negative = lhs.high < 0;
-    // bool rhs_negative = rhs.high < 0;
-    // if (lhs_negative) {
-    //     negateInPlace(lhs);
-    // }
-    // if (rhs_negative) {
-    //     negateInPlace(rhs);
-    // }
 #if ((__GNUC__ >= 5) || defined(__clang__)) && defined(__SIZEOF_INT128__)
     __uint128_t left = __uint128_t(lhs.low) + (__uint128_t(lhs.high) << 64);
     __uint128_t right = __uint128_t(rhs.low) + (__uint128_t(rhs.high) << 64);
@@ -298,9 +245,6 @@ bool Uint128_t::tryMultiply(uint128_t lhs, uint128_t rhs, uint128_t& result) {
     result.low = (third32 << 32) | fourth32;
     result.high = (first32 << 32) | second32;
 #endif
-    // if (lhs_negative ^ rhs_negative) {
-    //     negateInPlace(result);
-    // }
     return true;
 }
 
@@ -313,15 +257,6 @@ uint128_t Uint128_t::Mul(uint128_t lhs, uint128_t rhs) {
 }
 
 uint128_t Uint128_t::divMod(uint128_t lhs, uint128_t rhs, uint128_t& remainder) {
-    // bool lhs_negative = lhs.high < 0;
-    // bool rhs_negative = rhs.high < 0;
-    // if (lhs_negative) {
-    //     negateInPlace(lhs);
-    // }
-    // if (rhs_negative) {
-    //     negateInPlace(rhs);
-    // }
-
     // divMod code adapted from:
     // https://github.com/calccrypto/uint128_t/blob/master/uint128_t.cpp
 
@@ -349,12 +284,6 @@ uint128_t Uint128_t::divMod(uint128_t lhs, uint128_t rhs, uint128_t& remainder) 
             addInPlace(div_result, 1);
         }
     }
-    // if (lhs_negative ^ rhs_negative) {
-    //     negateInPlace(div_result);
-    // }
-    // if (lhs_negative) {
-    //     negateInPlace(remainder);
-    // }
     return div_result;
 }
 
@@ -415,27 +344,6 @@ uint128_t Uint128_t::RightShift(uint128_t lhs, int amount) {
 //===============================================================================================
 template<class DST, bool SIGNED = true>
 bool TryCastUint128Template(uint128_t input, DST& result) {
-    // switch (input.high) {
-    // case 0:
-    //     if (input.low <= uint64_t(function::NumericLimits<DST>::maximum())) {
-    //         result = static_cast<DST>(input.low);
-    //         return true;
-    //     }
-    //     break;
-    // case -1:
-    //     if constexpr (!SIGNED) {
-    //         throw common::OverflowException(
-    //             "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
-    //     }
-    //     if (input.low >= function::NumericLimits<uint64_t>::maximum() -
-    //                          uint64_t(function::NumericLimits<DST>::maximum())) {
-    //         result = -DST(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
-    //         return true;
-    //     }
-    //     break;
-    // default:
-    //     break;
-    // }
     if (input.high == 0 && input.low <= uint64_t(function::NumericLimits<DST>::maximum())) {
         result = static_cast<DST>(input.low);
         return true;
@@ -485,7 +393,16 @@ bool Uint128_t::tryCast(uint128_t input, uint64_t& result) {
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, float& result) {
+bool Uint128_t::tryCast(uint128_t input, int128_t& result) { // unsigned to signed
+    if (input.high > (uint64_t)(function::NumericLimits<int64_t>::maximum())) {
+        return false;
+    }
+    result = {input.low, int64_t(input.high)};
+    return true;
+}
+
+template<>
+bool Uint128_t::tryCast(uint128_t input, float& result) {
     double temp_res = NAN;
     tryCast(input, temp_res);
     result = static_cast<float>(temp_res);
@@ -493,27 +410,20 @@ bool Int128_t::tryCast(int128_t input, float& result) {
 }
 
 template<class REAL_T>
-bool CastInt128ToFloating(int128_t input, REAL_T& result) {
-    switch (input.high) {
-    case -1:
-        result = -REAL_T(function::NumericLimits<uint64_t>::maximum() - input.low) - 1;
-        break;
-    default:
-        result = REAL_T(input.high) * REAL_T(function::NumericLimits<uint64_t>::maximum()) +
+bool CastUint128ToFloating(uint128_t input, REAL_T& result) {
+    result = REAL_T(input.high) * REAL_T(function::NumericLimits<uint64_t>::maximum()) +
                  REAL_T(input.low);
-        break;
-    }
     return true;
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, double& result) {
-    return CastInt128ToFloating<double>(input, result);
+bool Uint128_t::tryCast(uint128_t input, double& result) {
+    return CastUint128ToFloating<double>(input, result);
 }
 
 template<>
-bool Int128_t::tryCast(int128_t input, long double& result) {
-    return CastInt128ToFloating<long double>(input, result);
+bool Uint128_t::tryCast(uint128_t input, long double& result) {
+    return CastUint128ToFloating<long double>(input, result);
 }
 
 // currently casting negative numbers to uint128_t is allowed
@@ -521,7 +431,6 @@ template<class DST>
 uint128_t tryCastToTemplate(DST value) {
     uint128_t result{};
     result.low = (uint64_t)value;
-    //result.high = (value < 0) * -1;
     result.high = 0;
     return result;
 }
@@ -575,8 +484,18 @@ bool Uint128_t::tryCastTo(uint64_t value, uint128_t& result) {
 }
 
 template<>
-bool Uint128_t::tryCastTo(int128_t value, uint128_t& result) {
+bool Uint128_t::tryCastTo(uint128_t value, uint128_t& result) {
     result = value;
+    return true;
+}
+
+template<>
+bool Uint128_t::tryCastTo(int128_t value, uint128_t& result) { // signed to unsigned
+    if (value.high < 0) {
+        return false;
+    }
+    result.low = value.low;
+    result.high = uint64_t(value.high);
     return true;
 }
 
@@ -588,23 +507,12 @@ bool Uint128_t::tryCastTo(float value, uint128_t& result) {
 template<class REAL_T>
 bool castFloatingToUint128(REAL_T value, uint128_t& result) {
     // TODO: Maybe need to add func isFinite in value.h to see if every type is finite.
-    // if (value <= -170141183460469231731687303715884105728.0 ||
-    //     value >= 170141183460469231731687303715884105727.0) {
-    //     return false;
-    // }
-    // bool negative = value < 0;
-    // if (negative) {
-    //     value = -value;
-    // }
     if (value < 0.0 || value >= 340282366920938463463374607431768211455.0) {
         return false;
     }
     value = std::nearbyint(value);
     result.low = (uint64_t)fmod(value, REAL_T(function::NumericLimits<uint64_t>::maximum()));
     result.high = (uint64_t)(value / REAL_T(function::NumericLimits<uint64_t>::maximum()));
-    // if (negative) {
-    //     Int128_t::negateInPlace(result);
-    // }
     return true;
 }
 
@@ -667,6 +575,12 @@ uint128_t::uint128_t(uint8_t value) {
     this->high = result.high;
 }
 
+uint128_t::uint128_t(int128_t value) {
+    auto result = Uint128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
+}
+
 uint128_t::uint128_t(double value) {
     auto result = Uint128_t::castTo(value);
     this->low = result.low;
@@ -703,10 +617,6 @@ bool operator<(const uint128_t& lhs, const uint128_t& rhs) {
 bool operator<=(const uint128_t& lhs, const uint128_t& rhs) {
     return Uint128_t::lessThanOrEquals(lhs, rhs);
 }
-
-// int128_t int128_t::operator-() const {
-//     return Int128_t::negate(*this);
-// }
 
 // support for operations like (int32_t)x + (uint128_t)y
 

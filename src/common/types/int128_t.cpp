@@ -1,6 +1,7 @@
 #include "common/types/int128_t.h"
 
 #include <cmath>
+#include <cstdint>
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
@@ -481,6 +482,16 @@ bool Int128_t::tryCast(int128_t input, uint64_t& result) {
 }
 
 template<>
+bool Int128_t::tryCast(int128_t input, uint128_t& result) {
+    if (input.high < 0) {
+        return false;
+    }
+    result.low = input.low;
+    result.high = uint64_t(input.high);
+    return true;
+}
+
+template<>
 bool Int128_t::tryCast(int128_t input, float& result) {
     double temp_res = NAN;
     tryCast(input, temp_res);
@@ -575,6 +586,15 @@ bool Int128_t::tryCastTo(int128_t value, int128_t& result) {
 }
 
 template<>
+bool Int128_t::tryCastTo(uint128_t value, int128_t& result) {
+    if (value.high > (uint64_t)(function::NumericLimits<int64_t>::maximum())) {
+        return false;
+    }
+    result = {value.low, int64_t(value.high)};
+    return true;
+}
+
+template<>
 bool Int128_t::tryCastTo(float value, int128_t& result) {
     return tryCastTo(double(value), result);
 }
@@ -653,6 +673,12 @@ int128_t::int128_t(uint16_t value) {
 }
 
 int128_t::int128_t(uint8_t value) {
+    auto result = Int128_t::castTo(value);
+    this->low = result.low;
+    this->high = result.high;
+}
+
+int128_t::int128_t(uint128_t value) {
     auto result = Int128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
