@@ -351,10 +351,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     auto tableName = input->getLiteralVal<std::string>(0);
     auto catalog = Catalog::Get(*context);
-    if (!catalog->containsTable(context->getTransaction(), tableName)) {
+    if (!catalog->containsTable(transaction::Transaction::Get(*context), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
+    auto tableEntry =
+        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), tableName);
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<StorageInfoBindData>(columns, tableEntry, context);

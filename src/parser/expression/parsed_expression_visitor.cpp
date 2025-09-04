@@ -3,10 +3,10 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "common/exception/not_implemented.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_lambda_expression.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

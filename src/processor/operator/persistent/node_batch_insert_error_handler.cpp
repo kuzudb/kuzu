@@ -1,6 +1,5 @@
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/table/node_table.h"
 
@@ -10,8 +9,8 @@ namespace kuzu {
 namespace processor {
 
 NodeBatchInsertErrorHandler::NodeBatchInsertErrorHandler(ExecutionContext* context,
-    common::LogicalTypeID pkType, storage::NodeTable* nodeTable, bool ignoreErrors,
-    std::shared_ptr<common::row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx)
+    LogicalTypeID pkType, storage::NodeTable* nodeTable, bool ignoreErrors,
+    std::shared_ptr<row_idx_t> sharedErrorCounter, std::mutex* sharedErrorCounterMtx)
     : nodeTable(nodeTable), context(context),
       keyVector(std::make_shared<ValueVector>(pkType,
           storage::MemoryManager::Get(*context->clientContext))),
@@ -27,7 +26,7 @@ void NodeBatchInsertErrorHandler::deleteCurrentErroneousRow() {
         *offsetVector,
         *keyVector,
     };
-    nodeTable->delete_(context->clientContext->getTransaction(), deleteState);
+    nodeTable->delete_(transaction::Transaction::Get(*context->clientContext), deleteState);
 }
 
 void NodeBatchInsertErrorHandler::flushStoredErrors() {

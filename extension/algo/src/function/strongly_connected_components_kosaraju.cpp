@@ -9,6 +9,7 @@
 #include "function/gds/gds_vertex_compute.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace std;
 using namespace kuzu::binder;
@@ -231,7 +232,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     if (nodeMask) {
         nodeMask->pin(tableID);
     }
-    auto maxOffset = graph->getMaxOffset(clientContext->getTransaction(), tableID);
+    auto maxOffset = graph->getMaxOffset(transaction::Transaction::Get(*clientContext), tableID);
     auto visitedState = KosarajuVisitedState(tableID, maxOffset, mm);
     auto visitedOrder = KosarajuVisitedOrder(tableID, maxOffset, mm);
     auto kosaraju = Kosaraju(graph, visitedState, visitedOrder);

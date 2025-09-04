@@ -52,7 +52,8 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
         storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = HNSWIndexConfig{input->optionalParams};
-    auto numNodes = table.getStats(context->getTransaction()).getTableCard();
+    auto transaction = transaction::Transaction::Get(*context);
+    auto numNodes = table.getStats(transaction).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, std::move(config));
 }
@@ -117,10 +118,11 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     createDummySink->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto finalizeFuncEntry =
         catalog::Catalog::Get(*clientContext)
-            ->getFunctionEntry(clientContext->getTransaction(),
-                InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
+            ->getFunctionEntry(transaction, InternalFinalizeHNSWIndexFunction::name,
+                true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
         finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
     auto info = TableFunctionCallInfo();
@@ -150,7 +152,6 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     // Get tables from storage.
     const auto storageManager = storage::StorageManager::Get(*clientContext);
     const auto catalog = catalog::Catalog::Get(*clientContext);
-    const auto transaction = clientContext->getTransaction();
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
     auto nodeTableID = nodeTable->getTableID();
@@ -249,7 +250,7 @@ static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutp
 static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     TableFuncSharedState* sharedState) {
     const auto clientContext = context->clientContext;
-    const auto transaction = clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     const auto hnswSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();

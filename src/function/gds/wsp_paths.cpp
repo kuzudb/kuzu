@@ -3,8 +3,8 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds/weight_utils.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -122,7 +122,7 @@ private:
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
+            sharedState->graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)),
             MemoryManager::Get(*clientContext));
         std::unique_ptr<GDSComputeState> gdsState;
         WeightUtils::visit(WeightedSPPathsFunction::name,

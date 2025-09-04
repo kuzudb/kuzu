@@ -5,6 +5,7 @@
 #include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/standalone_call_function.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 
@@ -17,9 +18,10 @@ std::unique_ptr<BoundStatement> Binder::bindStandaloneCallFunction(
     auto& funcExpr =
         callStatement.getFunctionExpression()->constCast<parser::ParsedFunctionExpression>();
     auto funcName = funcExpr.getFunctionName();
-    auto entry = catalog::Catalog::Get(*clientContext)
-                     ->getFunctionEntry(clientContext->getTransaction(), funcName,
-                         clientContext->useInternalCatalogEntry());
+    auto catalog = catalog::Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto entry =
+        catalog->getFunctionEntry(transaction, funcName, clientContext->useInternalCatalogEntry());
     KU_ASSERT(entry);
     if (entry->getType() != catalog::CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY) {
         throw BinderException(
