@@ -10,6 +10,7 @@
 #include "common/cast.h"
 #include "common/copy_constructors.h"
 #include "common/types/interval_t.h"
+#include "common/types/uint128_t.h"
 
 namespace kuzu {
 namespace main {
@@ -132,6 +133,7 @@ struct union_entry_t {
 };
 
 struct int128_t;
+struct uint128_t;
 struct ku_string_t;
 
 template<typename T>
@@ -142,7 +144,7 @@ concept SignedIntegerTypes =
 template<typename T>
 concept IntegerTypes =
     SignedIntegerTypes<T> || std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
-    std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>;
+    std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> || std::is_same_v<T, uint128_t>;
 
 template<typename T>
 concept FloatingPointTypes = std::is_same_v<T, float> || std::is_same_v<T, double>;
@@ -156,16 +158,19 @@ concept ComparableTypes = NumericTypes<T> || std::is_same_v<T, ku_string_t> ||
 
 template<typename T>
 concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
-                             std::floating_point<T> || std::is_same_v<T, int128_t>);
+                             std::floating_point<T> || std::is_same_v<T, int128_t> ||
+                             std::is_same_v<T, uint128_t>);
 template<typename T>
 concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
                          std::is_same_v<T, int128_t> || std::is_same_v<T, ku_string_t> ||
-                         std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
+                         std::is_same_v<T, std::string_view> || std::same_as<T, std::string> ||
+                         std::is_same_v<T, uint128_t>);
 
 template<typename T>
 concept HashableNonNestedTypes = (std::integral<T> || std::floating_point<T> ||
                                   std::is_same_v<T, int128_t> || std::is_same_v<T, internalID_t> ||
-                                  std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t>);
+                                  std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t> ||
+                                  std::is_same_v<T, uint128_t>);
 
 template<typename T>
 concept HashableNestedTypes =
@@ -204,6 +209,7 @@ enum class LogicalTypeID : uint8_t {
     INTERVAL = 40,
     DECIMAL = 41,
     INTERNAL_ID = 42,
+    UINT128 = 43,
 
     STRING = 50,
     BLOB = 51,
@@ -238,6 +244,7 @@ enum class PhysicalTypeID : uint8_t {
     INTERNAL_ID = 14,
     ALP_EXCEPTION_FLOAT = 15,
     ALP_EXCEPTION_DOUBLE = 16,
+    UINT128 = 17,
 
     // Variable size types.
     STRING = 20,
@@ -319,6 +326,7 @@ public:
     static LogicalType UINT16() { return LogicalType(LogicalTypeID::UINT16); }
     static LogicalType UINT8() { return LogicalType(LogicalTypeID::UINT8); }
     static LogicalType INT128() { return LogicalType(LogicalTypeID::INT128); }
+    static LogicalType UINT128() { return LogicalType(LogicalTypeID::UINT128); }
     static LogicalType DOUBLE() { return LogicalType(LogicalTypeID::DOUBLE); }
     static LogicalType FLOAT() { return LogicalType(LogicalTypeID::FLOAT); }
     static LogicalType DATE() { return LogicalType(LogicalTypeID::DATE); }
