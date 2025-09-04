@@ -125,8 +125,8 @@ struct ChunkState {
             KU_ASSERT(segment < segmentStates.end() - 1);
             segment++;
         }
-        uint64_t lengthScanned = 0;
-        auto dstOffset = 0;
+        common::offset_t lengthScanned = 0;
+        common::offset_t dstOffset = 0;
         while (lengthScanned < length && segment != segmentStates.end()) {
             KU_ASSERT(segment->metadata.numValues > offsetInSegment);
             auto lengthInSegment =

@@ -190,6 +190,16 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
 
 void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, offset_t length,
     ValueVector* resultVector, uint64_t offsetInVector) const {
+    // Selection vector must be ordered, and values must be within the range of [0, length)
+    RUNTIME_CHECK(if (resultVector->state) {
+        sel_t prevValue = 0;
+        resultVector->state->getSelVector().forEach([&](auto i) {
+            KU_ASSERT(prevValue <= i);
+            KU_ASSERT(i < length);
+            prevValue = i;
+        });
+    });
+
     state.rangeSegments(startOffsetInChunk, length,
         [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
             scanSegment(segmentState, startOffsetInSegment, lengthInSegment, resultVector,
@@ -216,24 +226,26 @@ void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegmen
             startOffsetInSegment, numValuesToScan, readToVectorFunc);
     } else {
         struct Filterer {
-            explicit Filterer(const SelectionVector& selVector)
-                : selVector(selVector), posInSelVector(0) {}
+            explicit Filterer(const SelectionVector& selVector, offset_t offsetInVector)
+                : selVector(selVector), posInSelVector(0), offsetInVector{offsetInVector} {}
             bool operator()(offset_t startIdx, offset_t endIdx) {
                 while (posInSelVector < selVector.getSelSize() &&
-                       selVector[posInSelVector] < startIdx) {
+                       (selVector[posInSelVector] < offsetInVector ||
+                           selVector[posInSelVector] - offsetInVector < startIdx)) {
                     posInSelVector++;
                 }
                 return (posInSelVector < selVector.getSelSize() &&
-                        isInRange(selVector[posInSelVector], startIdx, endIdx));
+                        isInRange(selVector[posInSelVector] - offsetInVector, startIdx, endIdx));
             }
 
             const SelectionVector& selVector;
             offset_t posInSelVector;
+            offset_t offsetInVector;
         };
 
         columnReadWriter->readCompressedValuesToVector(state, resultVector, offsetInVector,
             startOffsetInSegment, numValuesToScan, readToVectorFunc,
-            Filterer{resultVector->state->getSelVector()});
+            Filterer{resultVector->state->getSelVector(), offsetInVector});
     }
 }
 

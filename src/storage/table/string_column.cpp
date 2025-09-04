@@ -194,11 +194,12 @@ void StringColumn::scanUnfiltered(const SegmentState& state, offset_t startOffse
 void StringColumn::scanFiltered(const SegmentState& state, offset_t startOffsetInChunk,
     ValueVector* resultVector, offset_t offsetInResult) const {
     std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
-    for (auto i = offsetInResult; i < resultVector->state->getSelVector().getSelSize(); i++) {
+    for (sel_t i = 0; i < resultVector->state->getSelVector().getSelSize(); i++) {
         const auto pos = resultVector->state->getSelVector()[i];
-        if (startOffsetInChunk + pos < state.metadata.numValues && !resultVector->isNull(pos)) {
+        if (pos >= offsetInResult && startOffsetInChunk + pos < state.metadata.numValues &&
+            !resultVector->isNull(pos)) {
             // TODO(bmwinger): optimize index scans by grouping them when adjacent
-            const auto offsetInGroup = startOffsetInChunk + pos;
+            const auto offsetInGroup = startOffsetInChunk + pos - offsetInResult;
             string_index_t index = 0;
             indexColumn->scanSegment(getChildState(state, ChildStateIndex::INDEX), offsetInGroup, 1,
                 reinterpret_cast<uint8_t*>(&index));

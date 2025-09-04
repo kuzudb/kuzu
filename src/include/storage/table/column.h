@@ -46,6 +46,12 @@ public:
         common::ValueVector* resultVector, uint32_t posInVector) const;
 
     // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
+    //
+    // The selectionVector in the resultVector's dataState should only select positions up to the
+    // length parameter (E.g. if you want to scan just position 2047 you have to pass a length of
+    // 2048; that is, like an unfiltered scan of 0-2047 but filtering everything but the value at
+    // index 2047).
+    // Primitive columns may scan more than the filtered values
     virtual void scan(const ChunkState& state, common::offset_t startOffsetInGroup,
         common::offset_t length, common::ValueVector* resultVector, uint64_t offsetInVector) const;
     // Scan from [offsetInChunk, offsetInChunk + length) (use scanInternal to specialize).
@@ -99,6 +105,12 @@ public:
         bool canSplitSegment = true) const;
 
 protected:
+    // For a scan that includes a selectionVector, the startOffsetInVector should be considered to
+    // be an offset for the selected positions within the selectionVector The offset of a given pos
+    // from the selectionVector within the segment is equal to:
+    //      startOffsetInSegment + pos - startOffsetInVector
+    // Note that the positions in the selectionVector may not be in the range covered by the segment
+    // Out of range positions should be ignored
     virtual void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
         common::row_idx_t numValuesToScan, common::ValueVector* resultVector,
         common::offset_t startOffsetInVector) const;

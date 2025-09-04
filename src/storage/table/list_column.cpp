@@ -225,19 +225,20 @@ void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVe
     }
 }
 
-void ListColumn::scanFiltered(const SegmentState& state, offset_t startOffsetInChunk,
+void ListColumn::scanFiltered(const SegmentState& state, offset_t startOffsetInSegment,
     ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetSizeInfo,
     offset_t offsetInResult) const {
     auto dataVector = ListVector::getDataVector(resultVector);
     auto startOffsetInDataVector = ListVector::getDataVectorSize(resultVector);
     auto offsetInDataVector = startOffsetInDataVector;
 
-    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
+    for (sel_t i = 0; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
-        if (startOffsetInChunk + pos < state.metadata.numValues) {
-            auto listSize = listOffsetSizeInfo.getListSize(pos);
-            resultVector->setValue(offsetInResult + pos,
-                list_entry_t{(offset_t)offsetInDataVector, listSize});
+        if (startOffsetInSegment + pos - offsetInResult < state.metadata.numValues) {
+            // The listOffsetSizeInfo starts with the first value being scanned, so the
+            // startOffsetInSegment parameter is not needed here except for the bounds check
+            auto listSize = listOffsetSizeInfo.getListSize(pos - offsetInResult);
+            resultVector->setValue(pos, list_entry_t{(offset_t)offsetInDataVector, listSize});
             offsetInDataVector += listSize;
         }
     }
@@ -246,9 +247,15 @@ void ListColumn::scanFiltered(const SegmentState& state, offset_t startOffsetInC
     for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
         auto pos = resultVector->state->getSelVector()[i];
         // Nulls are scanned to the resultVector first
-        if (startOffsetInChunk + pos < state.metadata.numValues && !resultVector->isNull(pos)) {
-            auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
-            auto appendSize = listOffsetSizeInfo.getListSize(pos);
+        if (pos >= offsetInResult &&
+            startOffsetInSegment + pos - offsetInResult < state.metadata.numValues &&
+            !resultVector->isNull(pos)) {
+            auto startOffsetInStorageToScan =
+                listOffsetSizeInfo.getListStartOffset(pos - offsetInResult);
+            auto appendSize = listOffsetSizeInfo.getListSize(pos - offsetInResult);
+            // If there is a selection vector for the dataVector, its selected positions are not
+            // being updated at all for this specific segment
+            KU_ASSERT(!dataVector->state || dataVector->state->getSelVector().isUnfiltered());
             dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
                 startOffsetInStorageToScan, appendSize, dataVector, offsetInDataVector);
             offsetInDataVector += resultVector->getValue<list_entry_t>(pos).size;
