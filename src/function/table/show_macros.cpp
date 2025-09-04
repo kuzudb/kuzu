@@ -54,7 +54,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnNames.emplace_back("definition");
     columnTypes.emplace_back(LogicalType::STRING());
     std::vector<MacroInfo> macroInfos;
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     auto catalog = Catalog::Get(*context);
     for (auto& entry : catalog->getFunctionEntries(transaction)) {
         if (entry->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {
