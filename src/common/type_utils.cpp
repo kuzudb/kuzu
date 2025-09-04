@@ -113,6 +113,11 @@ std::string TypeUtils::toString(const int128_t& val, void* /*valueVector*/) {
 }
 
 template<>
+std::string TypeUtils::toString(const uint128_t& val, void* /*valueVector*/) {
+    return Uint128_t::ToString(val);
+}
+
+template<>
 std::string TypeUtils::toString(const bool& val, void* /*valueVector*/) {
     return val ? "True" : "False";
 }
