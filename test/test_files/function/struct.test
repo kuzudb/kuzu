@@ -97,7 +97,7 @@ C
 ---- 1
 {x: 2, y: 3}
 
--LOG MATCH (p:person) RETURN keys(null)
+-STATEMENT MATCH (p:person) RETURN keys(null)
 ---- 8
 
 
@@ -107,6 +107,7 @@ C
 
 
 
--LOG RETURN keys(null)
+
+-STATEMENT RETURN keys(null)
 ---- 1
 
