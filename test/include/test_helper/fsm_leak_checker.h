@@ -27,7 +27,7 @@ static decltype(auto) getNumFreePages(main::Connection* conn) {
 
 struct FSMLeakChecker {
     static void checkForLeakedPages(main::Connection* conn) {
-        conn->query("checkpoint");
+        ASSERT_TRUE(conn->query("checkpoint")->isSuccess());
 
         std::vector<std::pair<std::string, std::string>> tableNames;
         auto tableNamesResult = conn->query("call show_tables() return name, type");
@@ -41,16 +41,16 @@ struct FSMLeakChecker {
         for (const auto& [tableName, tableType] : tableNames) {
             if (tableType == common::TableTypeUtils::toString(common::TableType::REL)) {
                 ASSERT_TRUE(
-                    conn->query(common::stringFormat("drop table {}", tableName))->isSuccess());
+                    conn->query(common::stringFormat("drop table `{}`", tableName))->isSuccess());
             }
         }
         for (const auto& [tableName, tableType] : tableNames) {
             if (tableType != common::TableTypeUtils::toString(common::TableType::REL)) {
                 ASSERT_TRUE(
-                    conn->query(common::stringFormat("drop table {}", tableName))->isSuccess());
+                    conn->query(common::stringFormat("drop table `{}`", tableName))->isSuccess());
             }
         }
-        conn->query("checkpoint");
+        ASSERT_TRUE(conn->query("checkpoint")->isSuccess());
 
         const auto numTotalPages = getDbSizeInPages(conn);
         const auto numUsedPages = numTotalPages - getNumFreePages(conn);
