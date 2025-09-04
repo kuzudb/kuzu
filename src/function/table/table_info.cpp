@@ -171,7 +171,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 
     std::vector<PropertyInfo> infos;
     CatalogEntryType type = CatalogEntryType::DUMMY_ENTRY;
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     if (name.size() == 1) {
         auto tableName = name[0];
         auto catalog = Catalog::Get(*context);

@@ -4,6 +4,7 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

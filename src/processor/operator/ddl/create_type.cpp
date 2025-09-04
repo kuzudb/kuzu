@@ -1,9 +1,9 @@
 #include "processor/operator/ddl/create_type.h"
 
 #include "catalog/catalog.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -17,7 +17,8 @@ std::string CreateTypePrintInfo::toString() const {
 
 void CreateType::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    Catalog::Get(*clientContext)->createType(clientContext->getTransaction(), name, type.copy());
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    Catalog::Get(*clientContext)->createType(transaction, name, type.copy());
     appendMessage(stringFormat("Type {}({}) has been created.", name, type.toString()),
         storage::MemoryManager::Get(*clientContext));
 }

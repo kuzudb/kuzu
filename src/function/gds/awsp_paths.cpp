@@ -6,6 +6,7 @@
 #include "function/gds/weight_utils.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -151,7 +152,7 @@ private:
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
+            sharedState->graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)), mm);
         std::unique_ptr<GDSComputeState> gdsState;
         WeightUtils::visit(AllWeightedSPPathsFunction::name,
             bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {

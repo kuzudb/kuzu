@@ -11,6 +11,7 @@
 #include "parser/parser.h"
 #include "parser/port_db.h"
 #include "parser/query/regular_query.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -68,7 +69,7 @@ static std::string getExportRelTableDataQuery(const TableCatalogEntry& relGroupE
 
 static std::vector<ExportedTableData> getExportInfo(const Catalog& catalog,
     main::ClientContext* context, Binder* binder, FileTypeInfo& fileTypeInfo) {
-    auto transaction = context->getTransaction();
+    auto transaction = Transaction::Get(*context);
     std::vector<ExportedTableData> exportData;
     for (auto entry : catalog.getNodeTableEntries(transaction, false /*useInternal*/)) {
         ExportedTableData tableData;

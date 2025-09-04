@@ -1,8 +1,9 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -56,7 +57,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     columnTypes.emplace_back(LogicalType::STRING());
     std::vector<FunctionInfo> FunctionInfos;
     for (const auto& entry :
-        Catalog::Get(*context)->getFunctionEntries(context->getTransaction())) {
+        Catalog::Get(*context)->getFunctionEntries(transaction::Transaction::Get(*context))) {
         const auto& functionSet = entry->getFunctionSet();
         const auto type = FunctionEntryTypeUtils::toString(entry->getType());
         for (auto& function : functionSet) {

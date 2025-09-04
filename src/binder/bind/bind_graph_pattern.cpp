@@ -15,6 +15,7 @@
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -348,7 +349,7 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     const std::vector<TableCatalogEntry*>& entries, std::shared_ptr<NodeExpression> srcNode,
     std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     table_catalog_entry_set_t nodeEntrySet;
     for (auto entry : entries) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
@@ -632,7 +633,7 @@ static std::vector<TableCatalogEntry*> sortEntries(const table_catalog_entry_set
 
 std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
     const std::vector<std::string>& tableNames) const {
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto catalog = Catalog::Get(*clientContext);
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
@@ -654,7 +655,7 @@ std::vector<TableCatalogEntry*> Binder::bindNodeTableEntries(
 }
 
 TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto catalog = Catalog::Get(*clientContext);
     auto useInternal = clientContext->useInternalCatalogEntry();
     if (!catalog->containsTable(transaction, name, useInternal)) {
@@ -665,7 +666,7 @@ TableCatalogEntry* Binder::bindNodeTableEntry(const std::string& name) const {
 
 std::vector<TableCatalogEntry*> Binder::bindRelGroupEntries(
     const std::vector<std::string>& tableNames) const {
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto catalog = Catalog::Get(*clientContext);
     auto useInternal = clientContext->useInternalCatalogEntry();
     table_catalog_entry_set_t entrySet;
