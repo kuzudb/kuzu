@@ -13,7 +13,8 @@ target_link_libraries(graph_test PUBLIC GTEST_LIB kuzu)
 add_library(
         api_graph_test
         OBJECT
-        base_graph_test.cpp)
+        base_graph_test.cpp
+        ../include/test_helper/fsm_leak_checker.h)
 target_include_directories(
         api_graph_test
         PUBLIC
