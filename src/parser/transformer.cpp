@@ -4,7 +4,6 @@
 
 #include "common/assert.h"
 #include "common/exception/parser.h"
-#include "common/string_utils.h"
 #include "extension/transformer_extension.h"
 #include "parser/explain_statement.h"
 #include "parser/query/regular_query.h" // IWYU pragma: keep (fixes a forward declaration error)
@@ -146,7 +145,7 @@ std::string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stri
                         KU_UNREACHABLE;
                     }
                     std::string hexStr = content.substr(i + 2, hexDigits);
-                    char* endPtr;
+                    char* endPtr = nullptr;
                     long hexValue = std::strtol(hexStr.c_str(), &endPtr, 16);
                     if (endPtr != hexStr.c_str() + hexDigits) {
                         KU_UNREACHABLE;
