@@ -625,3 +625,15 @@ alice
 ---- 2
 {_ID: 0:0, _LABEL: Node, id: 0, cities: [Old York,Los Angeles]}
 {_ID: 0:1, _LABEL: Node, id: 1, cities: [Tokyo,Osaka]}
+
+-CASE 5817
+-STATEMENT CREATE NODE TABLE N(id SERIAL PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE E(FROM N TO N);
+---- ok
+-STATEMENT MATCH (n)-[e:E]->(m)
+             DELETE e
+             UNION
+             MATCH (n)
+             DELETE n;
+---- 0
