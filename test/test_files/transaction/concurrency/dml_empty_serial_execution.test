@@ -34,6 +34,27 @@
 ---- error
 Runtime exception: Write-write conflict of updating the same row.
 
+-CASE NodeUpdateSameRow
+-STATEMENT CALL debug_enable_multi_writes=true;
+---- ok
+-INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
+-LOOP i 1 100
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Apple' RETURN p.*;
+---- ok
+-ENDLOOP
+-CREATE_CONNECTION conn2
+-LOOP i 1 100
+-STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Alphabet' RETURN p.*;
+---- ok
+-ENDLOOP
+-LOOP i 1 100
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Alphabet100' RETURN p.*;
+---- ok
+-ENDLOOP
+-STATEMENT MATCH (p:person) WHERE p.ID = 0 RETURN p.fName;
+---- 1
+Alphabet100
+
 -CASE WWConflictNodeCopyDelete
 -STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
@@ -158,7 +179,7 @@ Runtime exception: Write-write conflict: deleting a row that is already deleted 
 -STATEMENT [conn2] BEGIN TRANSACTION;
 ---- ok
 -STATEMENT LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)
-            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" 
+            FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv"
             CREATE (:person{ID:ID, fName:fName, gender:gender, isStudent:isStudent, isWorker:isWorker, age:age, eyeSight:eyeSight, birthdate:birthdate, registerTime:registerTime, lastJobDuration:lastJobDuration, workedHours:workedHours, usedNames:usedNames, courseScoresPerTerm:courseScoresPerTerm, grades:grades, height:height, u:u});
 ---- ok
 -STATEMENT [conn2] LOAD WITH HEADERS (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades INT64[4], height float, u UUID)

@@ -1,6 +1,5 @@
 #include "storage/table/update_info.h"
 
-#include <algorithm>
 #include <bitset>
 
 #include "common/exception/runtime.h"
