@@ -184,14 +184,6 @@ std::string StringUtils::extractStringBetween(const std::string& input, char del
     return input.substr(posStart, posEnd - posStart);
 }
 
-std::string StringUtils::removeEscapedCharacters(const std::string& input) {
-    std::string resultStr;
-    for (auto i = 1u; i < input.length() - 1; i++) {
-        resultStr += input[i];
-    }
-    return resultStr;
-}
-
 // Jenkins hash function: https://en.wikipedia.org/wiki/Jenkins_hash_function.
 // We transform each character to its lower case and apply one_at_a_time hash.
 uint64_t StringUtils::caseInsensitiveHash(const std::string& str) {
