@@ -6,6 +6,7 @@
 #include "common/types/blob.h"
 #include "common/types/date_t.h"
 #include "common/types/int128_t.h"
+#include "common/types/uint128_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
@@ -95,6 +96,8 @@ public:
             return common::PhysicalTypeID::DOUBLE;
         } else if constexpr (std::is_same_v<T, int128_t>) {
             return common::PhysicalTypeID::INT128;
+        } else if constexpr (std::is_same_v<T, uint128_t>) {
+            return common::PhysicalTypeID::UINT128;
         } else if constexpr (std::is_same_v<T, interval_t>) {
             return common::PhysicalTypeID::INTERVAL;
         } else if constexpr (std::same_as<T, ku_string_t> || std::same_as<T, std::string> ||
@@ -169,6 +172,8 @@ public:
             return func(bool());
         case LogicalTypeID::INT128:
             return func(int128_t());
+        case LogicalTypeID::UINT128:
+            return func(uint128_t());
         case LogicalTypeID::DOUBLE:
             return func(double());
         case LogicalTypeID::FLOAT:
@@ -254,6 +259,8 @@ public:
             return func(bool());
         case PhysicalTypeID::INT128:
             return func(int128_t());
+        case PhysicalTypeID::UINT128:
+            return func(uint128_t());
         case PhysicalTypeID::DOUBLE:
             return func(double());
         case PhysicalTypeID::FLOAT:
@@ -287,6 +294,8 @@ public:
 // Forward declaration of template specializations.
 template<>
 std::string TypeUtils::toString(const int128_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const uint128_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const bool& val, void* valueVector);
 template<>
