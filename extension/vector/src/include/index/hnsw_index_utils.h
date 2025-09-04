@@ -21,10 +21,8 @@ using metric_func_t = std::function<double(const void*, const void*, uint32_t)>;
 struct HNSWIndexUtils {
     enum class KUZU_API IndexOperation {
         CREATE,
-        CREATE_IF_NOT_EXISTS,
         QUERY,
-        DROP,
-        DROP_IF_EXISTS
+        DROP
     };
 
     static bool indexExists(const main::ClientContext& context,
@@ -32,7 +30,7 @@ struct HNSWIndexUtils {
 
     static bool validateIndexExistence(const main::ClientContext& context,
         const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
-        IndexOperation indexOperation);
+        IndexOperation indexOperation, common::ConflictAction conflictAction = common::ConflictAction::ON_CONFLICT_THROW);
 
     static catalog::TableCatalogEntry* bindTable(const main::ClientContext& context,
         const std::string& tableName);

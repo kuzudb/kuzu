@@ -46,11 +46,9 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
     auto config = HNSWIndexConfig{input->optionalParams};
-    const auto operation = config.skipIfExists ?
-                               HNSWIndexUtils::IndexOperation::CREATE_IF_NOT_EXISTS :
-                               HNSWIndexUtils::IndexOperation::CREATE;
     const auto tableEntry = HNSWIndexUtils::bindTable(*context, tableName);
-    if (HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName, operation)) {
+    if (HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName, 
+            HNSWIndexUtils::IndexOperation::CREATE, config.conflictAction)) {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
             std::move(config), true);
     }

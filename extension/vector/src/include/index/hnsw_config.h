@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "common/types/types.h"
+#include "common/enums/conflict_action.h"
 #include "function/table/bind_input.h"
 
 namespace kuzu {
@@ -82,13 +83,13 @@ struct CacheEmbeddings {
 struct SkipIfExists {
     static constexpr const char* NAME = "skip_if_exists";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
-    static constexpr bool DEFAULT_VALUE = false;
+    static constexpr common::ConflictAction DEFAULT_VALUE = common::ConflictAction::ON_CONFLICT_THROW;
 };
 
 struct SkipIfNotExists {
     static constexpr const char* NAME = "skip_if_not_exists";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
-    static constexpr bool DEFAULT_VALUE = false;
+    static constexpr common::ConflictAction DEFAULT_VALUE = common::ConflictAction::ON_CONFLICT_THROW;
 };
 
 struct BlindSearchUpSelThreshold {
@@ -115,7 +116,7 @@ struct HNSWIndexConfig {
     double alpha = Alpha::DEFAULT_VALUE;
     int64_t efc = Efc::DEFAULT_VALUE;
     bool cacheEmbeddingsColumn = CacheEmbeddings::DEFAULT_VALUE;
-    bool skipIfExists = SkipIfExists::DEFAULT_VALUE;
+    common::ConflictAction conflictAction = SkipIfExists::DEFAULT_VALUE;
 
     HNSWIndexConfig() = default;
 
@@ -133,13 +134,13 @@ private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
         : mu{other.mu}, ml{other.ml}, pu{other.pu}, metric{other.metric}, alpha{other.alpha},
           efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn),
-          skipIfExists(other.skipIfExists) {}
+          conflictAction(other.conflictAction) {}
 
     static MetricType getMetricType(const std::string& metricName);
 };
 
 struct DropHNSWConfig {
-    bool skipIfNotExists = SkipIfNotExists::DEFAULT_VALUE;
+    common::ConflictAction conflictAction = SkipIfNotExists::DEFAULT_VALUE;
 
     DropHNSWConfig() = default;
 

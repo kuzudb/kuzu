@@ -143,11 +143,5 @@ struct QueryVectorIndexFunction final {
     static function::function_set getFunctionSet();
 };
 
-struct DropAllVectorIndexesFunction final {
-    static constexpr const char* name = "DROP_ALL_VECTOR_INDEXES";
-
-    static function::function_set getFunctionSet();
-};
-
 } // namespace vector_extension
 } // namespace kuzu

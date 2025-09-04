@@ -113,7 +113,8 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
             cacheEmbeddingsColumn = value.getValue<bool>();
         } else if (SkipIfExists::NAME == lowerCaseName) {
             value.validateType(SkipIfExists::TYPE);
-            skipIfExists = value.getValue<bool>();
+            conflictAction = value.getValue<bool>() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                                                 common::ConflictAction::ON_CONFLICT_THROW;
         } else {
             throw common::BinderException{
                 common::stringFormat("Unrecognized optional parameter {} in {}.", name,
@@ -196,7 +197,8 @@ DropHNSWConfig::DropHNSWConfig(const function::optional_params_t& optionalParams
         auto lowerCaseName = common::StringUtils::getLower(name);
         if (SkipIfNotExists::NAME == lowerCaseName) {
             value.validateType(SkipIfNotExists::TYPE);
-            skipIfNotExists = value.getValue<bool>();
+            conflictAction = value.getValue<bool>() ? common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                                                     common::ConflictAction::ON_CONFLICT_THROW;
         } else {
             throw common::BinderException{common::stringFormat(
                 "Unrecognized optional parameter {} in {}.", name, QueryVectorIndexFunction::name)};

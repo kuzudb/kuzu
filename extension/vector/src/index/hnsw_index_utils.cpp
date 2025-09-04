@@ -19,26 +19,36 @@ bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
 
 bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
-    IndexOperation indexOperation) {
+    IndexOperation indexOperation, common::ConflictAction conflictAction) {
     switch (indexOperation) {
     case IndexOperation::CREATE: {
         if (indexExists(context, tableEntry, indexName)) {
-            throw common::BinderException{common::stringFormat(
+            switch (conflictAction) {
+            case common::ConflictAction::ON_CONFLICT_THROW:
+                throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
+            case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+                return true;
+            case common::ConflictAction::INVALID:
+                KU_UNREACHABLE;
+            }
         }
         return false;
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
         if (!indexExists(context, tableEntry, indexName)) {
-            throw common::BinderException{common::stringFormat(
+            switch (conflictAction) {
+            case common::ConflictAction::ON_CONFLICT_THROW:
+                throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
+            case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+                return false;
+            case common::ConflictAction::INVALID:
+                KU_UNREACHABLE;
+            }
         }
         return true;
-    } break;
-    case IndexOperation::CREATE_IF_NOT_EXISTS:
-    case IndexOperation::DROP_IF_EXISTS: {
-        return indexExists(context, tableEntry, indexName);
     } break;
     default: {
         KU_UNREACHABLE;

@@ -33,10 +33,9 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     auto config = DropHNSWConfig{input->optionalParams};
-    const auto operation = config.skipIfNotExists ? HNSWIndexUtils::IndexOperation::DROP_IF_EXISTS :
-                                                    HNSWIndexUtils::IndexOperation::DROP;
     const auto tableEntry = HNSWIndexUtils::bindTable(*context, tableName);
-    if (!HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName, operation)) {
+    if (!HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName, 
+            HNSWIndexUtils::IndexOperation::DROP, config.conflictAction)) {
         return std::make_unique<DropHNSWIndexBindData>(nullptr, indexName, true);
     }
     const auto nodeTableEntry = tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
