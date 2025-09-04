@@ -357,6 +357,7 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
         for (auto i = 0u; i < numRelsScanned; i++) {
             // rel table data delete() expects the input to be flat
             // so we manually flatten the scanned rels here
+            // TODO(Royi/Guodong) remove this once delete_() supports unflat vectors
             const auto selectedPosToDelete = deleteState->relIDVector.state->getSelVector()[i];
             const auto savedScanState = flattenScannedRelState(*tempState, selectedPosToDelete);
 
