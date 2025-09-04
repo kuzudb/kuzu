@@ -79,7 +79,7 @@ void HNSWRelBatchInsert::populateCSRLengths(processor::RelBatchInsertExecutionSt
     const auto lengthData = reinterpret_cast<common::length_t*>(csrHeader.length->getData());
     std::fill(lengthData, lengthData + numNodes, 0);
     for (common::offset_t graphOffset = startNodeInGraph; graphOffset < endNodeInGraph;
-        ++graphOffset) {
+         ++graphOffset) {
         const auto nodeOffsetInGroup = hnswExecutionState.getBoundNodeOffsetInGroup(graphOffset);
         KU_ASSERT(nodeOffsetInGroup < numNodes);
         lengthData[nodeOffsetInGroup] = graph.getCSRLength(graphOffset);
@@ -117,7 +117,7 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     auto& relIDChunk = localState.chunkedGroup->getColumnChunk(rowIdxColumn);
     auto numRelsWritten = 0;
     for (common::offset_t nodeInGraph = startNodeInGraph; nodeInGraph < endNodeInGraph;
-        ++nodeInGraph) {
+         ++nodeInGraph) {
         const auto boundNodeOffsetInGroup =
             hnswExecutionState.getBoundNodeOffsetInGroup(nodeInGraph);
         const auto neighbours = graph.getNeighbors(nodeInGraph);
