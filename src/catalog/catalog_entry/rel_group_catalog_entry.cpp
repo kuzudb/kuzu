@@ -5,7 +5,6 @@
 #include "binder/ddl/bound_create_table_info.h"
 #include "catalog/catalog.h"
 #include "common/serializer/deserializer.h"
-#include "common/exception/binder.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

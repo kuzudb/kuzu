@@ -104,14 +104,13 @@ void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
     auto clientContext = conn->getClientContext();
-    auto transaction = transaction::Transaction::Get(*clientContext);
     bool transactionStarted = false;
-    if (transaction == NULL) {
+    if (transaction::Transaction::Get(*clientContext) == NULL) {
         clientContext->getTransactionContext()
             ->beginReadTransaction(); // start transaction to get current table names
         transactionStarted = true;
     }
-    for (auto& tableEntry : database->catalog->getTableEntries(transaction,
+    for (auto& tableEntry : database->catalog->getTableEntries(transaction::Transaction::Get(*clientContext),
              false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
