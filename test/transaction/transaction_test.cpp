@@ -567,8 +567,8 @@ TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdatesWithMixedTransactions) {
         GTEST_SKIP();
     }
     conn->query("CALL debug_enable_multi_writes=true;");
-    auto numThreads = 3;
-    auto numUpdatesPerThread = 10;
+    auto numThreads = 4;
+    auto numUpdatesPerThread = 100;
     auto numTotalNodes = numThreads * numUpdatesPerThread;
 
     conn->query("CREATE NODE TABLE test(id INT64 PRIMARY KEY, name STRING);");
@@ -603,14 +603,14 @@ TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdatesWithMixedTransactions) {
     ASSERT_TRUE(res->isSuccess());
     ASSERT_EQ(res->getNumTuples(), 1);
     auto committedCount = res->getNext()->getValue(0)->getValue<int64_t>();
-    ASSERT_EQ(committedCount, 20);
+    ASSERT_EQ(committedCount, 200);
 
     // Verify rollback transactions didn't persist
     res = conn->query("MATCH (a:test) WHERE a.name STARTS WITH 'Person' RETURN COUNT(a) AS COUNT;");
     ASSERT_TRUE(res->isSuccess());
     ASSERT_EQ(res->getNumTuples(), 1);
     auto originalCount = res->getNext()->getValue(0)->getValue<int64_t>();
-    ASSERT_EQ(originalCount, 10);
+    ASSERT_EQ(originalCount, 200);
 }
 
 static void updateRelationshipsWithMixedTransactions(uint64_t startID, uint64_t num,
