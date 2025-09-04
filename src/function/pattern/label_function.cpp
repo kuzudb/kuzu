@@ -84,6 +84,9 @@ std::shared_ptr<Expression> LabelFunction::rewriteFunc(const RewriteFunctionBind
     KU_ASSERT(input.arguments.size() == 1);
     auto argument = input.arguments[0].get();
     auto expressionBinder = input.expressionBinder;
+    if (ExpressionUtil::isNullLiteral(*argument)) {
+        return expressionBinder->createNullLiteralExpression();
+    }
     expression_vector children;
     if (argument->expressionType == ExpressionType::VARIABLE) {
         children.push_back(input.arguments[0]);

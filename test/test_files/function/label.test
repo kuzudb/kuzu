@@ -28,3 +28,16 @@ marries
 meets
 studyAt
 workAt
+-STATEMENT MATCH (a:person) RETURN labels(null);
+---- 8
+
+
+
+
+
+
+
+
+-STATEMENT RETURN labels(null);
+---- 1
+

@@ -96,3 +96,17 @@ C
 -STATEMENT RETURN STRUCT_PACK(x:=2,y:=3);
 ---- 1
 {x: 2, y: 3}
+
+-LOG MATCH (p:person) RETURN keys(null)
+---- 8
+
+
+
+
+
+
+
+
+-LOG RETURN keys(null)
+---- 1
+
