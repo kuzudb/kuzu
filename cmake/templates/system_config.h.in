@@ -53,6 +53,10 @@ struct StorageConfig {
                                                      << CSR_LEAF_REGION_SIZE_LOG2;
     static constexpr uint64_t CHUNKED_NODE_GROUP_CAPACITY =
         std::min(static_cast<uint64_t>(2048), NODE_GROUP_SIZE);
+
+    // Maximum size for a segment in bytes
+    static constexpr uint64_t MAX_SEGMENT_SIZE_LOG2 = @KUZU_MAX_SEGMENT_SIZE_LOG2@;
+    static constexpr uint64_t MAX_SEGMENT_SIZE = 1 << MAX_SEGMENT_SIZE_LOG2;
 };
 
 struct OrderByConfig {

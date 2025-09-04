@@ -155,7 +155,6 @@ class Spiller;
 // Base data segment covers all fixed-sized data types.
 class KUZU_API ColumnChunkData {
 public:
-    static constexpr uint64_t MAX_SEGMENT_SIZE = 256 * 1024;
     friend struct ColumnChunkFactory;
     // For spilling to disk, we need access to the underlying buffer
     friend class Spiller;
@@ -285,7 +284,7 @@ public:
     bool shouldSplit() const {
         // TODO(bmwinger): this should use the inMemoryStats to avoid scanning the data, however not
         // all functions update them
-        return numValues > 1 && getSizeOnDisk() > MAX_SEGMENT_SIZE;
+        return numValues > 1 && getSizeOnDisk() > common::StorageConfig::MAX_SEGMENT_SIZE;
     }
 
     virtual uint64_t getSizeOnDisk() const;

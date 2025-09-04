@@ -287,7 +287,8 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const SegmentState& state,
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
+    bool canSplitSegment) const {
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
     // First, check if we can checkpoint list data chunk in place.
@@ -322,7 +323,8 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
     if (!listDataCanCheckpointInPlace) {
         // If we cannot checkpoint list data chunk in place, we need to checkpoint the whole chunk
         // out of place.
-        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
+        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator,
+            canSplitSegment);
     }
 
     // In place checkpoint for list data.
@@ -353,10 +355,11 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
                 segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
     }
 
+    // We do not allow nested splitting of offset/size segments
     offsetColumn->checkpointSegment(
         ColumnCheckpointState(*persistentListChunk.getOffsetColumnChunk(),
             std::move(offsetChunkCheckpointStates)),
-        pageAllocator);
+        pageAllocator, false);
 
     // Checkpoint size data.
     std::vector<SegmentCheckpointState> sizeChunkCheckpointStates;
@@ -368,7 +371,7 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
     }
     sizeColumn->checkpointSegment(ColumnCheckpointState(*persistentListChunk.getSizeColumnChunk(),
                                       std::move(sizeChunkCheckpointStates)),
-        pageAllocator);
+        pageAllocator, false);
     // Checkpoint null data.
     Column::checkpointNullData(checkpointState, pageAllocator);
 

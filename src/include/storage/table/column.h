@@ -95,7 +95,8 @@ public:
     // Return value is the new segments if segment splitting occurs during an out of place
     // checkpoint
     virtual std::vector<std::unique_ptr<ColumnChunkData>> checkpointSegment(
-        ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const;
+        ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
+        bool canSplitSegment = true) const;
 
 protected:
     virtual void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
@@ -131,7 +132,7 @@ protected:
 
     std::vector<std::unique_ptr<ColumnChunkData>> checkpointColumnChunkOutOfPlace(
         const SegmentState& state, const ColumnCheckpointState& checkpointState,
-        PageAllocator& pageAllocator) const;
+        PageAllocator& pageAllocator, bool canSplitSegment) const;
 
     // check if val is in range [start, end)
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {

@@ -54,11 +54,11 @@ public:
         common::node_group_idx_t nodeGroupIdx) override;
 
     void populateCSRLengths(processor::RelBatchInsertExecutionState& executionState,
-        storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
+        storage::InMemChunkedCSRHeader& csrHeader, common::offset_t numNodes,
         const processor::RelBatchInsertInfo& relInfo) override;
 
     void writeToTable(processor::RelBatchInsertExecutionState& executionState,
-        const storage::ChunkedCSRHeader& csrHeader,
+        const storage::InMemChunkedCSRHeader& csrHeader,
         const processor::RelBatchInsertLocalState& localState,
         processor::BatchInsertSharedState& sharedState,
         const processor::RelBatchInsertInfo& relInfo) override;

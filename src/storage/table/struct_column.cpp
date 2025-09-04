@@ -92,7 +92,8 @@ void StructColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState&
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> StructColumn::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
+    bool canSplitSegment) const {
     auto& persistentStructChunk = checkpointState.persistentData.cast<StructChunkData>();
     // TODO(bmwinger): child columns are now handled as a group so they get split together
     // Re-introduce the code below when struct columns checkpoing each field individually again
@@ -110,7 +111,8 @@ std::vector<std::unique_ptr<ColumnChunkData>> StructColumn::checkpointSegment(
     }
     Column::checkpointNullData(checkpointState, pageAllocator);
     */
-    auto result = Column::checkpointSegment(std::move(checkpointState), pageAllocator);
+    auto result =
+        Column::checkpointSegment(std::move(checkpointState), pageAllocator, canSplitSegment);
     persistentStructChunk.syncNumValues();
     return result;
 }

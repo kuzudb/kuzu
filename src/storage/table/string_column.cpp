@@ -108,9 +108,11 @@ void StringColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState&
 }
 
 std::vector<std::unique_ptr<ColumnChunkData>> StringColumn::checkpointSegment(
-    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator) const {
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
+    bool canSplitSegment) const {
     auto& persistentData = checkpointState.persistentData;
-    auto result = Column::checkpointSegment(std::move(checkpointState), pageAllocator);
+    auto result =
+        Column::checkpointSegment(std::move(checkpointState), pageAllocator, canSplitSegment);
     persistentData.syncNumValues();
     return result;
 }

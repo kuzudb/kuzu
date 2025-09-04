@@ -1027,8 +1027,9 @@ std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool target
     // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
     // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
     // MAX_SEGMENT_SIZE
-    auto targetSize =
-        targetMaxSize ? MAX_SEGMENT_SIZE : std::min(getSizeOnDisk() / 2, MAX_SEGMENT_SIZE);
+    auto targetSize = targetMaxSize ?
+                          common::StorageConfig::MAX_SEGMENT_SIZE :
+                          std::min(getSizeOnDisk() / 2, common::StorageConfig::MAX_SEGMENT_SIZE);
     std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
     uint64_t pos = 0;
     const uint64_t chunkSize = 64;
