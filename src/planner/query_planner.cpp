@@ -21,7 +21,8 @@ LogicalPlan Planner::planQuery(const BoundStatement& boundStatement) {
     return createUnionPlan(childrenPlans, exprs, regularQuery.getIsUnionAll(0));
 }
 
-LogicalPlan Planner::createUnionPlan(std::vector<LogicalPlan>& childrenPlans, const expression_vector& expressions, bool isUnionAll) {
+LogicalPlan Planner::createUnionPlan(std::vector<LogicalPlan>& childrenPlans,
+    const expression_vector& expressions, bool isUnionAll) {
     KU_ASSERT(!childrenPlans.empty());
     auto plan = LogicalPlan();
     std::vector<std::shared_ptr<LogicalOperator>> children;
