@@ -23,6 +23,8 @@ class AttachedKuzuDatabase;
 namespace storage {
 class StorageManager;
 
+struct FSMLeakChecker;
+
 class Checkpointer {
     friend class main::AttachedKuzuDatabase;
     friend struct testing::FSMLeakChecker;
