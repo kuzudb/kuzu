@@ -327,26 +327,6 @@ void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection dir
     }
 }
 
-struct SavedScannedRelState {
-    bool isUnfiltered;
-};
-
-static SavedScannedRelState flattenScannedRelState(DataChunkState& stateToSave, sel_t selectedPos) {
-    auto ret = SavedScannedRelState{stateToSave.getSelVector().isUnfiltered()};
-    stateToSave.getSelVectorUnsafe().setToFiltered(1);
-    stateToSave.getSelVectorUnsafe()[0] = selectedPos;
-    return ret;
-}
-
-static void restoreScannedRelState(DataChunkState& stateToRestore,
-    SavedScannedRelState savedState) {
-    if (savedState.isUnfiltered) {
-        stateToRestore.getSelVectorUnsafe().setToUnfiltered();
-    }
-    // We don't bother restoring the original selected pos at index 0 because we don't need to use
-    // it later
-}
-
 void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
     RelTableData* reverseTableData, RelTableScanState* relDataReadState,
     RelTableDeleteState* deleteState) {
@@ -354,12 +334,19 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
     const auto tempState = deleteState->dstNodeIDVector.state.get();
     while (scan(transaction, *relDataReadState)) {
         const auto numRelsScanned = tempState->getSelVector().getSelSize();
+
+        // rel table data delete_() expects the input to be flat
+        // so we manually flatten the scanned rels here
+        // also if the scanned state is unfiltered we need to copy over the unfiltered values to the
+        // filtered buffer
+        // TODO(Royi/Guodong) remove this once delete_() supports unflat vectors
+        if (tempState->getSelVector().isUnfiltered()) {
+            tempState->getSelVectorUnsafe().setRange(0, numRelsScanned);
+        }
+        tempState->getSelVectorUnsafe().setToFiltered(1);
+
         for (auto i = 0u; i < numRelsScanned; i++) {
-            // rel table data delete() expects the input to be flat
-            // so we manually flatten the scanned rels here
-            // TODO(Royi/Guodong) remove this once delete_() supports unflat vectors
-            const auto selectedPosToDelete = deleteState->relIDVector.state->getSelVector()[i];
-            const auto savedScanState = flattenScannedRelState(*tempState, selectedPosToDelete);
+            tempState->getSelVectorUnsafe()[0] = deleteState->relIDVector.state->getSelVector()[i];
 
             const auto relIDPos = deleteState->relIDVector.state->getSelVector()[0];
             const auto relOffset = deleteState->relIDVector.readNodeOffset(relIDPos);
@@ -375,8 +362,6 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
                     deleteState->dstNodeIDVector, deleteState->relIDVector);
                 KU_ASSERT(deleted == reverseDeleted);
             }
-
-            restoreScannedRelState(*tempState, savedScanState);
         }
         tempState->getSelVectorUnsafe().setToUnfiltered();
     }
