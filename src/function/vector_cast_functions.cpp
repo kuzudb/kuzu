@@ -1133,8 +1133,9 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {
-            auto entry = catalog::Catalog::Get(*input.context)
-                             ->getFunctionEntry(transaction::Transaction::Get(*input.context), func->name);
+            auto entry =
+                catalog::Catalog::Get(*input.context)
+                    ->getFunctionEntry(transaction::Transaction::Get(*input.context), func->name);
             auto match = BuiltInFunctionsUtils::matchFunction(func->name, typeVec,
                 entry->ptrCast<catalog::FunctionCatalogEntry>());
             func->execFunc = match->constPtrCast<ScalarFunction>()->execFunc;

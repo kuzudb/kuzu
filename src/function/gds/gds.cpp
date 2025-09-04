@@ -6,16 +6,16 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "function/table/bind_input.h"
 #include "graph/graph_entry_set.h"
 #include "graph/on_disk_graph.h"
+#include "main/client_context.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
 #include "planner/planner.h"
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
-#include "function/table/bind_input.h"
-#include "main/client_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

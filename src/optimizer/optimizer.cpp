@@ -64,8 +64,8 @@ void Optimizer::optimize(planner::LogicalPlan* plan, main::ClientContext* contex
         if (plan->getLastOperatorRef().getOperatorType() == planner::LogicalOperatorType::EXPLAIN) {
             const auto& explain = plan->getLastOperatorRef().cast<planner::LogicalExplain>();
             if (explain.getExplainType() == common::ExplainType::LOGICAL_PLAN) {
-                auto cardinalityUpdater =
-                    CardinalityUpdater(cardinalityEstimator, transaction::Transaction::Get(*context));
+                auto cardinalityUpdater = CardinalityUpdater(cardinalityEstimator,
+                    transaction::Transaction::Get(*context));
                 cardinalityUpdater.rewrite(plan);
             }
         }

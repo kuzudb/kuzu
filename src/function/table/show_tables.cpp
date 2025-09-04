@@ -81,8 +81,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     for (auto attachedDatabase : main::DatabaseManager::Get(*context)->getAttachedDatabases()) {
         auto databaseName = attachedDatabase->getDBName();
         auto databaseType = attachedDatabase->getDBType();
-        for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(
-                 transaction, context->useInternalCatalogEntry())) {
+        for (auto& entry : attachedDatabase->getCatalog()->getTableEntries(transaction,
+                 context->useInternalCatalogEntry())) {
             auto tableInfo = TableInfo{entry->getName(), entry->getTableID(),
                 TableTypeUtils::toString(entry->getTableType()),
                 stringFormat("{}({})", databaseName, databaseType), entry->getComment()};

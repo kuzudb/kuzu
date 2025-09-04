@@ -47,7 +47,7 @@ class ImportDB;
 namespace transaction {
 class TransactionContext;
 class Transaction;
-}
+} // namespace transaction
 
 namespace main {
 struct DBConfig;

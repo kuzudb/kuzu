@@ -128,7 +128,8 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
         }
         auto scanState = std::make_unique<RelTableScanState>(*MemoryManager::Get(*context),
             srcNodeIDVector.get(), outVectors, dstNodeIDVector->state, randomLookup);
-        scanState->setToTable(transaction::Transaction::Get(*context), table, columnIDs, {}, dataDirection);
+        scanState->setToTable(transaction::Transaction::Get(*context), table, columnIDs, {},
+            dataDirection);
         directedIterators.emplace_back(context, table, std::move(scanState));
     }
 }
@@ -321,8 +322,8 @@ void OnDiskGraphVertexScanState::startScan(offset_t beginOffset, offset_t endOff
     for (auto& vector : tableScanState->outputVectors) {
         vector->resetAuxiliaryBuffer();
     }
-    nodeTable.initScanState(transaction::Transaction::Get(context), *tableScanState, nodeTable.getTableID(),
-        beginOffset);
+    nodeTable.initScanState(transaction::Transaction::Get(context), *tableScanState,
+        nodeTable.getTableID(), beginOffset);
 }
 
 bool OnDiskGraphVertexScanState::next() {

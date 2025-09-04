@@ -4,9 +4,9 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "function/gds/weight_utils.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
-#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

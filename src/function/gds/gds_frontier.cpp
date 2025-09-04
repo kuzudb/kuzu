@@ -1,8 +1,8 @@
 #include "function/gds/gds_frontier.h"
 
 #include "function/gds/gds_utils.h"
-#include "transaction/transaction.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::graph;

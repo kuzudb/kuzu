@@ -100,7 +100,7 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto catalog = Catalog::Get(*clientContext);
     const auto transaction = transaction::Transaction::Get(*clientContext);
     const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, relInfo->tableName)
-            ->constCast<RelGroupCatalogEntry>();
+                                    ->constCast<RelGroupCatalogEntry>();
     while (true) {
         relLocalState->nodeGroupIdx =
             partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
@@ -111,12 +111,12 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
         ++progressSharedState->partitionsDone;
         // TODO(Guodong): We need to handle the concurrency between COPY and other insertions
         // into the same node group.
-        auto& nodeGroup = relTable
-                              ->getOrCreateNodeGroup(transaction,
-                                  relLocalState->nodeGroupIdx, relInfo->direction)
-                              ->cast<CSRNodeGroup>();
-        appendNodeGroup(relGroupEntry, *MemoryManager::Get(*clientContext),
-            transaction, nodeGroup, *relInfo, *relLocalState);
+        auto& nodeGroup =
+            relTable
+                ->getOrCreateNodeGroup(transaction, relLocalState->nodeGroupIdx, relInfo->direction)
+                ->cast<CSRNodeGroup>();
+        appendNodeGroup(relGroupEntry, *MemoryManager::Get(*clientContext), transaction, nodeGroup,
+            *relInfo, *relLocalState);
         updateProgress(context);
     }
 }

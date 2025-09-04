@@ -326,7 +326,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     // Set randomLookup=false to enable caching during graph materialization.
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
         nbrInfo.dstTableID, relProps, false /*randomLookup*/);
-    const auto numNodes = graph->getMaxOffset(transaction::Transaction::Get(*clientContext), tableId);
+    const auto numNodes =
+        graph->getMaxOffset(transaction::Transaction::Get(*clientContext), tableId);
 
     KruskalCompute compute(mm, numNodes);
     WeightUtils::visit(SpanningForest::name, propertyType, [&]<typename T>(T) {

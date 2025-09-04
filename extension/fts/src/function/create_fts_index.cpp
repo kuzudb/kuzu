@@ -178,8 +178,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                           "key(ID));",
         appearsInfoTableName);
     auto tableName = ftsBindData->tableName;
-    auto tableEntry =
-        catalog::Catalog::Get(context)->getTableCatalogEntry(transaction::Transaction::Get(context), tableName);
+    auto tableEntry = catalog::Catalog::Get(context)->getTableCatalogEntry(
+        transaction::Transaction::Get(context), tableName);
     for (auto& property : ftsBindData->propertyIDs) {
         auto propertyName = tableEntry->getProperty(property).getName();
         query += stringFormat("COPY `{}` FROM "

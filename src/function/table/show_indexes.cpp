@@ -88,8 +88,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     auto transaction = transaction::Transaction::Get(*context);
     auto indexEntries = catalog->getIndexEntries(transaction);
     for (auto indexEntry : indexEntries) {
-        auto tableEntry =
-            catalog->getTableCatalogEntry(transaction, indexEntry->getTableID());
+        auto tableEntry = catalog->getTableCatalogEntry(transaction, indexEntry->getTableID());
         auto tableName = tableEntry->getName();
         auto indexName = indexEntry->getIndexName();
         auto indexType = indexEntry->getIndexType();

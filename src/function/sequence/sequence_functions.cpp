@@ -3,8 +3,8 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "function/scalar_function.h"
-#include "transaction/transaction.h"
 #include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 
@@ -17,8 +17,8 @@ struct CurrVal {
         auto catalog = catalog::Catalog::Get(*ctx);
         auto transaction = transaction::Transaction::Get(*ctx);
         auto sequenceName = input.getAsString();
-        auto sequenceEntry = catalog->getSequenceEntry(transaction, sequenceName,
-            ctx->useInternalCatalogEntry());
+        auto sequenceEntry =
+            catalog->getSequenceEntry(transaction, sequenceName, ctx->useInternalCatalogEntry());
         result.setValue(0, sequenceEntry->currVal());
     }
 };
@@ -30,8 +30,8 @@ struct NextVal {
         auto catalog = catalog::Catalog::Get(*ctx);
         auto transaction = transaction::Transaction::Get(*ctx);
         auto sequenceName = input.getAsString();
-        auto sequenceEntry = catalog->getSequenceEntry(transaction, sequenceName,
-            ctx->useInternalCatalogEntry());
+        auto sequenceEntry =
+            catalog->getSequenceEntry(transaction, sequenceName, ctx->useInternalCatalogEntry());
         sequenceEntry->nextKVal(transaction, cnt, result);
         result.state->getSelVectorUnsafe().setSelSize(cnt);
     }
@@ -41,8 +41,7 @@ function_set CurrValFunction::getFunctionSet() {
     function_set functionSet;
     functionSet.push_back(make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
-        ScalarFunction::UnarySequenceExecFunction<ku_string_t, ValueVector,
-            CurrVal>));
+        ScalarFunction::UnarySequenceExecFunction<ku_string_t, ValueVector, CurrVal>));
     return functionSet;
 }
 
@@ -50,8 +49,7 @@ function_set NextValFunction::getFunctionSet() {
     function_set functionSet;
     auto func = make_unique<ScalarFunction>(name, std::vector<LogicalTypeID>{LogicalTypeID::STRING},
         LogicalTypeID::INT64,
-        ScalarFunction::UnarySequenceExecFunction<ku_string_t, ValueVector,
-            NextVal>);
+        ScalarFunction::UnarySequenceExecFunction<ku_string_t, ValueVector, NextVal>);
     func->isReadOnly = false;
     functionSet.push_back(std::move(func));
     return functionSet;

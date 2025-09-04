@@ -1,8 +1,8 @@
 #include "binder/binder.h"
 #include "catalog/catalog.h"
 #include "function/table/bind_data.h"
-#include "function/table/simple_table_function.h"
 #include "function/table/bind_input.h"
+#include "function/table/simple_table_function.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;

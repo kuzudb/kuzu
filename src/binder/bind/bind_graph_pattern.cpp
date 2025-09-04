@@ -14,8 +14,8 @@
 #include "function/gds/rec_joins.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
-#include "transaction/transaction.h"
 #include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

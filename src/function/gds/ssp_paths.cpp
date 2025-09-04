@@ -78,8 +78,9 @@ private:
         auto frontier = DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto frontierPair = std::make_unique<SPFrontierPair>(std::move(frontier));
         auto transaction = transaction::Transaction::Get(*context->clientContext);
-        auto bfsGraph = std::make_unique<BFSGraphManager>(sharedState->graph->getMaxOffsetMap(transaction),
-            storage::MemoryManager::Get(*clientContext));
+        auto bfsGraph =
+            std::make_unique<BFSGraphManager>(sharedState->graph->getMaxOffsetMap(transaction),
+                storage::MemoryManager::Get(*clientContext));
         auto edgeCompute =
             std::make_unique<SSPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

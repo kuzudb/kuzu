@@ -190,7 +190,8 @@ static TableFunction getObjectScanFunc(const std::string& dbName, const std::str
     // Bind external database table
     auto attachedDB = main::DatabaseManager::Get(*clientContext)->getAttachedDatabase(dbName);
     auto attachedCatalog = attachedDB->getCatalog();
-    auto entry = attachedCatalog->getTableCatalogEntry(transaction::Transaction::Get(*clientContext), tableName);
+    auto entry = attachedCatalog->getTableCatalogEntry(
+        transaction::Transaction::Get(*clientContext), tableName);
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();
 }
 

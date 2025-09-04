@@ -23,9 +23,9 @@
 #include "printer/json_printer.h"
 #include "printer/printer_factory.h"
 #include "transaction/transaction.h"
+#include "transaction/transaction_context.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
-#include "transaction/transaction_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::utf8proc;
@@ -110,8 +110,8 @@ void EmbeddedShell::updateTableNames() {
             ->beginReadTransaction(); // start transaction to get current table names
         transactionStarted = true;
     }
-    for (auto& tableEntry : database->catalog->getTableEntries(transaction::Transaction::Get(*clientContext),
-             false /*useInternal*/)) {
+    for (auto& tableEntry : database->catalog->getTableEntries(
+             transaction::Transaction::Get(*clientContext), false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
         } else if (tableEntry->getType() == catalog::CatalogEntryType::REL_GROUP_ENTRY) {

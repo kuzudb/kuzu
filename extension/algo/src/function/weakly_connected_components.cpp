@@ -4,9 +4,9 @@
 #include "function/config/connected_components_config.h"
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
+#include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
-#include "function/table/bind_input.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

@@ -302,8 +302,7 @@ static std::unique_ptr<HNSWIndexEmbeddings> constructEmbeddingsColumn(
             common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
             table.getTableID(), columnID);
     } else {
-        return std::make_unique<OnDiskEmbeddings>(transaction,
-            MemoryManager::Get(*context),
+        return std::make_unique<OnDiskEmbeddings>(transaction, MemoryManager::Get(*context),
             common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()}, table,
             columnID);
     }
@@ -475,8 +474,7 @@ std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, Stora
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
     const auto catalog = catalog::Catalog::Get(*context);
     const auto transaction = Transaction::Get(*context);
-    const auto indexEntry =
-        catalog->getIndex(transaction, indexInfo.tableID, indexInfo.name);
+    const auto indexEntry = catalog->getIndex(transaction, indexInfo.tableID, indexInfo.name);
     const auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
         auxInfo.config.copy());
@@ -550,8 +548,8 @@ getIndexTableCatalogEntries(const catalog::Catalog* catalog, const Transaction* 
 std::unique_ptr<Index::InsertState> OnDiskHNSWIndex::initInsertState(main::ClientContext* context,
     visible_func) {
     auto transaction = Transaction::Get(*context);
-    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
-        catalog::Catalog::Get(*context), transaction, indexInfo);
+    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] =
+        getIndexTableCatalogEntries(catalog::Catalog::Get(*context), transaction, indexInfo);
     return std::make_unique<HNSWInsertState>(context, nodeTableEntry, upperRelTableEntry,
         lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
 }
@@ -612,11 +610,11 @@ void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
         return;
     }
     auto transaction = Transaction::Get(*context);
-    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
-        catalog::Catalog::Get(*context), transaction, indexInfo);
+    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] =
+        getIndexTableCatalogEntries(catalog::Catalog::Get(*context), transaction, indexInfo);
     const auto embeddingDim = typeInfo.constPtrCast<common::ArrayTypeInfo>()->getNumElements();
-    const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(transaction, mm,
-        nodeTable, indexInfo.columnIDs[0], embeddingDim);
+    const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable,
+        indexInfo.columnIDs[0], embeddingDim);
     const auto insertState = std::make_unique<HNSWInsertState>(context, nodeTableEntry,
         upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
     // TODO(Guodong): Perhaps should switch to scan instead of lookup here.

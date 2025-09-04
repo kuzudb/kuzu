@@ -30,9 +30,8 @@ void RelDeleteTest::detachDeleteNode(std::string_view nodeTable, std::string_vie
     int64_t idOfNode) {
     auto* catalog = database->getCatalog();
     auto transaction = transaction::Transaction::Get(*conn->getClientContext());
-    const auto& knowsTableEntry = catalog->getTableCatalogEntry(transaction,
-                std::string{relTable})
-            ->constCast<catalog::RelGroupCatalogEntry>();
+    const auto& knowsTableEntry = catalog->getTableCatalogEntry(transaction, std::string{relTable})
+                                      ->constCast<catalog::RelGroupCatalogEntry>();
     auto& knowsTable = storage::StorageManager::Get(*conn->getClientContext())
                            ->getTable(knowsTableEntry.getRelEntryInfos()[0].oid)
                            ->cast<storage::RelTable>();

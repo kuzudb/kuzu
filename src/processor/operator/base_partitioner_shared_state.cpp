@@ -1,6 +1,7 @@
 #include "processor/operator/base_partitioner_shared_state.h"
-#include "transaction/transaction.h"
+
 #include "storage/table/node_table.h"
+#include "transaction/transaction.h"
 
 namespace kuzu::processor {
 void PartitionerSharedState::initialize(const common::logical_type_vec_t&,

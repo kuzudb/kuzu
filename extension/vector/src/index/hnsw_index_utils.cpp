@@ -5,9 +5,9 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "transaction/transaction_context.h"
 #include "main/client_context.h"
 #include "simsimd.h"
+#include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace vector_extension {
@@ -18,16 +18,16 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     auto transaction = transaction::Transaction::Get(context);
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (catalog::Catalog::Get(context)->containsIndex(transaction,
-                tableEntry->getTableID(), indexName)) {
+        if (catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
+                indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
         }
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!catalog::Catalog::Get(context)->containsIndex(transaction,
-                tableEntry->getTableID(), indexName)) {
+        if (!catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
+                indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }

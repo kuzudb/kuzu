@@ -305,7 +305,8 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     termsVector.state = dataChunk.state;
     auto nodeTableScanState =
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
-    nodeTableScanState.setToTable(transaction::Transaction::Get(context), &termsNodeTable, {dfColumnID}, {});
+    nodeTableScanState.setToTable(transaction::Transaction::Get(context), &termsNodeTable,
+        {dfColumnID}, {});
     std::unordered_map<offset_t, uint64_t> dfs;
     std::vector<VCQueryTerm> vcQueryTerms;
     vcQueryTerms.reserve(queryTerms.size());

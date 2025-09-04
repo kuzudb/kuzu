@@ -2,11 +2,11 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "transaction/transaction.h"
-#include "function/table/bind_input.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -57,7 +57,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     if (!catalog->containsTable(transaction::Transaction::Get(*context), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
-    auto tableEntry = catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), tableName);
+    auto tableEntry =
+        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), tableName);
     if (tableEntry->getTableType() != TableType::NODE) {
         throw BinderException{
             "Stats from a non-node table " + tableName + " is not supported yet!"};

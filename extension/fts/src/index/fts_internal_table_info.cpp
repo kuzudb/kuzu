@@ -15,14 +15,17 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
     auto catalog = catalog::Catalog::Get(*context);
     auto transaction = transaction::Transaction::Get(*context);
     table = storageManager->getTable(tableID)->ptrCast<storage::NodeTable>();
-    stopWordsTable = storageManager->getTable(catalog->getTableCatalogEntry(transaction, stopWordsTableName)
-                           ->getTableID())
+    stopWordsTable =
+        storageManager
+            ->getTable(catalog->getTableCatalogEntry(transaction, stopWordsTableName)->getTableID())
             ->ptrCast<storage::NodeTable>();
-    docTable = storageManager->getTable(catalog->getTableCatalogEntry(transaction, docTableName)
-                                  ->getTableID())
-                   ->ptrCast<storage::NodeTable>();
-    termsTable = storageManager->getTable(catalog->getTableCatalogEntry(transaction, termsTableName)
-                           ->getTableID())
+    docTable =
+        storageManager
+            ->getTable(catalog->getTableCatalogEntry(transaction, docTableName)->getTableID())
+            ->ptrCast<storage::NodeTable>();
+    termsTable =
+        storageManager
+            ->getTable(catalog->getTableCatalogEntry(transaction, termsTableName)->getTableID())
             ->ptrCast<storage::NodeTable>();
     auto appearsInTableEntry =
         catalog->getTableCatalogEntry(transaction, appearsInTableName)
@@ -30,8 +33,7 @@ FTSInternalTableInfo::FTSInternalTableInfo(main::ClientContext* context, common:
             ->getRelEntryInfo(termsTable->getTableID(), docTable->getTableID());
     appearsInfoTable =
         storageManager->getTable(appearsInTableEntry->oid)->ptrCast<storage::RelTable>();
-    dfColumnID =
-        catalog->getTableCatalogEntry(transaction, termsTableName)->getColumnID("df");
+    dfColumnID = catalog->getTableCatalogEntry(transaction, termsTableName)->getColumnID("df");
 }
 
 } // namespace fts_extension

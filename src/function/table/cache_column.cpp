@@ -45,8 +45,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto columnName = input->getLiteralVal<std::string>(1);
     binder::Binder::validateTableExistence(*context, tableName);
-    const auto tableEntry =
-        catalog::Catalog::Get(*context)->getTableCatalogEntry(transaction::Transaction::Get(*context), tableName);
+    const auto tableEntry = catalog::Catalog::Get(*context)->getTableCatalogEntry(
+        transaction::Transaction::Get(*context), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     binder::Binder::validateColumnExistence(tableEntry, columnName);
     auto propertyID = tableEntry->getPropertyID(columnName);
@@ -162,7 +162,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             data->cast<storage::ListChunkData>().getDataColumnChunk()->resize(
                 numRows * arrayTypeInfo->getNumElements());
         }
-        scanTableDataToChunk(i, scanState, data.get(), transaction::Transaction::Get(*context), table);
+        scanTableDataToChunk(i, scanState, data.get(), transaction::Transaction::Get(*context),
+            table);
         sharedState->merge(i, std::move(data));
     }
     return morsel.endOffset - morsel.startOffset;

@@ -79,8 +79,8 @@ FTSUpdateState::FTSUpdateState(main::ClientContext* context, FTSInternalTableInf
     std::vector<common::column_id_t> columnIDs, common::column_id_t colIdxWithUpdate)
     : dataChunkState{DataChunkState::getSingleValueDataChunkState()},
       nodeIDVector{LogicalType::INTERNAL_ID(), MemoryManager::Get(*context), dataChunkState},
-      indexTableState{MemoryManager::Get(*context), transaction::Transaction::Get(*context), tableInfo, columnIDs,
-          nodeIDVector, dataChunkState},
+      indexTableState{MemoryManager::Get(*context), transaction::Transaction::Get(*context),
+          tableInfo, columnIDs, nodeIDVector, dataChunkState},
       columnIdxWithUpdate{UINT32_MAX} {
     for (auto i = 0u; i < columnIDs.size(); i++) {
         if (columnIDs[i] == colIdxWithUpdate) {

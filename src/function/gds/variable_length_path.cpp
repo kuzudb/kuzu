@@ -118,9 +118,9 @@ private:
         RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
         auto transaction = transaction::Transaction::Get(*clientContext);
-        auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(transaction),
-            storage::MemoryManager::Get(*clientContext));
+        auto bfsGraph =
+            std::make_unique<BFSGraphManager>(sharedState->graph->getMaxOffsetMap(transaction),
+                storage::MemoryManager::Get(*clientContext));
         auto currentDenseFrontier =
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto nextDenseFrontier =

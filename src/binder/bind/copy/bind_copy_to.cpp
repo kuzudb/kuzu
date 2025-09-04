@@ -4,8 +4,8 @@
 #include "common/exception/catalog.h"
 #include "common/exception/runtime.h"
 #include "function/built_in_function_utils.h"
-#include "transaction/transaction.h"
 #include "parser/copy.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;

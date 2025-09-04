@@ -39,8 +39,7 @@ static common::offset_t internalTableFunc(const TableFuncInput& input, TableFunc
     const auto bindData = input.bindData->constPtrCast<DropHNSWIndexBindData>();
     auto tableID = bindData->tableEntry->getTableID();
     auto transaction = transaction::Transaction::Get(context);
-    catalog::Catalog::Get(context)->dropIndex(transaction, tableID,
-        bindData->indexName);
+    catalog::Catalog::Get(context)->dropIndex(transaction, tableID, bindData->indexName);
     storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>().dropIndex(
         bindData->indexName);
     return 0;

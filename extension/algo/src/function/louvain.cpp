@@ -10,10 +10,10 @@
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
-#include "processor/execution_context.h"
-#include "transaction/transaction.h"
 #include "function/table/bind_input.h"
 #include "main/client_context.h"
+#include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace std;
 using namespace kuzu::binder;

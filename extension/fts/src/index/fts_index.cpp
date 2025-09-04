@@ -25,8 +25,8 @@ std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context, StorageManag
     auto reader =
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
-    auto indexEntry =
-        catalog->getIndex(transaction::Transaction::Get(*context), indexInfo.tableID, indexInfo.name);
+    auto indexEntry = catalog->getIndex(transaction::Transaction::Get(*context), indexInfo.tableID,
+        indexInfo.name);
     auto ftsConfig = indexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config;
     return std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context);
@@ -140,8 +140,8 @@ std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContex
     auto ftsUpdateState =
         std::make_unique<FTSUpdateState>(context, internalTableInfo, indexInfo.columnIDs, columnID);
     ftsUpdateState->ftsInsertState = initInsertState(context, isVisible);
-    ftsUpdateState->ftsDeleteState =
-        initDeleteState(transaction::Transaction::Get(*context), MemoryManager::Get(*context), isVisible);
+    ftsUpdateState->ftsDeleteState = initDeleteState(transaction::Transaction::Get(*context),
+        MemoryManager::Get(*context), isVisible);
     return ftsUpdateState;
 }
 

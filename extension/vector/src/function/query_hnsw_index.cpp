@@ -242,8 +242,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
                 auto queryVector = HNSWQueryVector<T>(input.context->clientContext,
                     bindData->queryExpression, index.getElementType(), dimension);
                 auto queryVectorHandle = EmbeddingHandle{0, &queryVector};
-                localState->result = index.search(transaction::Transaction::Get(*input.context->clientContext),
-                    queryVectorHandle, localState->searchState);
+                localState->result =
+                    index.search(transaction::Transaction::Get(*input.context->clientContext),
+                        queryVectorHandle, localState->searchState);
             },
             [&](auto) { KU_UNREACHABLE; });
     }
@@ -290,10 +291,12 @@ std::unique_ptr<TableFuncLocalState> initQueryHNSWLocalState(
         hnswBindData->nodeTableEntry->getTableID(), hnswBindData->indexEntry->getIndexName());
     auto catalog = Catalog::Get(*context);
     auto upperRelTableEntry =
-        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), upperRelTableName, true)
+        catalog
+            ->getTableCatalogEntry(transaction::Transaction::Get(*context), upperRelTableName, true)
             ->ptrCast<RelGroupCatalogEntry>();
     auto lowerRelTableEntry =
-        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), lowerRelTableName, true)
+        catalog
+            ->getTableCatalogEntry(transaction::Transaction::Get(*context), lowerRelTableName, true)
             ->ptrCast<RelGroupCatalogEntry>();
     HNSWSearchState searchState{context, hnswBindData->nodeTableEntry, upperRelTableEntry,
         lowerRelTableEntry, *hnswSharedState->nodeTable, hnswBindData->indexColumnID,

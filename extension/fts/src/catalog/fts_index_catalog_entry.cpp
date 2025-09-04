@@ -4,8 +4,8 @@
 #include "common/serializer/buffer_reader.h"
 #include "common/serializer/buffer_writer.h"
 #include "common/string_utils.h"
-#include "utils/fts_utils.h"
 #include "transaction/transaction.h"
+#include "utils/fts_utils.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -50,8 +50,7 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     std::string cypher;
     auto catalog = catalog::Catalog::Get(*indexToCypherInfo.context);
     auto transaction = transaction::Transaction::Get(*indexToCypherInfo.context);
-    auto tableCatalogEntry = catalog->getTableCatalogEntry(
-        transaction, indexEntry.getTableID());
+    auto tableCatalogEntry = catalog->getTableCatalogEntry(transaction, indexEntry.getTableID());
     auto tableName = tableCatalogEntry->getName();
     std::string propertyStr;
     auto propertyIDs = indexEntry.getPropertyIDs();
