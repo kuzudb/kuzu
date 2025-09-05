@@ -80,6 +80,12 @@ struct ShowWarningsFunction final {
     static function_set getFunctionSet();
 };
 
+struct ShowMacrosFunction final {
+    static constexpr const char* name = "SHOW_MACROS";
+
+    static function_set getFunctionSet();
+};
+
 struct TableInfoFunction final {
     static constexpr const char* name = "TABLE_INFO";
 

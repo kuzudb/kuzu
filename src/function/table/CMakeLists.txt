@@ -18,6 +18,7 @@ add_library(kuzu_table_function
         show_functions.cpp
         show_indexes.cpp
         show_loaded_extensions.cpp
+        show_macros.cpp
         show_official_extensions.cpp
         show_projected_graphs.cpp
         show_sequences.cpp
