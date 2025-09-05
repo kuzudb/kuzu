@@ -1,7 +1,9 @@
 #include "storage/table/string_column.h"
 
 #include <algorithm>
+#include <unordered_map>
 
+#include "common/assert.h"
 #include "common/cast.h"
 #include "common/null_mask.h"
 #include "common/types/types.h"
@@ -147,24 +149,59 @@ void StringColumn::scanSegment(const SegmentState& state, ColumnChunkData* resul
     auto* indexChunk = stringResultChunk->getIndexColumnChunk();
     indexColumn->scanSegment(getChildState(state, ChildStateIndex::INDEX), indexChunk,
         startOffsetInSegment, numValuesToScan);
-    // TODO(bmwinger): each index needs to be incremented by the initial size of the dictionary
-    auto initialDictSize = stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
-    for (row_idx_t i = 0; i < numValuesToScan; i++) {
-        indexChunk->setValue<string_index_t>(
-            indexChunk->getValue<string_index_t>(startOffsetInResult + i) + initialDictSize,
-            startOffsetInResult + i);
+    if (numValuesToScan == state.metadata.numValues) {
+        // Append the entire dictionary into the chunk
+        // Since the resultChunk may be non-empty, each index needs to be incremented by the initial
+        // size of the dictionary so that the indices line up with the values that will be scanned
+        // into the dictionary chunk
+        auto initialDictSize =
+            stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
+        for (row_idx_t i = 0; i < numValuesToScan; i++) {
+            indexChunk->setValue<string_index_t>(
+                indexChunk->getValue<string_index_t>(startOffsetInResult + i) + initialDictSize,
+                startOffsetInResult + i);
+        }
+        dictionary.scan(state, stringResultChunk->getDictionaryChunk());
+    } else {
+        // Any strings which are duplicated only need to be scanned once, so we track duplicate
+        // indices
+        std::unordered_map<string_index_t, uint64_t> indexMap;
+        std::vector<std::pair<string_index_t, uint64_t>> offsetsToScan;
+        for (auto i = 0u; i < numValuesToScan; i++) {
+            if (!resultChunk->isNull(startOffsetInResult + i)) {
+                auto index = indexChunk->getValue<string_index_t>(startOffsetInResult + i);
+                auto element = indexMap.find(index);
+                if (element == indexMap.end()) {
+                    indexMap.insert(std::make_pair(index, startOffsetInResult + i));
+                    indexChunk->setValue<string_index_t>(startOffsetInResult + offsetsToScan.size(),
+                        startOffsetInResult + i);
+                    offsetsToScan.emplace_back(index, startOffsetInResult + offsetsToScan.size());
+                } else {
+                    indexChunk->setValue<string_index_t>(element->second, startOffsetInResult + i);
+                }
+            }
+        }
+
+        if (offsetsToScan.size() == 0) {
+            // All scanned values are null
+            return;
+        }
+        dictionary.scan(getChildState(state, ChildStateIndex::OFFSET),
+            getChildState(state, ChildStateIndex::DATA), offsetsToScan,
+            &stringResultChunk->getDictionaryChunk(),
+            getChildState(state, ChildStateIndex::INDEX).metadata);
     }
-    auto initialDictDataSize =
-        stringResultChunk->getDictionaryChunk().getStringDataChunk()->getNumValues();
-    auto* offsetChunk = stringResultChunk->getDictionaryChunk().getOffsetChunk();
-    // FIXME(bmwinger): this is temporary and will not perform well (scans everything to avoid
-    // implementing partial scans to ColumnChunkData)
-    dictionary.scan(state, stringResultChunk->getDictionaryChunk());
-    // Each offset needs to be incremented by the initial size of the dictionary data chunk
-    for (row_idx_t i = initialDictSize; i < offsetChunk->getNumValues(); i++) {
-        offsetChunk->setValue<string_offset_t>(
-            offsetChunk->getValue<string_offset_t>(i) + initialDictDataSize, i);
-    }
+    KU_ASSERT(resultChunk->getNumValues() == startOffsetInResult + numValuesToScan &&
+              stringResultChunk->getIndexColumnChunk()->getNumValues() ==
+                  startOffsetInResult + numValuesToScan);
+    RUNTIME_CHECK(auto dictionarySize =
+                      stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
+        auto indexSize = stringResultChunk->getIndexColumnChunk()->getNumValues();
+        for (offset_t i = 0; i < indexSize; i++) {
+            auto stringIndex =
+                stringResultChunk->getIndexColumnChunk()->getValue<string_index_t>(i);
+            KU_ASSERT(stringIndex < dictionarySize);
+        });
 }
 
 void StringColumn::scanUnfiltered(const SegmentState& state, offset_t startOffsetInChunk,

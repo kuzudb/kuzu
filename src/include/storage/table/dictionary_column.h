@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/types/types.h"
+#include "common/vector/value_vector.h"
 #include "dictionary_chunk.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_data.h"
@@ -18,9 +19,10 @@ public:
     // Offsets to scan should be a sorted list of pairs mapping the index of the entry in the string
     // dictionary (as read from the index column) to the output index in the result vector to store
     // the string.
+    template<class Result>
     void scan(const SegmentState& offsetState, const SegmentState& dataState,
         std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
-        common::ValueVector* resultVector, const ColumnChunkMetadata& indexMeta) const;
+        Result* result, const ColumnChunkMetadata& indexMeta) const;
 
     DictionaryChunk::string_index_t append(const DictionaryChunk& dictChunk, SegmentState& state,
         std::string_view val) const;
@@ -34,7 +36,9 @@ public:
 private:
     void scanOffsets(const SegmentState& state, DictionaryChunk::string_offset_t* offsets,
         uint64_t index, uint64_t numValues, uint64_t dataSize) const;
-    void scanValueToVector(const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
+    void scanValue(const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
+        DictionaryChunk* result, uint64_t offsetInVector) const;
+    void scanValue(const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
         common::ValueVector* resultVector, uint64_t offsetInVector) const;
 
     static bool canDataCommitInPlace(const SegmentState& dataState,

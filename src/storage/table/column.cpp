@@ -475,8 +475,9 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOf
             segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
             segmentCheckpointState.numRows);
     }
+    // Finalize is necessary prior to splitting for strings so that pruned values don't have an
+    // impact on the number/size of segments
     checkpointState.persistentData.finalize();
-    // TODO(bmwinger): this should use the on-disk size, not the in-memory size
     if (canSplitSegment && checkpointState.persistentData.shouldSplit()) {
         auto newSegments = checkpointState.persistentData.split();
         for (auto& segment : newSegments) {
