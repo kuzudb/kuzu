@@ -111,6 +111,11 @@ HNSWIndexConfig::HNSWIndexConfig(const function::optional_params_t& optionalPara
         } else if (CacheEmbeddings::NAME == lowerCaseName) {
             value.validateType(CacheEmbeddings::TYPE);
             cacheEmbeddingsColumn = value.getValue<bool>();
+        } else if (SkipIfExists::NAME == lowerCaseName) {
+            value.validateType(SkipIfExists::TYPE);
+            conflictAction = value.getValue<bool>() ?
+                                 common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                                 common::ConflictAction::ON_CONFLICT_THROW;
         } else {
             throw common::BinderException{
                 common::stringFormat("Unrecognized optional parameter {} in {}.", name,
@@ -186,6 +191,21 @@ MetricType HNSWIndexConfig::getMetricType(const std::string& metricName) {
         return MetricType::DotProduct;
     }
     KU_UNREACHABLE;
+}
+
+DropHNSWConfig::DropHNSWConfig(const function::optional_params_t& optionalParams) {
+    for (auto& [name, value] : optionalParams) {
+        auto lowerCaseName = common::StringUtils::getLower(name);
+        if (SkipIfNotExists::NAME == lowerCaseName) {
+            value.validateType(SkipIfNotExists::TYPE);
+            conflictAction = value.getValue<bool>() ?
+                                 common::ConflictAction::ON_CONFLICT_DO_NOTHING :
+                                 common::ConflictAction::ON_CONFLICT_THROW;
+        } else {
+            throw common::BinderException{common::stringFormat(
+                "Unrecognized optional parameter {} in {}.", name, DropVectorIndexFunction::name)};
+        }
+    }
 }
 
 QueryHNSWConfig::QueryHNSWConfig(const function::optional_params_t& optionalParams) {

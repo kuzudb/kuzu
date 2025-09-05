@@ -2,6 +2,7 @@
 
 #include <cmath>
 
+#include "common/enums/conflict_action.h"
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
 
@@ -79,6 +80,20 @@ struct CacheEmbeddings {
     static constexpr bool DEFAULT_VALUE = true;
 };
 
+struct SkipIfExists {
+    static constexpr const char* NAME = "skip_if_exists";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr common::ConflictAction DEFAULT_VALUE =
+        common::ConflictAction::ON_CONFLICT_THROW;
+};
+
+struct SkipIfNotExists {
+    static constexpr const char* NAME = "skip_if_not_exists";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr common::ConflictAction DEFAULT_VALUE =
+        common::ConflictAction::ON_CONFLICT_THROW;
+};
+
 struct BlindSearchUpSelThreshold {
     static constexpr const char* NAME = "blind_search_up_sel";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::DOUBLE;
@@ -103,6 +118,7 @@ struct HNSWIndexConfig {
     double alpha = Alpha::DEFAULT_VALUE;
     int64_t efc = Efc::DEFAULT_VALUE;
     bool cacheEmbeddingsColumn = CacheEmbeddings::DEFAULT_VALUE;
+    common::ConflictAction conflictAction = SkipIfExists::DEFAULT_VALUE;
 
     HNSWIndexConfig() = default;
 
@@ -119,9 +135,18 @@ struct HNSWIndexConfig {
 private:
     HNSWIndexConfig(const HNSWIndexConfig& other)
         : mu{other.mu}, ml{other.ml}, pu{other.pu}, metric{other.metric}, alpha{other.alpha},
-          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn) {}
+          efc{other.efc}, cacheEmbeddingsColumn(other.cacheEmbeddingsColumn),
+          conflictAction(other.conflictAction) {}
 
     static MetricType getMetricType(const std::string& metricName);
+};
+
+struct DropHNSWConfig {
+    common::ConflictAction conflictAction = SkipIfNotExists::DEFAULT_VALUE;
+
+    DropHNSWConfig() = default;
+
+    explicit DropHNSWConfig(const function::optional_params_t& optionalParams);
 };
 
 struct QueryHNSWConfig {
