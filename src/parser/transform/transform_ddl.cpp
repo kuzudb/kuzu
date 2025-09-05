@@ -1,4 +1,5 @@
 #include "common/exception/parser.h"
+#include "common/string_format.h"
 #include "parser/ddl/alter.h"
 #include "parser/ddl/create_sequence.h"
 #include "parser/ddl/create_table.h"
@@ -336,8 +337,48 @@ std::vector<ParsedPropertyDefinition> Transformer::transformPropertyDefinitions(
     return definitions;
 }
 
-std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
+static std::string convertColumnDefinitionsToString(
+    const std::vector<ParsedColumnDefinition>& columnDefinitions) {
+    std::string result;
+    for (auto& columnDefinition : columnDefinitions) {
+        result += common::stringFormat("{} {},", columnDefinition.name, columnDefinition.type);
+    }
+    return result.substr(0, result.length() - 1);
+}
+
+std::string Transformer::transformUnionType(CypherParser::KU_UnionTypeContext& ctx) {
+    return common::stringFormat("{}({})", ctx.UNION()->getText(),
+        convertColumnDefinitionsToString(transformColumnDefinitions(*ctx.kU_ColumnDefinitions())));
+}
+
+std::string Transformer::transformStructType(CypherParser::KU_StructTypeContext& ctx) {
+    return common::stringFormat("{}({})", ctx.STRUCT()->getText(),
+        convertColumnDefinitionsToString(transformColumnDefinitions(*ctx.kU_ColumnDefinitions())));
+}
+
+std::string Transformer::transformMapType(CypherParser::KU_MapTypeContext& ctx) {
+    return common::stringFormat("{}({},{})", ctx.MAP()->getText(),
+        transformDataType(*ctx.kU_DataType()[0]), transformDataType(*ctx.kU_DataType()[1]));
+}
+
+std::string Transformer::transformDecimalType(CypherParser::KU_DecimalTypeContext& ctx) {
     return ctx.getText();
+}
+
+std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
+    if (ctx.oC_SymbolicName()) {
+        return transformSymbolicName(*ctx.oC_SymbolicName());
+    } else if (ctx.kU_UnionType()) {
+        return transformUnionType(*ctx.kU_UnionType());
+    } else if (ctx.kU_StructType()) {
+        return transformStructType(*ctx.kU_StructType());
+    } else if (ctx.kU_MapType()) {
+        return transformMapType(*ctx.kU_MapType());
+    } else if (ctx.kU_DecimalType()) {
+        return transformDecimalType(*ctx.kU_DecimalType());
+    } else {
+        return transformDataType(*ctx.kU_DataType()) + ctx.kU_ListIdentifiers()->getText();
+    }
 }
 
 std::string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx) {
