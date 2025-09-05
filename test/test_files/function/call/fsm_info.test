@@ -15,7 +15,7 @@
 -STATEMENT copy person from (
     call storage_info('person') where node_group_id = 0 and column_name = "value" with sum(num_values) as node_group_capacity
     call storage_info('person') where column_name = "value" with node_group_capacity, max(node_group_id) as last_node_group_id
-    call storage_info('person') where data_type = 'UINT64' and node_group_id = last_node_group_id with node_group_capacity, cast(min as uint64) as min_val, sum(num_values) as last_node_group_size
+    call storage_info('person') where data_type = 'UINT64' and node_group_id = last_node_group_id with node_group_capacity, min(cast(min as uint64)) as min_val, sum(num_values) as last_node_group_size
     unwind range(1, node_group_capacity - last_node_group_size) as i return min_val - i
 )
 ---- ok
