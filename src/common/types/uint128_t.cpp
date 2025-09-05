@@ -169,16 +169,12 @@ bool Uint128_t::tryMultiply(uint128_t lhs, uint128_t rhs, uint128_t& result) {
 #if ((__GNUC__ >= 5) || defined(__clang__)) && defined(__SIZEOF_INT128__)
     __uint128_t left = __uint128_t(lhs.low) + (__uint128_t(lhs.high) << 64);
     __uint128_t right = __uint128_t(rhs.low) + (__uint128_t(rhs.high) << 64);
-    __uint128_t result_i128 = 0;
-    if (__builtin_mul_overflow(left, right, &result_i128)) {
+    __uint128_t result_ui128 = 0;
+    if (__builtin_mul_overflow(left, right, &result_ui128)) {
         return false;
     }
-    auto high = uint64_t(result_i128 >> 64);
-    if (high & 0x8000000000000000) {
-        return false;
-    }
-    result.high = int64_t(high);
-    result.low = uint64_t(result_i128 & 0xffffffffffffffff);
+    result.high = uint64_t(result_ui128 >> 64);
+    result.low = uint64_t(result_ui128 & 0xffffffffffffffff);
 #else
     // Multiply code adapted from:
     // https://github.com/calccrypto/uint128_t/blob/master/uint128_t.cpp
