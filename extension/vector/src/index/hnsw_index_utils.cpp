@@ -55,9 +55,8 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     } break;
     case IndexOperation::QUERY: {
         if (!indexExists(context, transaction, tableEntry, indexName)) {
-            throw common::BinderException{
-                common::stringFormat("Table {} doesn't have an index with name {}.",
-                    tableEntry->getName(), indexName)};
+            throw common::BinderException{common::stringFormat(
+                "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }
         return true;
     } break;
