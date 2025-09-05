@@ -196,12 +196,12 @@ void StringColumn::scanSegment(const SegmentState& state, ColumnChunkData* resul
                   startOffsetInResult + numValuesToScan);
     RUNTIME_CHECK(auto dictionarySize =
                       stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
-        auto indexSize = stringResultChunk->getIndexColumnChunk()->getNumValues();
-        for (offset_t i = 0; i < indexSize; i++) {
-            auto stringIndex =
-                stringResultChunk->getIndexColumnChunk()->getValue<string_index_t>(i);
-            KU_ASSERT(stringIndex < dictionarySize);
-        });
+                  auto indexSize = stringResultChunk->getIndexColumnChunk()->getNumValues();
+                  for (offset_t i = 0; i < indexSize; i++) {
+                      auto stringIndex =
+                          stringResultChunk->getIndexColumnChunk()->getValue<string_index_t>(i);
+                      KU_ASSERT(stringIndex < dictionarySize);
+                  });
 }
 
 void StringColumn::scanUnfiltered(const SegmentState& state, offset_t startOffsetInChunk,
