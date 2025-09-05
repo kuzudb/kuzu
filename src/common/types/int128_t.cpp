@@ -587,15 +587,6 @@ bool Int128_t::tryCastTo(int128_t value, int128_t& result) {
 }
 
 template<>
-bool Int128_t::tryCastTo(uint128_t value, int128_t& result) {
-    if (value.high > (uint64_t)(function::NumericLimits<int64_t>::maximum())) {
-        return false;
-    }
-    result = {value.low, int64_t(value.high)};
-    return true;
-}
-
-template<>
 bool Int128_t::tryCastTo(float value, int128_t& result) {
     return tryCastTo(double(value), result);
 }
@@ -674,12 +665,6 @@ int128_t::int128_t(uint16_t value) {
 }
 
 int128_t::int128_t(uint8_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
-}
-
-int128_t::int128_t(uint128_t value) {
     auto result = Int128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
@@ -843,6 +828,14 @@ int128_t::operator float() const {
         throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
             common::TypeUtils::toString(*this)));
     } // LCOV_EXCL_STOP
+    return result;
+}
+
+int128_t::operator uint128_t() const {
+    uint128_t result{};
+    if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+        throw common::OverflowException("Cannot cast negative INT128 to UINT128");
+    }
     return result;
 }
 
