@@ -10,6 +10,7 @@ class ArrowQueryResult : public QueryResult {
     static constexpr QueryResultType type_ = QueryResultType::ARROW;
 
 public:
+    ArrowQueryResult(std::vector<ArrowArray> arrays, int64_t chunkSize);
     ArrowQueryResult(std::vector<std::string> columnNames,
         std::vector<common::LogicalType> columnTypes, processor::FactorizedTable& table,
         int64_t chunkSize);

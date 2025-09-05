@@ -8,6 +8,7 @@
 #include "binder/expression/scalar_function_expression.h"
 #include "binder/expression/subquery_expression.h"
 #include "common/exception/not_implemented.h"
+#include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/sequence/sequence_functions.h"
 #include "function/uuid/vector_uuid_functions.h"
 
@@ -186,7 +187,9 @@ bool ExpressionVisitor::isRandom(const Expression& expression) {
         return false;
     }
     auto& funcExpr = expression.constCast<ScalarFunctionExpression>();
-    if (funcExpr.getFunction().name == function::GenRandomUUIDFunction::name) {
+    auto funcName = funcExpr.getFunction().name;
+    if (funcName == function::GenRandomUUIDFunction::name ||
+        funcName == function::RandFunction::name) {
         return true;
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(expression)) {
@@ -299,6 +302,9 @@ bool ConstantExpressionVisitor::visitFunction(const Expression& expr) {
         return false;
     }
     if (funcExpr.getFunction().name == function::GenRandomUUIDFunction::name) {
+        return false;
+    }
+    if (funcExpr.getFunction().name == function::RandFunction::name) {
         return false;
     }
     return visitChildren(expr);

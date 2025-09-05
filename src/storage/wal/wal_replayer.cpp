@@ -19,6 +19,7 @@
 #include "storage/table/rel_table.h"
 #include "storage/wal/checksum_reader.h"
 #include "storage/wal/wal_record.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -38,14 +39,49 @@ WALReplayer::WALReplayer(main::ClientContext& clientContext) : clientContext{cli
     shadowFilePath = StorageUtils::getShadowFilePath(clientContext.getDatabasePath());
 }
 
-static ku_uuid_t readDatabaseID(Deserializer& deserializer) {
-    ku_uuid_t walDatabaseID{};
-    deserializer.deserializeValue(walDatabaseID);
-    deserializer.getReader()->cast<ChecksumReader>()->finishEntry(checksumMismatchMessage);
-    return walDatabaseID;
+static WALHeader readWALHeader(Deserializer& deserializer) {
+    WALHeader header{};
+    deserializer.deserializeValue(header.databaseID);
+
+    // It is possible to read a value other than 0/1 when deserializing the flag
+    // This causes some weird behaviours with some toolchains so we manually do the conversion here
+    uint8_t enableChecksumsBytes = 0;
+    deserializer.deserializeValue(enableChecksumsBytes);
+    header.enableChecksums = enableChecksumsBytes != 0;
+
+    return header;
 }
 
-void WALReplayer::replay(bool throwOnWalReplayFailure) const {
+static Deserializer initDeserializer(FileInfo& fileInfo, main::ClientContext& clientContext,
+    bool enableChecksums) {
+    if (enableChecksums) {
+        return Deserializer{std::make_unique<ChecksumReader>(fileInfo,
+            *MemoryManager::Get(clientContext), checksumMismatchMessage)};
+    } else {
+        return Deserializer{std::make_unique<BufferedFileReader>(fileInfo)};
+    }
+}
+
+static void checkWALHeader(const WALHeader& header, bool enableChecksums) {
+    if (enableChecksums != header.enableChecksums) {
+        throw RuntimeException(stringFormat(
+            "The database you are trying to open was serialized with enableChecksums={} but you "
+            "are trying to open it with enableChecksums={}. Please open your database using the "
+            "correct enableChecksums config. If you wish to change this for your database, please "
+            "use the export/import functionality.",
+            TypeUtils::toString(header.enableChecksums), TypeUtils::toString(enableChecksums)));
+    }
+}
+
+static uint64_t getReadOffset(Deserializer& deSer, bool enableChecksums) {
+    if (enableChecksums) {
+        return deSer.getReader()->cast<ChecksumReader>()->getReadOffset();
+    } else {
+        return deSer.getReader()->cast<BufferedFileReader>()->getReadOffset();
+    }
+}
+
+void WALReplayer::replay(bool throwOnWalReplayFailure, bool enableChecksums) const {
     auto vfs = VirtualFileSystem::GetUnsafe(clientContext);
     Checkpointer checkpointer(clientContext);
     // First, check if the WAL file exists. If it does not, we can safely remove the shadow file.
@@ -73,7 +109,7 @@ void WALReplayer::replay(bool throwOnWalReplayFailure) const {
         // First, we dry run the replay to find out the offset of the last record that was
         // CHECKPOINT or COMMIT.
         auto [offsetDeserialized, isLastRecordCheckpoint] =
-            dryReplay(*fileInfo, throwOnWalReplayFailure);
+            dryReplay(*fileInfo, throwOnWalReplayFailure, enableChecksums);
         if (isLastRecordCheckpoint) {
             // If the last record is a checkpoint, we resume by replaying the shadow file.
             ShadowFile::replayShadowPageRecords(clientContext);
@@ -86,22 +122,21 @@ void WALReplayer::replay(bool throwOnWalReplayFailure) const {
             // Read the checkpointed data from the disk.
             checkpointer.readCheckpoint();
             // Resume by replaying the WAL file from the beginning until the last COMMIT record.
-            Deserializer deserializer(
-                std::make_unique<ChecksumReader>(*fileInfo, *MemoryManager::Get(clientContext)));
+            Deserializer deserializer = initDeserializer(*fileInfo, clientContext, enableChecksums);
 
             if (offsetDeserialized > 0) {
                 // Make sure the WAL file is for the current database
-                const auto walDatabaseID = readDatabaseID(deserializer);
+                deserializer.getReader()->onObjectBegin();
+                const auto walHeader = readWALHeader(deserializer);
                 FileDBIDUtils::verifyDatabaseID(*fileInfo,
                     StorageManager::Get(clientContext)->getOrInitDatabaseID(clientContext),
-                    walDatabaseID);
+                    walHeader.databaseID);
+                deserializer.getReader()->onObjectEnd();
             }
 
-            while (deserializer.getReader()->cast<ChecksumReader>()->getReadOffset() <
-                   offsetDeserialized) {
+            while (getReadOffset(deserializer, enableChecksums) < offsetDeserialized) {
                 KU_ASSERT(!deserializer.finished());
-                auto walRecord =
-                    WALRecord::deserialize(deserializer, clientContext, checksumMismatchMessage);
+                auto walRecord = WALRecord::deserialize(deserializer, clientContext);
                 replayWALRecord(*walRecord);
             }
             // After replaying all the records, we should truncate the WAL file to the last
@@ -120,21 +155,22 @@ void WALReplayer::replay(bool throwOnWalReplayFailure) const {
     }
 }
 
-WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo,
-    bool throwOnWalReplayFailure) const {
+WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo, bool throwOnWalReplayFailure,
+    bool enableChecksums) const {
     uint64_t offsetDeserialized = 0;
     bool isLastRecordCheckpoint = false;
     try {
-        Deserializer deserializer(
-            std::make_unique<ChecksumReader>(fileInfo, *MemoryManager::Get(clientContext)));
+        Deserializer deserializer = initDeserializer(fileInfo, clientContext, enableChecksums);
 
         // Skip the databaseID here, we'll verify it when we actually replay
-        readDatabaseID(deserializer);
+        deserializer.getReader()->onObjectBegin();
+        const auto walHeader = readWALHeader(deserializer);
+        checkWALHeader(walHeader, enableChecksums);
+        deserializer.getReader()->onObjectEnd();
 
         bool finishedDeserializing = deserializer.finished();
         while (!finishedDeserializing) {
-            auto walRecord =
-                WALRecord::deserialize(deserializer, clientContext, checksumMismatchMessage);
+            auto walRecord = WALRecord::deserialize(deserializer, clientContext);
             finishedDeserializing = deserializer.finished();
             switch (walRecord->type) {
             case WALRecordType::CHECKPOINT_RECORD: {
@@ -142,13 +178,11 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo,
                 // If we reach a checkpoint record, we can stop replaying.
                 isLastRecordCheckpoint = true;
                 finishedDeserializing = true;
-                offsetDeserialized =
-                    deserializer.getReader()->cast<ChecksumReader>()->getReadOffset();
+                offsetDeserialized = getReadOffset(deserializer, enableChecksums);
             } break;
             case WALRecordType::COMMIT_RECORD: {
                 // Update the offset to the end of the last commit record.
-                offsetDeserialized =
-                    deserializer.getReader()->cast<ChecksumReader>()->getReadOffset();
+                offsetDeserialized = getReadOffset(deserializer, enableChecksums);
             } break;
             default: {
                 // DO NOTHING.
@@ -221,7 +255,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
 
 void WALReplayer::replayCreateCatalogEntryRecord(WALRecord& walRecord) const {
     auto catalog = Catalog::Get(clientContext);
-    auto transaction = clientContext.getTransaction();
+    auto transaction = transaction::Transaction::Get(clientContext);
     auto storageManager = StorageManager::Get(clientContext);
     auto& record = walRecord.cast<CreateCatalogEntryRecord>();
     switch (record.ownedCatalogEntry->getType()) {
@@ -258,7 +292,7 @@ void WALReplayer::replayCreateCatalogEntryRecord(WALRecord& walRecord) const {
 void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const {
     auto& dropEntryRecord = walRecord.constCast<DropCatalogEntryRecord>();
     auto catalog = Catalog::Get(clientContext);
-    auto transaction = clientContext.getTransaction();
+    auto transaction = transaction::Transaction::Get(clientContext);
     const auto entryID = dropEntryRecord.entryID;
     switch (dropEntryRecord.entryType) {
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -282,7 +316,7 @@ void WALReplayer::replayAlterTableEntryRecord(const WALRecord& walRecord) const 
     auto binder = Binder(&clientContext);
     auto& alterEntryRecord = walRecord.constCast<AlterTableEntryRecord>();
     auto catalog = Catalog::Get(clientContext);
-    auto transaction = clientContext.getTransaction();
+    auto transaction = transaction::Transaction::Get(clientContext);
     auto storageManager = StorageManager::Get(clientContext);
     auto ownedAlterInfo = alterEntryRecord.ownedAlterInfo.get();
     catalog->alterTableEntry(transaction, *ownedAlterInfo);
@@ -365,12 +399,13 @@ void WALReplayer::replayNodeTableInsertRecord(const WALRecord& walRecord) const 
     nodeIDVector->setState(anchorState);
     const auto insertState =
         std::make_unique<NodeTableInsertState>(*nodeIDVector, pkVector, propertyVectors);
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
     table.initInsertState(&clientContext, *insertState);
     anchorState->getSelVectorUnsafe().setToFiltered(1);
     for (auto i = 0u; i < numNodes; i++) {
         anchorState->getSelVectorUnsafe()[0] = i;
-        table.insert(clientContext.getTransaction(), *insertState);
+        table.insert(transaction::Transaction::Get(clientContext), *insertState);
     }
 }
 
@@ -396,11 +431,12 @@ void WALReplayer::replayRelTableInsertRecord(const WALRecord& walRecord) const {
     const auto insertState = std::make_unique<RelTableInsertState>(
         *insertionRecord.ownedVectors[LOCAL_BOUND_NODE_ID_COLUMN_ID],
         *insertionRecord.ownedVectors[LOCAL_NBR_NODE_ID_COLUMN_ID], propertyVectors);
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
     for (auto i = 0u; i < numRels; i++) {
         anchorState->getSelVectorUnsafe()[0] = i;
         table.initInsertState(&clientContext, *insertState);
-        table.insert(clientContext.getTransaction(), *insertState);
+        table.insert(transaction::Transaction::Get(clientContext), *insertState);
     }
 }
 
@@ -416,8 +452,9 @@ void WALReplayer::replayNodeDeletionRecord(const WALRecord& walRecord) const {
         internalID_t{deletionRecord.nodeOffset, deletionRecord.tableID});
     const auto deleteState =
         std::make_unique<NodeTableDeleteState>(*nodeIDVector, *deletionRecord.ownedPKVector);
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
-    table.delete_(clientContext.getTransaction(), *deleteState);
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
+    table.delete_(transaction::Transaction::Get(clientContext), *deleteState);
 }
 
 void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
@@ -432,8 +469,9 @@ void WALReplayer::replayNodeUpdateRecord(const WALRecord& walRecord) const {
         internalID_t{updateRecord.nodeOffset, updateRecord.tableID});
     const auto updateState = std::make_unique<NodeTableUpdateState>(updateRecord.columnID,
         *nodeIDVector, *updateRecord.ownedPropertyVector);
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
-    table.update(clientContext.getTransaction(), *updateState);
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
+    table.update(transaction::Transaction::Get(clientContext), *updateState);
 }
 
 void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
@@ -445,15 +483,17 @@ void WALReplayer::replayRelDeletionRecord(const WALRecord& walRecord) const {
     const auto deleteState =
         std::make_unique<RelTableDeleteState>(*deletionRecord.ownedSrcNodeIDVector,
             *deletionRecord.ownedDstNodeIDVector, *deletionRecord.ownedRelIDVector);
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
-    table.delete_(clientContext.getTransaction(), *deleteState);
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
+    table.delete_(transaction::Transaction::Get(clientContext), *deleteState);
 }
 
 void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) const {
     const auto& deletionRecord = walRecord.constCast<RelDetachDeleteRecord>();
     const auto tableID = deletionRecord.tableID;
     auto& table = StorageManager::Get(clientContext)->getTable(tableID)->cast<RelTable>();
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
     const auto anchorState = deletionRecord.ownedSrcNodeIDVector->state;
     KU_ASSERT(anchorState->getSelVector().getSelSize() == 1);
     const auto dstNodeIDVector =
@@ -464,7 +504,7 @@ void WALReplayer::replayRelDetachDeletionRecord(const WALRecord& walRecord) cons
     const auto deleteState = std::make_unique<RelTableDeleteState>(
         *deletionRecord.ownedSrcNodeIDVector, *dstNodeIDVector, *relIDVector);
     deleteState->detachDeleteDirection = deletionRecord.direction;
-    table.detachDelete(clientContext.getTransaction(), deleteState.get());
+    table.detachDelete(transaction::Transaction::Get(clientContext), deleteState.get());
 }
 
 void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
@@ -479,8 +519,9 @@ void WALReplayer::replayRelUpdateRecord(const WALRecord& walRecord) const {
     const auto updateState = std::make_unique<RelTableUpdateState>(updateRecord.columnID,
         *updateRecord.ownedSrcNodeIDVector, *updateRecord.ownedDstNodeIDVector,
         *updateRecord.ownedRelIDVector, *updateRecord.ownedPropertyVector);
-    KU_ASSERT(clientContext.getTransaction() && clientContext.getTransaction()->isRecovery());
-    table.update(clientContext.getTransaction(), *updateState);
+    KU_ASSERT(transaction::Transaction::Get(clientContext) &&
+              transaction::Transaction::Get(clientContext)->isRecovery());
+    table.update(transaction::Transaction::Get(clientContext), *updateState);
 }
 
 void WALReplayer::replayCopyTableRecord(const WALRecord&) const {
@@ -491,8 +532,9 @@ void WALReplayer::replayUpdateSequenceRecord(const WALRecord& walRecord) const {
     auto& sequenceEntryRecord = walRecord.constCast<UpdateSequenceRecord>();
     const auto sequenceID = sequenceEntryRecord.sequenceID;
     const auto entry =
-        Catalog::Get(clientContext)->getSequenceEntry(clientContext.getTransaction(), sequenceID);
-    entry->nextKVal(clientContext.getTransaction(), sequenceEntryRecord.kCount);
+        Catalog::Get(clientContext)
+            ->getSequenceEntry(transaction::Transaction::Get(clientContext), sequenceID);
+    entry->nextKVal(transaction::Transaction::Get(clientContext), sequenceEntryRecord.kCount);
 }
 
 void WALReplayer::replayLoadExtensionRecord(const WALRecord& walRecord) const {

@@ -1,0 +1,36 @@
+-DATASET CSV empty
+
+--
+
+-CASE EscapePattern
+-STATEMENT RETURN 'this is an escape char: \\.'
+---- 1
+this is an escape char: \.
+-STATEMENT RETURN 'this is a quote char: \'.'
+---- 1
+this is a quote char: '.
+-STATEMENT RETURN "this is a quote char: \"."
+---- 1
+this is a quote char: ".
+-STATEMENT RETURN "this is a list of control characters: \b\B\f\F\n\N\r\R\t\T."
+---- hash
+1 e1c8c76c0284e75039c2287f4908ca1c
+-STATEMENT RETURN "this is a list of hex characters: \xAB\xBD"
+---- hash
+1 e99be5de879947ea53b97fd007c8c925
+-STATEMENT RETURN "Hello \u4E16\u754C"
+---- 1
+Hello 世界
+-STATEMENT RETURN "\U0001F44D"
+---- 1
+👍
+-STATEMENT RETURN '\u0048\u0065\u006C\u006C\u006F'
+---- 1
+Hello
+-LOG HexLiteral
+-STATEMENT RETURN size('\\xGG')
+---- 1
+4
+-STATEMENT RETURN BLOB('\xAA\xBB\xCD\x1A')
+---- 1
+\xAA\xBB\xCD\x1A

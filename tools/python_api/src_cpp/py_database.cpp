@@ -11,12 +11,13 @@ using namespace kuzu::common;
 
 void PyDatabase::initialize(py::handle& m) {
     py::class_<PyDatabase>(m, "Database")
-        .def(
-            py::init<const std::string&, uint64_t, uint64_t, bool, bool, uint64_t, bool, int64_t>(),
+        .def(py::init<const std::string&, uint64_t, uint64_t, bool, bool, uint64_t, bool, int64_t,
+                 bool, bool>(),
             py::arg("database_path"), py::arg("buffer_pool_size") = 0,
             py::arg("max_num_threads") = 0, py::arg("compression") = true,
             py::arg("read_only") = false, py::arg("max_db_size") = (uint64_t)1 << 43,
-            py::arg("auto_checkpoint") = true, py::arg("checkpoint_threshold") = -1)
+            py::arg("auto_checkpoint") = true, py::arg("checkpoint_threshold") = -1,
+            py::arg("throw_on_wal_replay_failure") = true, py::arg("enable_checksums") = true)
         .def("scan_node_table_as_int64", &PyDatabase::scanNodeTable<std::int64_t>,
             py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
             py::arg("num_threads"))
@@ -47,12 +48,15 @@ uint64_t PyDatabase::getStorageVersion() {
 
 PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
     uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize,
-    bool autoCheckpoint, int64_t checkpointThreshold) {
+    bool autoCheckpoint, int64_t checkpointThreshold, bool throwOnWalReplayFailure,
+    bool enableChecksums) {
     auto systemConfig = SystemConfig(bufferPoolSize, maxNumThreads, compression, readOnly,
         maxDBSize, autoCheckpoint);
     if (checkpointThreshold >= 0) {
         systemConfig.checkpointThreshold = static_cast<uint64_t>(checkpointThreshold);
     }
+    systemConfig.throwOnWalReplayFailure = throwOnWalReplayFailure;
+    systemConfig.enableChecksums = enableChecksums;
     database = std::make_unique<Database>(databasePath, systemConfig);
     kuzu::extension::ExtensionUtils::addTableFunc<kuzu::PandasScanFunction>(*database);
     storageDriver = std::make_unique<StorageDriver>(database.get());

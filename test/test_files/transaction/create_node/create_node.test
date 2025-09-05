@@ -290,3 +290,12 @@
 2021-06-30
 2021-06-30
 
+-CASE CreateNodeWithCasting
+-STATEMENT CREATE node table structs (id serial, ss struct(first string, last string, userid int64), primary key(id));
+---- ok
+-STATEMENT CREATE (it:structs {ss: {first: NULL, last: NULL, userid: NULL}}) RETURN IT;
+---- 1
+{_ID: 0:0, _LABEL: structs, id: 0, ss: {first: , last: , userid: }}
+-STATEMENT match (s:structs) return s.*
+---- 1
+0|{first: , last: , userid: }

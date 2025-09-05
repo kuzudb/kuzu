@@ -10,8 +10,10 @@
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace std;
 using namespace kuzu::binder;
@@ -572,14 +574,14 @@ void aggregateCommunities(const offset_t newCommCount, PhaseState& state, Memory
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
-    const auto transaction = clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto mm = MemoryManager::Get(*clientContext);
     const auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     const auto tableID = graph->getNodeTableIDs()[0];
-    const auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
+    const auto origNumNodes = graph->getMaxOffset(transaction, tableID);
 
     auto louvainBindData = input.bindData->constPtrCast<LouvainBindData>();
     auto& config = louvainBindData->optionalParams->constCast<LouvainOptionalParams>();

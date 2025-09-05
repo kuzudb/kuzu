@@ -1,6 +1,5 @@
 #pragma once
 
-#include "storage/wal/checksum_writer.h"
 #include "storage/wal/wal_record.h"
 
 namespace kuzu {
@@ -21,7 +20,7 @@ class LocalWAL {
     friend class WAL;
 
 public:
-    explicit LocalWAL(MemoryManager& mm);
+    explicit LocalWAL(MemoryManager& mm, bool enableChecksums);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal);
     void logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type);
@@ -55,8 +54,8 @@ private:
 
 private:
     std::mutex mtx;
-    std::shared_ptr<common::InMemFileWriter> writer;
-    ChecksumSerializer checksumWriter;
+    std::shared_ptr<common::InMemFileWriter> inMemWriter;
+    common::Serializer serializer;
 };
 
 } // namespace storage

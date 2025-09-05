@@ -13,6 +13,8 @@ public:
     virtual ~Reader() = default;
 
     virtual bool finished() = 0;
+    virtual void onObjectBegin() {};
+    virtual void onObjectEnd() {};
 
     template<typename TARGET>
     TARGET* cast() {

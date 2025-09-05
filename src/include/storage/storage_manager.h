@@ -28,13 +28,14 @@ struct DatabaseHeader;
 
 class KUZU_API StorageManager {
 public:
-    StorageManager(const std::string& databasePath, bool readOnly, MemoryManager& memoryManager,
-        bool enableCompression, common::VirtualFileSystem* vfs);
+    StorageManager(const std::string& databasePath, bool readOnly, bool enableChecksums,
+        MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs);
     ~StorageManager();
 
     Table* getTable(common::table_id_t tableID);
 
-    static void recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure);
+    static void recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure,
+        bool enableChecksums);
 
     void createTable(catalog::TableCatalogEntry* entry);
     void addRelTable(catalog::RelGroupCatalogEntry* entry,

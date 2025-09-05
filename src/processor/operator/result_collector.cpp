@@ -1,6 +1,7 @@
 #include "processor/operator/result_collector.h"
 
 #include "binder/expression/expression_util.h"
+#include "main/query_result/materialized_query_result.h"
 #include "processor/execution_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -83,6 +84,10 @@ void ResultCollector::finalizeInternal(ExecutionContext* context) {
     default:
         break;
     }
+}
+
+std::unique_ptr<main::QueryResult> ResultCollector::getQueryResult() const {
+    return std::make_unique<main::MaterializedQueryResult>(sharedState->getTable());
 }
 
 } // namespace processor

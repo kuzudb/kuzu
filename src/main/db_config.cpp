@@ -31,7 +31,8 @@ DBConfig::DBConfig(const SystemConfig& systemConfig)
       autoCheckpoint{systemConfig.autoCheckpoint},
       checkpointThreshold{systemConfig.checkpointThreshold},
       forceCheckpointOnClose{systemConfig.forceCheckpointOnClose},
-      throwOnWalReplayFailure(systemConfig.throwOnWalReplayFailure), enableSpillingToDisk{true} {
+      throwOnWalReplayFailure(systemConfig.throwOnWalReplayFailure),
+      enableChecksums(systemConfig.enableChecksums), enableSpillingToDisk{true} {
 #if defined(__APPLE__)
     this->threadQos = systemConfig.threadQos;
 #endif

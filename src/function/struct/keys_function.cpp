@@ -1,5 +1,7 @@
+#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/scalar_function_expression.h"
+#include "binder/expression_binder.h"
 #include "function/rewrite_function.h"
 #include "function/struct/vector_struct_functions.h"
 
@@ -11,6 +13,11 @@ namespace function {
 
 static std::shared_ptr<Expression> rewriteFunc(const RewriteFunctionBindInput& input) {
     KU_ASSERT(input.arguments.size() == 1);
+    auto argument = input.arguments[0].get();
+    auto expressionBinder = input.expressionBinder;
+    if (ExpressionUtil::isNullLiteral(*argument)) {
+        return expressionBinder->createNullLiteralExpression();
+    }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(KeysFunctions::name, input.arguments);
     const auto& resultType = LogicalType::LIST(LogicalType::STRING());

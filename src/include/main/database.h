@@ -57,11 +57,17 @@ struct KUZU_API SystemConfig {
      * @param checkpointThreshold The threshold of the WAL file size in bytes. When the size of the
      * WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
      * @param forceCheckpointOnClose If true, the database will force checkpoint when closing.
+     * @param throwOnWalReplayFailure If true, any WAL replaying failure when loading the database
+     * will throw an error. Otherwise, Kuzu will silently ignore the failure and replay up to where
+     * the error occured.
+     * @param enableChecksums If true, the database will use checksums to detect corruption in the
+     * WAL file.
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
         bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u,
         bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */,
-        bool forceCheckpointOnClose = true, bool throwOnWalReplayFailure = true
+        bool forceCheckpointOnClose = true, bool throwOnWalReplayFailure = true,
+        bool enableChecksums = true
 #if defined(__APPLE__)
         ,
         uint32_t threadQos = QOS_CLASS_DEFAULT
@@ -77,6 +83,7 @@ struct KUZU_API SystemConfig {
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
     bool throwOnWalReplayFailure;
+    bool enableChecksums;
 #if defined(__APPLE__)
     uint32_t threadQos;
 #endif

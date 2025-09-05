@@ -6,7 +6,6 @@
 #include "common/serializer/serializer.h"
 #include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/wal/checksum_reader.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -20,10 +19,10 @@ void WALRecord::serialize(Serializer& serializer) const {
 }
 
 std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
-    const main::ClientContext& clientContext, std::string_view checksumMismatchMessage) {
-    auto* checksumReader = deserializer.getReader()->cast<ChecksumReader>();
+    const main::ClientContext& clientContext) {
     std::string key;
     auto type = WALRecordType::INVALID_RECORD;
+    deserializer.getReader()->onObjectBegin();
     deserializer.validateDebuggingInfo(key, "type");
     deserializer.deserializeValue(type);
     std::unique_ptr<WALRecord> walRecord;
@@ -81,7 +80,7 @@ std::unique_ptr<WALRecord> WALRecord::deserialize(Deserializer& deserializer,
     }
     }
     walRecord->type = type;
-    checksumReader->finishEntry(checksumMismatchMessage);
+    deserializer.getReader()->onObjectEnd();
     return walRecord;
 }
 

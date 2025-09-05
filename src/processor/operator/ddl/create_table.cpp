@@ -3,7 +3,6 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 
@@ -16,7 +15,7 @@ namespace processor {
 void CreateTable::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto memoryManager = storage::MemoryManager::Get(*clientContext);
     // Check conflict
     if (catalog->containsTable(transaction, info.tableName)) {

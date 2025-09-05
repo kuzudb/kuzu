@@ -321,7 +321,8 @@ public:
     static std::shared_ptr<LogicalOperator> getTableFunctionCall(
         const binder::BoundReadingClause& readingClause);
 
-    LogicalPlan createUnionPlan(std::vector<LogicalPlan>& childrenPlans, bool isUnionAll);
+    LogicalPlan createUnionPlan(std::vector<LogicalPlan>& childrenPlans,
+        const binder::expression_vector& expressions, bool isUnionAll);
 
     binder::expression_vector getProperties(const binder::Expression& pattern) const;
 
