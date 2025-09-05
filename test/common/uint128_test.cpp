@@ -109,3 +109,44 @@ TEST(Uint128Tests, SubtractionTest) {
         EXPECT_THROW(Uint128_t::Sub(value1, value2), OverflowException);
     }
 }
+
+
+TEST(Uint128Tests, MultiplicationTest) {
+    { // multiplying in lower bits: 3 * 5 = 15
+        uint128_t value1{3, 0};
+        uint128_t value2{5, 0};
+        uint128_t expected_value{15, 0};
+        EXPECT_EQ(expected_value, value1 * value2);
+        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+    }
+
+    { // multiplying in upper bits: (1 << 64) * 3 = (3 << 64)
+        uint128_t value1{0, 1};
+        uint128_t value2{3, 0};
+        uint128_t expected_value{0, 3};
+        EXPECT_EQ(expected_value, value1 * value2);
+        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+    }
+
+    { // multiplying with overflow from lower to upper bits: (2^64 - 1) * 2 = (2^65 - 2)
+        uint128_t value1{UINT64_MAX, 0};
+        uint128_t value2{2, 0};
+        uint128_t expected_value{UINT64_MAX - 1, 1};
+        EXPECT_EQ(expected_value, value1 * value2);
+        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+    }
+
+    { // (2^64) * (2^63) = (2^127)
+        uint128_t value1{0, 1};
+        uint128_t value2{(1ULL << 63), 0};
+        uint128_t expected_value{0, (1ULL << 63)};
+        EXPECT_EQ(expected_value, value1 * value2);
+        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+    }
+
+    { // overflow
+        uint128_t value1{UINT64_MAX, UINT64_MAX}; // 11111111...111
+        uint128_t value2{2, 0};
+        EXPECT_THROW(Uint128_t::Mul(value1, value2), OverflowException);
+    }
+}
