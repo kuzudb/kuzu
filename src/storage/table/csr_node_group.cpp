@@ -92,6 +92,8 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
     // Initialize the scan states of a new node group for the csr header.
     csrHeader.offset->initializeScanState(offsetState, relScanState.csrOffsetColumn);
     csrHeader.length->initializeScanState(lengthState, relScanState.csrLengthColumn);
+    nodeGroupScanState.header->offset->setNumValues(0);
+    nodeGroupScanState.header->length->setNumValues(0);
     // Initialize the scan states of a new node group for data columns.
     for (auto i = 0u; i < relScanState.columnIDs.size(); i++) {
         if (relScanState.columnIDs[i] == INVALID_COLUMN_ID ||
