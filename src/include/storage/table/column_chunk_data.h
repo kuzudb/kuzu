@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <variant>
@@ -38,35 +39,35 @@ class PageAllocator;
 class FileHandle;
 
 // TODO(bmwinger): Hide access to variables.
-struct ChunkState {
+struct SegmentState {
     const Column* column;
     ColumnChunkMetadata metadata;
     uint64_t numValuesPerPage = UINT64_MAX;
-    std::unique_ptr<ChunkState> nullState;
+    std::unique_ptr<SegmentState> nullState;
 
     // Used for struct/list/string columns.
-    std::vector<ChunkState> childrenStates;
+    std::vector<SegmentState> childrenStates;
 
     // Used for floating point columns
     std::variant<std::unique_ptr<InMemoryExceptionChunk<double>>,
         std::unique_ptr<InMemoryExceptionChunk<float>>>
         alpExceptionChunk;
 
-    explicit ChunkState(bool hasNull = true) : column{nullptr} {
+    explicit SegmentState(bool hasNull = true) : column{nullptr} {
         if (hasNull) {
-            nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+            nullState = std::make_unique<SegmentState>(false /*hasNull*/);
         }
     }
-    ChunkState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
+    SegmentState(ColumnChunkMetadata metadata, uint64_t numValuesPerPage)
         : column{nullptr}, metadata{std::move(metadata)}, numValuesPerPage{numValuesPerPage} {
-        nullState = std::make_unique<ChunkState>(false /*hasNull*/);
+        nullState = std::make_unique<SegmentState>(false /*hasNull*/);
     }
 
-    ChunkState& getChildState(common::idx_t childIdx) {
+    SegmentState& getChildState(common::idx_t childIdx) {
         KU_ASSERT(childIdx < childrenStates.size());
         return childrenStates[childIdx];
     }
-    const ChunkState& getChildState(common::idx_t childIdx) const {
+    const SegmentState& getChildState(common::idx_t childIdx) const {
         KU_ASSERT(childIdx < childrenStates.size());
         return childrenStates[childIdx];
     }
@@ -86,6 +87,68 @@ struct ChunkState {
     }
 
     void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
+};
+
+struct ChunkState {
+    const Column* column;
+    std::vector<SegmentState> segmentStates;
+
+    void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
+
+    const SegmentState* findSegment(common::offset_t offsetInChunk,
+        common::offset_t& offsetInSegment) const {
+        offsetInSegment = offsetInChunk;
+        for (const auto& segmentState : segmentStates) {
+            if (offsetInSegment < segmentState.metadata.numValues) {
+                return &segmentState;
+            }
+            offsetInSegment -= segmentState.metadata.numValues;
+        }
+        return nullptr;
+    }
+
+    // dstOffset starts from 0 and is the offset in the output data for a given segment
+    //  (it increases by lengthInSegment for each segment)
+    // Returns the total number of values scanned (input length can be longer than the available
+    // values)
+    template<std::invocable<SegmentState&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+            Func>
+    common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
+        Func func) {
+        // TODO(bmwinger): try binary search (might only make a difference for a very large number
+        // of segments)
+        auto segment = segmentStates.begin();
+        auto offsetInSegment = offsetInChunk;
+        while (segment->metadata.numValues <= offsetInSegment) {
+            offsetInSegment -= segment->metadata.numValues;
+            KU_ASSERT(segment < segmentStates.end() - 1);
+            segment++;
+        }
+        common::offset_t lengthScanned = 0;
+        common::offset_t dstOffset = 0;
+        while (lengthScanned < length && segment != segmentStates.end()) {
+            KU_ASSERT(segment->metadata.numValues > offsetInSegment);
+            auto lengthInSegment =
+                std::min(length - lengthScanned, segment->metadata.numValues - offsetInSegment);
+            func(*segment, offsetInSegment, lengthInSegment, dstOffset);
+            lengthScanned += lengthInSegment;
+            segment++;
+            dstOffset += lengthInSegment;
+            offsetInSegment = 0;
+        }
+        return dstOffset;
+    }
+
+    // TODO(bmwinger): the above function should be const and only isn't because of ALP exception
+    // chunk modifications. The SegmentState& should also be const for the same reason
+    template<std::invocable<SegmentState&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+            Func>
+    common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
+        Func func) const {
+        return const_cast<ChunkState*>(this)->rangeSegments(offsetInChunk, length, func);
+    }
 };
 
 class Spiller;
@@ -128,7 +191,7 @@ public:
     void setNullData(std::unique_ptr<NullChunkData> nullData_) { nullData = std::move(nullData_); }
     bool hasNullData() const { return nullData != nullptr; }
     NullChunkData* getNullData() { return nullData.get(); }
-    const NullChunkData& getNullData() const { return *nullData; }
+    const NullChunkData* getNullData() const { return nullData.get(); }
     std::optional<common::NullMask> getNullMask() const;
     std::unique_ptr<NullChunkData> moveNullData() { return std::move(nullData); }
 
@@ -157,7 +220,7 @@ public:
     virtual ColumnChunkMetadata getMetadataToFlush() const;
 
     virtual void append(common::ValueVector* vector, const common::SelectionView& selView);
-    virtual void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    virtual void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
     virtual void flush(PageAllocator& pageAllocator);
@@ -177,7 +240,7 @@ public:
     }
     uint64_t getBufferSize() const;
 
-    virtual void initializeScanState(ChunkState& state, const Column* column) const;
+    virtual void initializeScanState(SegmentState& state, const Column* column) const;
     virtual void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const;
     virtual void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
@@ -189,7 +252,7 @@ public:
         common::offset_t offsetInChunk);
     virtual void write(ColumnChunkData* chunk, ColumnChunkData* offsetsInChunk,
         common::RelMultiplicity multiplicity);
-    virtual void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    virtual void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy);
 
     virtual void setToInMemory();
@@ -218,6 +281,13 @@ public:
     virtual bool sanityCheck() const;
 
     virtual uint64_t getEstimatedMemoryUsage() const;
+    bool shouldSplit() const {
+        // TODO(bmwinger): this should use the inMemoryStats to avoid scanning the data, however not
+        // all functions update them
+        return numValues > 1 && getSizeOnDisk() > common::StorageConfig::MAX_SEGMENT_SIZE;
+    }
+
+    virtual uint64_t getSizeOnDisk() const;
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ColumnChunkData> deserialize(MemoryManager& mm,
@@ -241,6 +311,8 @@ public:
     void updateStats(const common::ValueVector* vector, const common::SelectionView& selVector);
 
     virtual void reclaimStorage(PageAllocator& pageAllocator);
+
+    std::vector<std::unique_ptr<ColumnChunkData>> split(bool targetMaxSize = false) const;
 
 protected:
     // Initializes the data buffer and functions. They are (and should be) only called in
@@ -291,8 +363,14 @@ protected:
 
 template<>
 inline void ColumnChunkData::setValue(bool val, common::offset_t pos) {
+    KU_ASSERT(pos < capacity);
+    KU_ASSERT(residencyState != ResidencyState::ON_DISK);
     // Buffer is rounded up to the nearest 8 bytes so that this cast is safe
     common::NullMask::setNull(getData<uint64_t>(), pos, val);
+    if (pos >= numValues) {
+        numValues = pos + 1;
+    }
+    inMemoryStats.update(StorageValue{val}, dataType.getPhysicalType());
 }
 
 template<>
@@ -315,7 +393,7 @@ public:
               true} {}
 
     void append(common::ValueVector* vector, const common::SelectionView& sel) final;
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
@@ -327,7 +405,7 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) final;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 };
 
@@ -378,6 +456,9 @@ public:
         if (!inMemoryStats.max.has_value() || max > inMemoryStats.max->get<bool>()) {
             inMemoryStats.max = max;
         }
+        if ((dstOffset + numBits) >= numValues) {
+            numValues = dstOffset + numBits;
+        }
     }
 
     // Appends the null data from the vector's null mask
@@ -388,12 +469,12 @@ public:
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const override;
 
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     void serialize(common::Serializer& serializer) const override;
@@ -434,7 +515,7 @@ public:
     void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
 
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
 
     void setTableID(common::table_id_t tableID) { commonTableID = tableID; }

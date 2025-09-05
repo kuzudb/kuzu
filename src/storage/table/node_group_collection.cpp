@@ -1,6 +1,7 @@
 #include "storage/table/node_group_collection.h"
 
 #include "common/vector/value_vector.h"
+#include "storage/table/chunked_node_group.h"
 #include "storage/table/csr_node_group.h"
 #include "storage/table/table.h"
 #include "transaction/transaction.h"
@@ -104,7 +105,7 @@ void NodeGroupCollection::append(const Transaction* transaction,
 
 std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlushWhenFull(
     MemoryManager& mm, Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
+    InMemChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
     NodeGroup* lastNodeGroup = nullptr;
     offset_t startOffset = 0;
     offset_t numToAppend = 0;
@@ -140,7 +141,6 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         }
     }
     if (directFlushWhenAppend) {
-        chunkedGroup.finalize();
         auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, mm, pageAllocator);
 
         // If there are deleted columns that haven't been vacuumed yet,

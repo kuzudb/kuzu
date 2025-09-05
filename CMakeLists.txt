@@ -129,6 +129,12 @@ if(NOT KUZU_NODE_GROUP_SIZE_LOG2)
 endif()
 message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
 
+option(KUZU_MAX_SEGMENT_SIZE_LOG2 "Log2 of the maximum segment size in bytes." 18)
+if(NOT KUZU_MAX_SEGMENT_SIZE_LOG2)
+    set(KUZU_MAX_SEGMENT_SIZE_LOG2 18)
+endif()
+message(STATUS "KUZU_MAX_SEGMENT_SIZE_LOG2: ${KUZU_MAX_SEGMENT_SIZE_LOG2}")
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/include/common/system_config.h @ONLY)
 
 include(CheckCXXSymbolExists)

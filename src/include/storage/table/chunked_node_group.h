@@ -2,14 +2,17 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 
 #include "common/enums/rel_multiplicity.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/buffer_manager/spill_result.h"
 #include "storage/enums/residency_state.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/version_info.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace common {
@@ -33,10 +36,95 @@ class PageAllocator;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
+class InMemChunkedNodeGroup {
+    friend class ChunkedNodeGroup;
+
+public:
+    virtual ~InMemChunkedNodeGroup() = default;
+    InMemChunkedNodeGroup(MemoryManager& mm, const std::vector<common::LogicalType>& columnTypes,
+        bool enableCompression, uint64_t capacity, common::row_idx_t startRowIdx);
+    InMemChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunkData>>&& chunks,
+        common::row_idx_t startRowIdx);
+    // Moves the specified columns out of base
+    InMemChunkedNodeGroup(InMemChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns);
+
+    // Also marks the chunks as in-use
+    // I.e. if you want to be able to spill to disk again you must call setUnused first
+    void loadFromDisk(const MemoryManager& mm);
+    // returns the amount of space reclaimed in bytes
+    SpillResult spillToDisk();
+    void setUnused(const MemoryManager& mm);
+
+    bool isFull() const { return numRows == capacity; }
+    common::idx_t getNumColumns() const { return chunks.size(); }
+    common::row_idx_t getStartRowIdx() const { return startRowIdx; }
+    common::row_idx_t getNumRows() const { return numRows; }
+    common::row_idx_t getCapacity() const { return capacity; }
+    void setNumRows(common::offset_t numRows_);
+
+    ColumnChunkData& getColumnChunk(const common::column_id_t columnID) {
+        KU_ASSERT(columnID < chunks.size());
+        return *chunks[columnID];
+    }
+
+    const ColumnChunkData& getColumnChunk(const common::column_id_t columnID) const {
+        KU_ASSERT(columnID < chunks.size());
+        return *chunks[columnID];
+    }
+
+    uint64_t append(const std::vector<common::ValueVector*>& columnVectors,
+        common::row_idx_t startRowInVectors, uint64_t numValuesToAppend);
+
+    // Appends up to numValuesToAppend from the other chunked node group, returning the actual
+    // number of values appended.
+    common::offset_t append(const InMemChunkedNodeGroup& other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
+
+    void resizeChunks(uint64_t newSize);
+    void resetToEmpty();
+    void resetToAllNull() const;
+
+    // Moves the specified columns out of base
+    void merge(InMemChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& columnsToMergeInto);
+
+    void write(const InMemChunkedNodeGroup& data, common::column_id_t offsetColumnID);
+    virtual void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
+        const std::vector<std::unique_ptr<ColumnChunkData>>& data, ColumnChunkData& offsetChunk) {
+        chunks[chunkIdx]->write(data[vectorIdx].get(), &offsetChunk, common::RelMultiplicity::ONE);
+    }
+
+    std::unique_ptr<ColumnChunkData> moveColumnChunk(const common::column_id_t columnID) {
+        KU_ASSERT(columnID < chunks.size());
+        return std::move(chunks[columnID]);
+    }
+
+    virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+        transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator);
+
+protected:
+    common::row_idx_t startRowIdx;
+    std::atomic<common::row_idx_t> numRows;
+    uint64_t capacity;
+    std::vector<std::unique_ptr<ColumnChunkData>> chunks;
+    std::mutex spillToDiskMutex;
+    // Used to track if the group may be in use and to verify that spillToDisk is only called when
+    // it is safe to do so. If false, it is safe to spill the data to disk.
+    bool dataInUse;
+};
+
+// Collection of ColumnChunks for each column in a particular Node Group
 class KUZU_API ChunkedNodeGroup {
+    friend class InMemChunkedNodeGroup;
+
 public:
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
+    // Moves the specified columns out of base
+    ChunkedNodeGroup(MemoryManager& memoryManager, InMemChunkedNodeGroup& base,
+        const std::vector<common::column_id_t>& selectedColumns,
+        NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     ChunkedNodeGroup(ChunkedNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns);
     ChunkedNodeGroup(MemoryManager& mm, ChunkedNodeGroup& base,
@@ -50,7 +138,6 @@ public:
     common::idx_t getNumColumns() const { return chunks.size(); }
     common::row_idx_t getStartRowIdx() const { return startRowIdx; }
     common::row_idx_t getNumRows() const { return numRows; }
-    common::row_idx_t getCapacity() const { return capacity; }
     const ColumnChunk& getColumnChunk(const common::column_id_t columnID) const {
         KU_ASSERT(columnID < chunks.size());
         return *chunks[columnID];
@@ -69,12 +156,8 @@ public:
     ResidencyState getResidencyState() const { return residencyState; }
     NodeGroupDataFormat getFormat() const { return format; }
 
-    void merge(ChunkedNodeGroup& base, const std::vector<common::column_id_t>& columnsToMergeInto);
-    void resetToEmpty();
-    void resetToAllNull() const;
     void resetNumRowsFromChunks();
     void setNumRows(common::offset_t numRows_);
-    void resizeChunks(uint64_t newSize);
     void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
         this->versionInfo = std::move(versionInfo);
     }
@@ -83,18 +166,18 @@ public:
     uint64_t append(const transaction::Transaction* transaction,
         const std::vector<common::ValueVector*>& columnVectors, common::row_idx_t startRowInVectors,
         uint64_t numValuesToAppend);
-    // Appends up to numValuesToAppend from the other chunked node group, returning the actual
-    // number of values appended.
-    common::offset_t append(const transaction::Transaction* transaction,
-        const ChunkedNodeGroup& other, common::offset_t offsetInOtherNodeGroup,
-        common::offset_t numRowsToAppend);
     common::offset_t append(const transaction::Transaction* transaction,
         const std::vector<common::column_id_t>& columnIDs, const ChunkedNodeGroup& other,
         common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
     common::offset_t append(const transaction::Transaction* transaction,
-        const std::vector<common::column_id_t>& columnIDs, const std::vector<ColumnChunk*>& other,
+        const std::vector<common::column_id_t>& columnIDs, const InMemChunkedNodeGroup& other,
         common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
-    void write(const ChunkedNodeGroup& data, common::column_id_t offsetColumnID);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, std::span<const ColumnChunk*> other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
+    common::offset_t append(const transaction::Transaction* transaction,
+        const std::vector<common::column_id_t>& columnIDs, std::span<const ColumnChunkData*> other,
+        common::offset_t offsetInOtherNodeGroup, common::offset_t numRowsToAppend);
 
     void scan(const transaction::Transaction* transaction, const TableScanState& scanState,
         const NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInGroup,
@@ -102,14 +185,14 @@ public:
 
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(transaction::Transaction* transaction, TableScanState& scanState,
-        ChunkedNodeGroup& output) const;
+        InMemChunkedNodeGroup& output) const;
 
     bool hasUpdates() const;
     bool hasDeletions(const transaction::Transaction* transaction) const;
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction,
         common::column_id_t columnID);
 
-    std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> scanUpdates(
+    std::pair<std::unique_ptr<ColumnChunkData>, std::unique_ptr<ColumnChunkData>> scanUpdates(
         const transaction::Transaction* transaction, common::column_id_t columnID);
 
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
@@ -135,16 +218,6 @@ public:
 
     void finalize() const;
 
-    virtual void writeToColumnChunk(common::idx_t chunkIdx, common::idx_t vectorIdx,
-        const std::vector<std::unique_ptr<ColumnChunk>>& data, ColumnChunk& offsetChunk) {
-        KU_ASSERT(residencyState != ResidencyState::ON_DISK);
-        chunks[chunkIdx]->getData().write(&data[vectorIdx]->getData(), &offsetChunk.getData(),
-            common::RelMultiplicity::ONE);
-    }
-
-    virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
-        transaction::Transaction* transaction, MemoryManager& mm,
-        PageAllocator& pageAllocator) const;
     virtual void flush(PageAllocator& pageAllocator);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
@@ -172,18 +245,6 @@ public:
         return common::ku_dynamic_cast<const TARGET&>(*this);
     }
 
-    // Also marks the chunks as in-use
-    // I.e. if you want to be able to spill to disk again you must call setUnused first
-    void loadFromDisk(const MemoryManager& mm);
-
-    // returns the amount of space reclaimed in bytes
-    SpillResult spillToDisk();
-
-    void setUnused(const MemoryManager& mm);
-
-private:
-    void handleAppendException();
-
 protected:
     NodeGroupDataFormat format;
     ResidencyState residencyState;
@@ -192,10 +253,6 @@ protected:
     std::atomic<common::row_idx_t> numRows;
     std::vector<std::unique_ptr<ColumnChunk>> chunks;
     std::unique_ptr<VersionInfo> versionInfo;
-    std::mutex spillToDiskMutex;
-    // Used to track if the group may be in use and to verify that spillToDisk is only called when
-    // it is safe to do so. If false, it is safe to spill the data to disk.
-    bool dataInUse;
 };
 
 } // namespace storage

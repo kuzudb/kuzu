@@ -33,7 +33,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
+void SegmentState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     const auto& entry = metadata.pageRange;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
         pageAllocator.freePageRange(entry);
@@ -43,6 +43,12 @@ void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     }
     for (const auto& child : childrenStates) {
         child.reclaimAllocatedPages(pageAllocator);
+    }
+}
+
+void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
+    for (auto& state : segmentStates) {
+        state.reclaimAllocatedPages(pageAllocator);
     }
 }
 
@@ -286,7 +292,7 @@ void ColumnChunkData::append(ValueVector* vector, const SelectionView& selView) 
     updateStats(vector, selView);
 }
 
-void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void ColumnChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->dataType.getPhysicalType() == dataType.getPhysicalType());
     if (nullData) {
@@ -346,7 +352,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void ColumnChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ColumnChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     if (nullData) {
         KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState, column->getNullColumn());
@@ -433,7 +439,7 @@ void ColumnChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     updateInMemoryStats(inMemoryStats, *vector, offsetInVector, numValuesToWrite);
 }
 
-void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void ColumnChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->dataType.getPhysicalType() == dataType.getPhysicalType());
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
@@ -455,6 +461,8 @@ void ColumnChunkData::resetNumValuesFromMetadata() {
     numValues = metadata.numValues;
     if (nullData) {
         nullData->resetNumValuesFromMetadata();
+        // FIXME(bmwinger): not always working
+        // KU_ASSERT(numValues == nullData->numValues);
     }
 }
 
@@ -632,7 +640,7 @@ void BoolChunkData::append(ValueVector* vector, const SelectionView& selView) {
     updateStats(vector, selView);
 }
 
-void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void BoolChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     NullMask::copyNullMask(other->getData<uint64_t>(), startPosInOtherChunk, getData<uint64_t>(),
         numValues, numValuesToAppend);
@@ -696,7 +704,7 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     }
 }
 
-void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void BoolChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     if (nullData) {
         nullData->write(srcChunk->getNullData(), srcOffsetInChunk, dstOffsetInChunk,
@@ -720,22 +728,15 @@ void NullChunkData::setNull(offset_t pos, bool isNull) {
     setValue(isNull, pos);
     // TODO(Guodong): Better let NullChunkData also support `append` a
     // vector.
-    if (pos >= numValues) {
-        numValues = pos + 1;
-        KU_ASSERT(numValues <= capacity);
-    }
-    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
 }
 
 void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     const bool isNull = vector->isNull(offsetInVector);
-    setNull(offsetInChunk, isNull);
-    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
-    numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+    setValue(isNull, offsetInChunk);
 }
 
-void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void NullChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     if (numValuesToCopy == 0) {
         return;
@@ -743,12 +744,9 @@ void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     KU_ASSERT(srcChunk->getBufferSize() >= sizeof(uint64_t));
     copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
         numValuesToCopy);
-    if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
-        numValues = dstOffsetInChunk + numValuesToCopy;
-    }
 }
 
-void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
+void NullChunkData::append(const ColumnChunkData* other, offset_t startOffsetInOtherChunk,
     uint32_t numValuesToAppend) {
     write(other, startOffsetInOtherChunk, numValues, numValuesToAppend);
 }
@@ -786,7 +784,6 @@ void NullChunkData::appendNulls(const ValueVector* vector, const SelectionView& 
     offset_t startPosInChunk) {
     if (selView.isUnfiltered()) {
         copyFromBuffer(vector->getNullMask().getData(), 0, startPosInChunk, selView.getSelSize());
-        numValues += selView.getSelSize();
     } else {
         for (auto i = 0u; i < selView.getSelSize(); i++) {
             const auto pos = selView[i];
@@ -880,7 +877,7 @@ void InternalIDChunkData::write(const ValueVector* vector, offset_t offsetInVect
     }
 }
 
-void InternalIDChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void InternalIDChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     ColumnChunkData::append(other, startPosInOtherChunk, numValuesToAppend);
     commonTableID = other->cast<InternalIDChunkData>().commonTableID;
@@ -1015,6 +1012,44 @@ void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {
             pageAllocator.freePageRange(metadata.pageRange);
         }
     }
+}
+
+uint64_t ColumnChunkData::getSizeOnDisk() const {
+    auto metadata = getMetadataToFlush();
+    uint64_t nullSize = 0;
+    if (nullData) {
+        nullSize = nullData->getSizeOnDisk();
+    }
+    return metadata.getNumDataPages(dataType.getPhysicalType()) * common::KUZU_PAGE_SIZE + nullSize;
+}
+
+std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool targetMaxSize) const {
+    // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
+    // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
+    // MAX_SEGMENT_SIZE
+    auto targetSize = targetMaxSize ?
+                          common::StorageConfig::MAX_SEGMENT_SIZE :
+                          std::min(getSizeOnDisk() / 2, common::StorageConfig::MAX_SEGMENT_SIZE);
+    std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
+    uint64_t pos = 0;
+    const uint64_t chunkSize = 64;
+    uint64_t initialCapacity = std::min(chunkSize, numValues);
+    while (pos < numValues) {
+        std::unique_ptr<ColumnChunkData> newSegment =
+            ColumnChunkFactory::createColumnChunkData(getMemoryManager(), getDataType().copy(),
+                isCompressionEnabled(), initialCapacity, ResidencyState::IN_MEMORY, hasNullData());
+
+        while (pos < numValues && newSegment->getSizeOnDisk() < targetSize) {
+            if (newSegment->getNumValues() == newSegment->getCapacity()) {
+                newSegment->resize(newSegment->getCapacity() * 2);
+            }
+            auto numValuesToAppendInChunk = std::min(numValues - pos, chunkSize);
+            newSegment->append(this, pos, numValuesToAppendInChunk);
+            pos += numValuesToAppendInChunk;
+        }
+        newSegments.push_back(std::move(newSegment));
+    }
+    return newSegments;
 }
 
 ColumnChunkData::~ColumnChunkData() = default;

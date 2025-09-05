@@ -20,18 +20,16 @@ ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType,
     bool enableCompression, ResidencyState residencyState)
     : ColumnChunkData{memoryManager, std::move(dataType), capacity, enableCompression,
           residencyState, true /*hasNullData*/} {
-    offsetColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT64(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
-    sizeColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT32(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT64(), enableCompression, capacity, residencyState, false /*hasNull*/);
+    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT32(), enableCompression, capacity, residencyState, false /*hasNull*/);
     if (ListColumn::disableCompressionOnData(this->dataType)) {
         enableCompression = false;
     }
     dataColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
         ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
-        ResidencyState::IN_MEMORY);
+        residencyState);
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
               this->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
@@ -100,7 +98,7 @@ void ListChunkData::setOffsetChunkValue(offset_t val, offset_t pos) {
     numValues = offsetColumnChunk->getNumValues();
 }
 
-void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void ListChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     checkOffsetSortedAsc = true;
     auto& otherListChunk = other->cast<ListChunkData>();
@@ -225,7 +223,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
-void ListChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ListChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* listColumn = ku_dynamic_cast<const ListColumn*>(column);
@@ -294,7 +292,7 @@ void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     KU_ASSERT(sanityCheck());
 }
 
-void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void ListChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
               srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::ARRAY);
@@ -446,6 +444,10 @@ void ListChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     sizeColumnChunk->reclaimStorage(pageAllocator);
     dataColumnChunk->reclaimStorage(pageAllocator);
     offsetColumnChunk->reclaimStorage(pageAllocator);
+}
+uint64_t ListChunkData::getSizeOnDisk() const {
+    return ColumnChunkData::getSizeOnDisk() + sizeColumnChunk->getSizeOnDisk() +
+           dataColumnChunk->getSizeOnDisk() + offsetColumnChunk->getSizeOnDisk();
 }
 
 } // namespace storage
