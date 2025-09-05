@@ -32,7 +32,6 @@ struct int128_t {
     int128_t(uint32_t value); // NOLINT: Allow implicit conversion from numeric values
     int128_t(uint16_t value); // NOLINT: Allow implicit conversion from numeric values
     int128_t(uint8_t value);  // NOLINT: Allow implicit conversion from numeric values
-    int128_t(uint128_t value);// NOLINT: Allow implicit conversion from numeric values
     int128_t(double value);   // NOLINT: Allow implicit conversion from numeric values
     int128_t(float value);    // NOLINT: Allow implicit conversion from numeric values
 
@@ -62,6 +61,9 @@ struct int128_t {
     explicit operator uint8_t() const;
     explicit operator double() const;
     explicit operator float() const;
+
+    // implicit casting from int128 to uint128
+    operator uint128_t() const; // NOLINT: Allow implicit conversion from numeric values
 };
 
 // arithmetic operators
@@ -215,8 +217,6 @@ template<>
 bool Int128_t::tryCastTo(uint64_t value, int128_t& result);
 template<>
 bool Int128_t::tryCastTo(int128_t value, int128_t& result);
-template<>
-bool Int128_t::tryCastTo(uint128_t value, int128_t& result); // unsigned to signed
 template<>
 bool Int128_t::tryCastTo(float value, int128_t& result);
 template<>
