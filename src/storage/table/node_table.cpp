@@ -236,7 +236,6 @@ NodeTable::NodeTable(const StorageManager* storageManager,
             dataFH, mm, shadowFile, enableCompression);
     }
     auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
-    auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     KU_ASSERT(pkColumnID != INVALID_COLUMN_ID);
     auto hashIndexType = PrimaryKeyIndex::getIndexType();
     IndexInfo indexInfo{PrimaryKeyIndex::DEFAULT_NAME, hashIndexType.typeName, tableID,
@@ -447,7 +446,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     hasChanges = true;
 }
 
-void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& updateState) {
+void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& updateState) const {
     auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
     nodeUpdateState.indexUpdateState.resize(indexes.size());
     for (auto i = 0u; i < indexes.size(); i++) {
@@ -562,12 +561,12 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
     hasChanges = true;
 }
 
-std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(MemoryManager& mm,
-    Transaction* transaction, const std::vector<column_id_t>& columnIDs,
-    ChunkedNodeGroup& chunkedGroup, PageAllocator& pageAllocator) {
+std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
+    PageAllocator& pageAllocator) {
     hasChanges = true;
-    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(mm, transaction, columnIDs,
-        chunkedGroup, pageAllocator);
+    return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, columnIDs, chunkedGroup,
+        pageAllocator);
 }
 
 DataChunk NodeTable::constructDataChunkForColumns(const std::vector<column_id_t>& columnIDs) const {

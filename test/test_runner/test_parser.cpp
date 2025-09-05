@@ -368,15 +368,16 @@ TestStatement TestParser::parseStatement(const std::string& testCaseName) {
             variableMap.insert_or_assign(varName, std::move(value));
             return statement;
         }
+        case TokenType::CREATE_CONNECTION: {
+            checkMinimumParams(1);
+            testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
+            return statement;
+        }
 
             // Following token types are not terminal for a statement, so we continue parsing.
         case TokenType::CHECKPOINT_WAIT_TIMEOUT: {
             checkMinimumParams(1);
             testGroup->checkpointWaitTimeout = stoi(currentToken.params[1]);
-        } break;
-        case TokenType::CREATE_CONNECTION: {
-            checkMinimumParams(1);
-            testGroup->testCasesConnNames[testCaseName].insert(currentToken.params[1]);
         } break;
         case TokenType::STATEMENT: {
             std::string query = paramsToString(1);

@@ -24,7 +24,7 @@ struct VectorVersionInfo {
     std::unique_ptr<std::array<transaction_t, DEFAULT_VECTOR_CAPACITY>> insertedVersions;
     std::unique_ptr<std::array<transaction_t, DEFAULT_VECTOR_CAPACITY>> deletedVersions;
     // If all values in the Vector are inserted/deleted in the same transaction, we can use this to
-    // aovid the allocation of `array`.
+    // avoid the allocation of `array`.
     transaction_t sameInsertionVersion;
     transaction_t sameDeletionVersion;
     InsertionStatus insertionStatus;
@@ -255,7 +255,7 @@ row_idx_t VectorVersionInfo::getNumDeletions(transaction_t startTS, transaction_
 void VectorVersionInfo::rollbackInsertions(row_idx_t startRowInVector, row_idx_t numRows) {
     if (isSameInsertionVersion()) {
         // This implicitly assumes that all rows are inserted in the same transaction, so regardless
-        // which rows to be rollbacked, we just reset the sameInsertionVersion.
+        // which rows to be rolled back, we just reset the sameInsertionVersion.
         sameInsertionVersion = INVALID_TRANSACTION;
     } else {
         if (insertedVersions) {
