@@ -170,7 +170,7 @@ public:
     // Get all function entries.
     std::vector<FunctionCatalogEntry*> getFunctionEntries(
         const transaction::Transaction* transaction) const;
-    
+
     // Get all macro entries.
     std::vector<ScalarMacroCatalogEntry*> getMacroEntries(
         const transaction::Transaction* transaction) const;

@@ -43,8 +43,9 @@ struct TestQueryResult {
     uint64_t numTuples = 0;
     // errorMsg, CSVFile, hashValue uses first element
     std::vector<std::string> expectedResult;
-    TestQueryResult(ResultType type, uint64_t numTuples, std::vector<std::string> expectedResult): type{type}, numTuples{numTuples}, expectedResult{expectedResult} {}
-    TestQueryResult(): type{ResultType::OK}, numTuples{0}, expectedResult{} {}
+    TestQueryResult(ResultType type, uint64_t numTuples, std::vector<std::string> expectedResult)
+        : type{type}, numTuples{numTuples}, expectedResult{expectedResult} {}
+    TestQueryResult() : type{ResultType::OK}, numTuples{0}, expectedResult{} {}
 };
 
 struct TestStatement {
