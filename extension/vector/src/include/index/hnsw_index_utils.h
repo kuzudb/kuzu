@@ -21,7 +21,7 @@ using metric_func_t = std::function<double(const void*, const void*, uint32_t)>;
 struct HNSWIndexUtils {
     enum class KUZU_API IndexOperation { CREATE, QUERY, DROP };
 
-    static bool indexExists(const main::ClientContext& context,
+    static inline bool indexExists(const main::ClientContext& context,
         const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry,
         const std::string& indexName);
 
@@ -30,7 +30,7 @@ struct HNSWIndexUtils {
         IndexOperation indexOperation,
         common::ConflictAction conflictAction = common::ConflictAction::ON_CONFLICT_THROW);
 
-    static catalog::TableCatalogEntry* bindTable(const main::ClientContext& context,
+    static catalog::NodeTableCatalogEntry* bindNodeTable(const main::ClientContext& context,
         const std::string& tableName);
 
     static void validateAutoTransaction(const main::ClientContext& context,

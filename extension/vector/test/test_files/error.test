@@ -75,6 +75,11 @@ Binder exception: Unrecognized optional parameter unknown_param in QUERY_VECTOR_
 -STATEMENT CALL QUERY_VECTOR_INDEX('embeddings', 'e_hnsw_index', CAST([0.1521,0.3021,0.5366,0.2774,0.5593,0.5589,0.1365,0.8557],'FLOAT[8]'), 3, efs := -1) RETURN node.id, distance ORDER BY distance;
 ---- error
 Binder exception: Efs must be a positive integer.
+-STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index', unknown_param := 1);
+---- error
+Binder exception: Unrecognized optional parameter unknown_param in DROP_VECTOR_INDEX.
+-STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index');
+---- ok
 
 -CASE CastingError
 -LOAD_DYNAMIC_EXTENSION vector

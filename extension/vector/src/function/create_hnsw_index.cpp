@@ -46,13 +46,12 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
     auto config = HNSWIndexConfig{input->optionalParams};
-    const auto tableEntry = HNSWIndexUtils::bindTable(*context, tableName);
-    if (HNSWIndexUtils::validateIndexExistence(*context, tableEntry, indexName,
+    const auto nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName);
+    if (HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
             HNSWIndexUtils::IndexOperation::CREATE, config.conflictAction)) {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
             std::move(config), true);
     }
-    const auto nodeTableEntry = tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
     const auto tableID = nodeTableEntry->getTableID();
     HNSWIndexUtils::validateColumnType(*nodeTableEntry, columnName);
     const auto& table =
@@ -60,7 +59,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     auto propertyID = nodeTableEntry->getPropertyID(columnName);
     auto transaction = transaction::Transaction::Get(*context);
     auto numNodes = table.getStats(transaction).getTableCard();
-    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
+    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nodeTableEntry, propertyID,
         numNodes, std::move(config));
 }
 

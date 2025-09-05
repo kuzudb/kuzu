@@ -12,7 +12,7 @@
 namespace kuzu {
 namespace vector_extension {
 
-bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
+inline bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
     const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry,
     const std::string& indexName) {
     return catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
@@ -32,14 +32,13 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
                     "Index {} already exists in table {}.", indexName, tableEntry->getName())};
             case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
                 return true;
-            case common::ConflictAction::INVALID:
+            default:
                 KU_UNREACHABLE;
             }
         }
         return false;
     } break;
-    case IndexOperation::DROP:
-    case IndexOperation::QUERY: {
+    case IndexOperation::DROP: {
         if (!indexExists(context, transaction, tableEntry, indexName)) {
             switch (conflictAction) {
             case common::ConflictAction::ON_CONFLICT_THROW:
@@ -48,9 +47,17 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
                         tableEntry->getName(), indexName)};
             case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
                 return false;
-            case common::ConflictAction::INVALID:
+            default:
                 KU_UNREACHABLE;
             }
+        }
+        return true;
+    } break;
+    case IndexOperation::QUERY: {
+        if (!indexExists(context, transaction, tableEntry, indexName)) {
+            throw common::BinderException{
+                common::stringFormat("Table {} doesn't have an index with name {}.",
+                    tableEntry->getName(), indexName)};
         }
         return true;
     } break;
@@ -60,14 +67,14 @@ bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     }
 }
 
-catalog::TableCatalogEntry* HNSWIndexUtils::bindTable(const main::ClientContext& context,
+catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::ClientContext& context,
     const std::string& tableName) {
     binder::Binder::validateTableExistence(context, tableName);
     auto transaction = transaction::Transaction::Get(context);
     const auto tableEntry =
         catalog::Catalog::Get(context)->getTableCatalogEntry(transaction, tableName);
     binder::Binder::validateNodeTableType(tableEntry);
-    return tableEntry;
+    return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }
 
 void HNSWIndexUtils::validateAutoTransaction(const main::ClientContext& context,

@@ -203,7 +203,7 @@ DropHNSWConfig::DropHNSWConfig(const function::optional_params_t& optionalParams
                                  common::ConflictAction::ON_CONFLICT_THROW;
         } else {
             throw common::BinderException{common::stringFormat(
-                "Unrecognized optional parameter {} in {}.", name, QueryVectorIndexFunction::name)};
+                "Unrecognized optional parameter {} in {}.", name, DropVectorIndexFunction::name)};
         }
     }
 }
