@@ -8,6 +8,7 @@
 #include "test_runner/multi_copy_split.h"
 #include "test_runner/test_runner.h"
 #include "transaction/transaction_manager.h"
+#include "test_helper/fsm_leak_checker.h"
 
 using ::testing::Test;
 using namespace kuzu::binder;
@@ -150,6 +151,18 @@ void DBTest::runTest(std::vector<TestStatement>& statements, uint64_t checkpoint
                 throw TestException(
                     stringFormat("No connection name provided for statement: {}", statement.query));
             }
+        }
+    }
+
+    // Run FSM checker for all tests.
+    if (!inMemMode) {
+        main::Connection* leakConn = nullptr;
+        if (connNames.size() == 1) {
+            leakConn = connMap.begin()->second.get();
+            if (!leakConn) {
+                throw TestException("FSM leak check has no available connection.");
+            }
+            FSMLeakChecker::checkForLeakedPages(leakConn);
         }
     }
 }
