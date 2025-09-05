@@ -491,16 +491,6 @@ bool Uint128_t::tryCastTo(uint128_t value, uint128_t& result) {
 }
 
 template<>
-bool Uint128_t::tryCastTo(int128_t value, uint128_t& result) { // signed to unsigned
-    if (value.high < 0) {
-        return false;
-    }
-    result.low = value.low;
-    result.high = uint64_t(value.high);
-    return true;
-}
-
-template<>
 bool Uint128_t::tryCastTo(float value, uint128_t& result) {
     return tryCastTo(double(value), result);
 }
@@ -571,12 +561,6 @@ uint128_t::uint128_t(uint16_t value) {
 }
 
 uint128_t::uint128_t(uint8_t value) {
-    auto result = Uint128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
-}
-
-uint128_t::uint128_t(int128_t value) {
     auto result = Uint128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
@@ -664,7 +648,7 @@ uint128_t operator>>(const uint128_t& lhs, int amount) {
 // inplace arithmetic operators
 uint128_t& uint128_t::operator+=(const uint128_t& rhs) {
     if (!Uint128_t::addInPlace(*this, rhs)) {
-        throw common::OverflowException("INT128 is out of range: cannot add in place.");
+        throw common::OverflowException("UINT128 is out of range: cannot add in place.");
     }
     return *this;
 }
@@ -736,6 +720,14 @@ uint128_t::operator float() const {
         throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
             common::TypeUtils::toString(*this)));
     } // LCOV_EXCL_STOP
+    return result;
+}
+
+uint128_t::operator int128_t() const {
+    int128_t result{};
+    if (!Uint128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+        throw common::OverflowException("UINT128 value is out of INT128 range");
+    }
     return result;
 }
 
