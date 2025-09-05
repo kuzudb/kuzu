@@ -8,12 +8,12 @@
 #include "common/string_utils.h"
 #include "function/built_in_function_utils.h"
 #include "function/table/table_function.h"
-#include "main/client_context.h"
 #include "parser/statement.h"
 #include "processor/operator/persistent/reader/csv/parallel_csv_reader.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/npy/npy_reader.h"
 #include "processor/operator/persistent/reader/parquet/parquet_reader.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -221,8 +221,8 @@ TableFunction Binder::getScanFunction(const FileTypeInfo& typeInfo,
     Function* func = nullptr;
     std::vector<LogicalType> inputTypes;
     inputTypes.push_back(LogicalType::STRING());
-    auto catalog = catalog::Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
     switch (typeInfo.fileType) {
     case FileType::PARQUET: {
         auto entry = catalog->getFunctionEntry(transaction, ParquetScanFunction::name);

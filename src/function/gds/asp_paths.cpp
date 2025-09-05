@@ -2,8 +2,8 @@
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -86,7 +86,7 @@ private:
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto frontierPair = std::make_unique<SPFrontierPair>(std::move(denseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()), mm);
+            sharedState->graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)), mm);
         auto edgeCompute =
             std::make_unique<ASPPathsEdgeCompute>(frontierPair.get(), bfsGraph.get());
         auto auxiliaryState = std::make_unique<PathAuxiliaryState>(std::move(bfsGraph));

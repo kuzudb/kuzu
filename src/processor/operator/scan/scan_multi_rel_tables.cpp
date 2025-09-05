@@ -1,6 +1,5 @@
 #include "processor/operator/scan/scan_multi_rel_tables.h"
 
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/local_storage/local_storage.h"
 
@@ -23,7 +22,7 @@ bool DirectionInfo::needFlip(RelDataDirection relDataDirection) const {
 
 bool RelTableCollectionScanner::scan(main::ClientContext* context, RelTableScanState& scanState,
     const std::vector<ValueVector*>& outVectors) {
-    auto transaction = context->getTransaction();
+    auto transaction = Transaction::Get(*context);
     while (true) {
         auto& relInfo = relInfos[currentTableIdx];
         if (relInfo.table->scan(transaction, scanState)) {

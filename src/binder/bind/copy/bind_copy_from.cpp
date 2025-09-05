@@ -7,8 +7,8 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
-#include "main/client_context.h"
 #include "parser/copy.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -26,7 +26,7 @@ static void throwTableNotExist(const std::string& tableName) {
 std::unique_ptr<BoundStatement> Binder::bindLegacyCopyRelGroupFrom(const Statement& statement) {
     auto& copyFrom = statement.constCast<CopyFrom>();
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto tableName = copyFrom.getTableName();
     auto tableNameParts = common::StringUtils::split(tableName, "_");
     if (tableNameParts.size() != 3 || !catalog->containsTable(transaction, tableNameParts[0])) {
@@ -49,7 +49,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto& copyStatement = statement.constCast<CopyFrom>();
     auto tableName = copyStatement.getTableName();
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     if (!catalog->containsTable(transaction, tableName)) {
         return bindLegacyCopyRelGroupFrom(statement);
     }
@@ -148,7 +148,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     auto& copyStatement = statement.constCast<CopyFrom>();
     // Check extension secondary index loaded
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeTableEntry.getTableID())) {
         if (!indexEntry->isLoaded()) {
             throw BinderException(stringFormat(
@@ -238,7 +238,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyRelFrom(const Statement& stateme
     }
     // Bind from to tables
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto fromTable =
         catalog->getTableCatalogEntry(transaction, fromTableName)->ptrCast<NodeTableCatalogEntry>();
     auto toTable =

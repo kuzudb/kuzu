@@ -8,6 +8,7 @@
 #include "graph/graph.h"
 #include "graph/graph_entry.h"
 #include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -27,7 +28,8 @@ static std::shared_ptr<FrontierTask> getFrontierTask(const main::ClientContext* 
     auto numThreads = context->getMaxNumThreadForExec();
     auto sharedState =
         std::make_shared<FrontierTaskSharedState>(numThreads, *computeState.frontierPair);
-    auto maxOffset = graph->getMaxOffset(context->getTransaction(), info.getBoundTableID());
+    auto maxOffset =
+        graph->getMaxOffset(transaction::Transaction::Get(*context), info.getBoundTableID());
     sharedState->morselDispatcher.init(maxOffset);
     return std::make_shared<FrontierTask>(numThreads, info, sharedState);
 }
@@ -126,8 +128,8 @@ static void runVertexComputeInternal(const TableCatalogEntry* currentEntry,
         task->runSparse();
         return;
     }
-    auto maxOffset =
-        graph->getMaxOffset(context->clientContext->getTransaction(), currentEntry->getTableID());
+    auto maxOffset = graph->getMaxOffset(transaction::Transaction::Get(*context->clientContext),
+        currentEntry->getTableID());
     auto sharedState = task->getSharedState();
     sharedState->morselDispatcher.init(maxOffset);
     context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,

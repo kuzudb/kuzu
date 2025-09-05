@@ -6,6 +6,7 @@
 #include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::function;
 
@@ -37,8 +38,8 @@ static common::offset_t internalTableFunc(const TableFuncInput& input, TableFunc
     const auto& context = *input.context->clientContext;
     const auto bindData = input.bindData->constPtrCast<DropHNSWIndexBindData>();
     auto tableID = bindData->tableEntry->getTableID();
-    catalog::Catalog::Get(context)->dropIndex(context.getTransaction(), tableID,
-        bindData->indexName);
+    auto transaction = transaction::Transaction::Get(context);
+    catalog::Catalog::Get(context)->dropIndex(transaction, tableID, bindData->indexName);
     storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>().dropIndex(
         bindData->indexName);
     return 0;

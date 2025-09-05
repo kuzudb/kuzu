@@ -4,7 +4,6 @@
 #include "catalog/hnsw_index_catalog_entry.h"
 #include "function/hnsw_index_functions.h"
 #include "index/hnsw_rel_batch_insert.h"
-#include "main/client_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
@@ -297,13 +296,13 @@ static common::ArrayTypeInfo getArrayTypeInfo(NodeTable& table, common::column_i
 static std::unique_ptr<HNSWIndexEmbeddings> constructEmbeddingsColumn(
     const main::ClientContext* context, const common::ArrayTypeInfo& typeInfo, NodeTable& table,
     common::column_id_t columnID, const HNSWIndexConfig& config) {
+    auto transaction = Transaction::Get(*context);
     if (config.cacheEmbeddingsColumn) {
-        return std::make_unique<InMemEmbeddings>(context->getTransaction(),
+        return std::make_unique<InMemEmbeddings>(transaction,
             common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()},
             table.getTableID(), columnID);
     } else {
-        return std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
-            MemoryManager::Get(*context),
+        return std::make_unique<OnDiskEmbeddings>(transaction, MemoryManager::Get(*context),
             common::ArrayTypeInfo{typeInfo.getChildType().copy(), typeInfo.getNumElements()}, table,
             columnID);
     }
@@ -332,7 +331,8 @@ InMemHNSWIndex::InMemHNSWIndex(const main::ClientContext* context, IndexInfo ind
     HNSWIndexConfig config)
     : HNSWIndex{std::move(indexInfo), std::move(storageInfo), std::move(config),
           getArrayTypeInfo(table, columnID)} {
-    const auto numNodes = table.getNumTotalRows(context->getTransaction());
+    auto transaction = Transaction::Get(*context);
+    const auto numNodes = table.getNumTotalRows(transaction);
     embeddings = constructEmbeddingsColumn(context, typeInfo, table, columnID, this->config);
     upperLayerSelectionMask =
         getUpperLayerSelectionMask(*embeddings, numNodes, this->config, randomEngine);
@@ -409,10 +409,10 @@ HNSWSearchState::HNSWSearchState(main::ClientContext* context,
     catalog::TableCatalogEntry* nodeTableEntry, catalog::TableCatalogEntry* upperRelTableEntry,
     catalog::TableCatalogEntry* lowerRelTableEntry, NodeTable& nodeTable,
     common::column_id_t columnID, common::offset_t numNodes, uint64_t k, QueryHNSWConfig config)
-    : visited{numNodes}, embeddings{std::make_unique<OnDiskEmbeddings>(context->getTransaction(),
+    : visited{numNodes}, embeddings{std::make_unique<OnDiskEmbeddings>(Transaction::Get(*context),
                              MemoryManager::Get(*context), getArrayTypeInfo(nodeTable, columnID),
                              nodeTable, columnID)},
-      embeddingScanState{context->getTransaction(), MemoryManager::Get(*context), nodeTable,
+      embeddingScanState{Transaction::Get(*context), MemoryManager::Get(*context), nodeTable,
           columnID, embeddings->getDimension()},
       k{k}, config{config}, semiMask{nullptr}, upperRelTableEntry{upperRelTableEntry},
       lowerRelTableEntry{lowerRelTableEntry}, searchType{SearchType::UNFILTERED},
@@ -429,7 +429,7 @@ OnDiskHNSWIndex::HNSWInsertState::HNSWInsertState(main::ClientContext* context,
     catalog::TableCatalogEntry* lowerRelTableEntry, NodeTable& nodeTable,
     common::column_id_t columnID, uint64_t degree)
     : searchState{context, nodeTableEntry, upperRelTableEntry, lowerRelTableEntry, nodeTable,
-          columnID, nodeTable.getNumTotalRows(context->getTransaction()), degree,
+          columnID, nodeTable.getNumTotalRows(Transaction::Get(*context)), degree,
           QueryHNSWConfig{}} {
     std::vector<common::LogicalType> insertTypes;
     insertTypes.push_back(common::LogicalType::INTERNAL_ID());
@@ -473,8 +473,8 @@ std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, Stora
         std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
     const auto catalog = catalog::Catalog::Get(*context);
-    const auto indexEntry =
-        catalog->getIndex(context->getTransaction(), indexInfo.tableID, indexInfo.name);
+    const auto transaction = Transaction::Get(*context);
+    const auto indexEntry = catalog->getIndex(transaction, indexInfo.tableID, indexInfo.name);
     const auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
     return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
         auxInfo.config.copy());
@@ -547,8 +547,9 @@ getIndexTableCatalogEntries(const catalog::Catalog* catalog, const Transaction* 
 
 std::unique_ptr<Index::InsertState> OnDiskHNSWIndex::initInsertState(main::ClientContext* context,
     visible_func) {
-    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
-        catalog::Catalog::Get(*context), context->getTransaction(), indexInfo);
+    auto transaction = Transaction::Get(*context);
+    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] =
+        getIndexTableCatalogEntries(catalog::Catalog::Get(*context), transaction, indexInfo);
     return std::make_unique<HNSWInsertState>(context, nodeTableEntry, upperRelTableEntry,
         lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
 }
@@ -608,11 +609,12 @@ void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
     if (numTotalRows == hnswStorageInfo.numCheckpointedNodes) {
         return;
     }
-    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
-        catalog::Catalog::Get(*context), context->getTransaction(), indexInfo);
+    auto transaction = Transaction::Get(*context);
+    auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] =
+        getIndexTableCatalogEntries(catalog::Catalog::Get(*context), transaction, indexInfo);
     const auto embeddingDim = typeInfo.constPtrCast<common::ArrayTypeInfo>()->getNumElements();
-    const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(context->getTransaction(), mm,
-        nodeTable, indexInfo.columnIDs[0], embeddingDim);
+    const auto scanState = std::make_unique<OnDiskEmbeddingScanState>(transaction, mm, nodeTable,
+        indexInfo.columnIDs[0], embeddingDim);
     const auto insertState = std::make_unique<HNSWInsertState>(context, nodeTableEntry,
         upperRelTableEntry, lowerRelTableEntry, nodeTable, indexInfo.columnIDs[0], config.ml);
     // TODO(Guodong): Perhaps should switch to scan instead of lookup here.
@@ -621,13 +623,13 @@ void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
         if (vector.isNull()) {
             continue;
         }
-        insertInternal(context->getTransaction(), offset, vector, *insertState);
+        insertInternal(transaction, offset, vector, *insertState);
     }
     for (const auto offset : insertState->upperNodesToShrink) {
-        shrinkForNode(context->getTransaction(), offset, true, config.mu, *insertState);
+        shrinkForNode(transaction, offset, true, config.mu, *insertState);
     }
     for (const auto offset : insertState->lowerNodesToShrink) {
-        shrinkForNode(context->getTransaction(), offset, false, config.ml, *insertState);
+        shrinkForNode(transaction, offset, false, config.ml, *insertState);
     }
     hnswStorageInfo.numCheckpointedNodes = numTotalRows;
 }

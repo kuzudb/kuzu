@@ -151,6 +151,7 @@ pub(crate) mod ffi {
         #[namespace = "kuzu::main"]
         type Database;
 
+        #[allow(clippy::fn_params_excessive_bools)]
         fn new_database(
             databasePath: StringView,
             bufferPoolSize: u64,
@@ -160,6 +161,8 @@ pub(crate) mod ffi {
             maxDBSize: u64,
             auto_checkpoint: bool,
             checkpoint_threshold: i64,
+            throw_on_wal_replay_failure: bool,
+            enable_checksums: bool,
         ) -> Result<UniquePtr<Database>>;
 
     }

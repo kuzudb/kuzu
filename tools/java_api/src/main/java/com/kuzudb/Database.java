@@ -13,6 +13,8 @@ public class Database implements AutoCloseable {
     boolean destroyed = false;
     boolean readOnly = false;
     boolean autoCheckpoint = true;
+    boolean throwOnWalReplayFailure = true;
+    boolean enableChecksums = true;
     long checkpointThreshold;
 
     /**
@@ -35,33 +37,38 @@ public class Database implements AutoCloseable {
         this.max_db_size = 0;
         this.checkpointThreshold = -1;
         db_ref = Native.kuzuDatabaseInit(databasePath, 0, true, false, max_db_size, autoCheckpoint,
-                checkpointThreshold);
+                checkpointThreshold, throwOnWalReplayFailure, enableChecksums);
     }
 
     /**
      * Creates a database object.
      *
-     * @param databasePath:       Database path. If the path is empty, or equal to
-     *                            `:memory:`, the database will be created in
-     *                            memory.
-     * @param bufferPoolSize:     Max size of the buffer pool in bytes.
-     * @param enableCompression:  Enable compression in storage.
-     * @param readOnly:           Open the database in READ_ONLY mode.
-     * @param maxDBSize:          The maximum size of the database in bytes. Note
-     *                            that this is introduced
-     *                            temporarily for now to get around with the default
-     *                            8TB mmap address space limit some
-     *                            environment.
-     * @param autoCheckpoint      If true, the database will automatically
-     *                            checkpoint when the size of
-     *                            the WAL file exceeds the checkpoint threshold.
-     * @param checkpointThreshold The threshold of the WAL file size in bytes. When
-     *                            the size of the
-     *                            WAL file exceeds this threshold, the database will
-     *                            checkpoint if autoCheckpoint is true.
+     * @param databasePath:             Database path. If the path is empty, or equal to
+     *                                  `:memory:`, the database will be created in
+     *                                  memory.
+     * @param bufferPoolSize:           Max size of the buffer pool in bytes.
+     * @param enableCompression:        Enable compression in storage.
+     * @param readOnly:                 Open the database in READ_ONLY mode.
+     * @param maxDBSize:                The maximum size of the database in bytes. Note
+     *                                  that this is introduced
+     *                                  temporarily for now to get around with the default
+     *                                  8TB mmap address space limit some
+     *                                  environment.
+     * @param autoCheckpoint            If true, the database will automatically
+     *                                  checkpoint when the size of
+     *                                  the WAL file exceeds the checkpoint threshold.
+     * @param checkpointThreshold       The threshold of the WAL file size in bytes. When
+     *                                  the size of the
+     *                                  WAL file exceeds this threshold, the database will
+     *                                  checkpoint if autoCheckpoint is true.
+     * @param throwOnWalReplayFailure   If true, any WAL replaying failure when loading the database
+     *                                  will throw an error. Otherwise, Kuzu will silently ignore
+     *                                  the failure and replay up to where the error occured.
+     * @param enableChecksums           If true, the database will use checksums to detect
+     *                                  corruption in the WAL file.
      */
     public Database(String databasePath, long bufferPoolSize, boolean enableCompression, boolean readOnly,
-            long maxDBSize, boolean autoCheckpoint, long checkpointThreshold) {
+            long maxDBSize, boolean autoCheckpoint, long checkpointThreshold, boolean throwOnWalReplayFailure, boolean enableChecksums) {
         this.db_path = databasePath;
         this.buffer_size = bufferPoolSize;
         this.enableCompression = enableCompression;
@@ -69,8 +76,10 @@ public class Database implements AutoCloseable {
         this.max_db_size = maxDBSize;
         this.autoCheckpoint = autoCheckpoint;
         this.checkpointThreshold = checkpointThreshold;
+        this.throwOnWalReplayFailure = throwOnWalReplayFailure;
+        this.enableChecksums = enableChecksums;
         db_ref = Native.kuzuDatabaseInit(databasePath, bufferPoolSize, enableCompression, readOnly, maxDBSize,
-                autoCheckpoint, checkpointThreshold);
+                autoCheckpoint, checkpointThreshold, throwOnWalReplayFailure, enableChecksums);
     }
 
     /**

@@ -38,8 +38,9 @@ public:
 
         const bool inCheckpoint =
             ctx && !transaction::TransactionManager::Get(*ctx)->hasActiveWriteTransactionNoLock();
-        const bool inCommit = !inCheckpoint && ctx && ctx->getTransaction() &&
-                              ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
+        const bool inCommit =
+            !inCheckpoint && ctx && transaction::Transaction::Get(*ctx) &&
+            transaction::Transaction::Get(*ctx)->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);
         reserveCount = (reserveCount + 1) % failureFrequency;
         if (!inRollback && !inDBInit && (canFailDuringCommit || !inCommit) &&

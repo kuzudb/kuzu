@@ -1,21 +1,22 @@
 #include "function/date/date_functions.h"
 
-#include "main/client_context.h"
+#include "function/function.h"
+#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace function {
 
 void CurrentDate::operation(common::date_t& result, void* dataPtr) {
-    auto currentTS = reinterpret_cast<FunctionBindData*>(dataPtr)
-                         ->clientContext->getTransaction()
-                         ->getCurrentTS();
+    auto clientContext = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto currentTS = transaction->getCurrentTS();
     result = common::Timestamp::getDate(common::timestamp_tz_t(currentTS));
 }
 
 void CurrentTimestamp::operation(common::timestamp_tz_t& result, void* dataPtr) {
-    auto currentTS = reinterpret_cast<FunctionBindData*>(dataPtr)
-                         ->clientContext->getTransaction()
-                         ->getCurrentTS();
+    auto clientContext = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto currentTS = transaction->getCurrentTS();
     result = common::timestamp_tz_t(currentTS);
 }
 

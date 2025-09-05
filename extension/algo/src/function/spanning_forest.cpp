@@ -15,10 +15,10 @@
 #include "function/gds/gds_object_manager.h"
 #include "function/gds/weight_utils.h"
 #include "function/table/bind_input.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -326,7 +326,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     // Set randomLookup=false to enable caching during graph materialization.
     const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
         nbrInfo.dstTableID, relProps, false /*randomLookup*/);
-    const auto numNodes = graph->getMaxOffset(clientContext->getTransaction(), tableId);
+    const auto numNodes =
+        graph->getMaxOffset(transaction::Transaction::Get(*clientContext), tableId);
 
     KruskalCompute compute(mm, numNodes);
     WeightUtils::visit(SpanningForest::name, propertyType, [&]<typename T>(T) {

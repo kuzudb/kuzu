@@ -75,7 +75,7 @@ public class Native {
     // Database
     protected static native long kuzuDatabaseInit(String databasePath, long bufferPoolSize,
             boolean enableCompression, boolean readOnly, long maxDbSize, boolean autoCheckpoint,
-            long checkpointThreshold);
+            long checkpointThreshold,boolean throwOnWalReplayFailure, boolean enableChecksums);
 
     protected static native void kuzuDatabaseDestroy(Database db);
 

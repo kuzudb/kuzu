@@ -4,7 +4,7 @@
 #include "common/serializer/buffer_reader.h"
 #include "common/serializer/buffer_writer.h"
 #include "common/string_utils.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -49,8 +49,8 @@ std::string FTSIndexAuxInfo::toCypher(const catalog::IndexCatalogEntry& indexEnt
     auto& indexToCypherInfo = info.constCast<catalog::IndexToCypherInfo>();
     std::string cypher;
     auto catalog = catalog::Catalog::Get(*indexToCypherInfo.context);
-    auto tableCatalogEntry = catalog->getTableCatalogEntry(
-        indexToCypherInfo.context->getTransaction(), indexEntry.getTableID());
+    auto transaction = transaction::Transaction::Get(*indexToCypherInfo.context);
+    auto tableCatalogEntry = catalog->getTableCatalogEntry(transaction, indexEntry.getTableID());
     auto tableName = tableCatalogEntry->getName();
     std::string propertyStr;
     auto propertyIDs = indexEntry.getPropertyIDs();
@@ -72,7 +72,8 @@ catalog::TableCatalogEntry* FTSIndexAuxInfo::getTableEntryToExport(
     if (config.stopWordsTableName == FTSUtils::getDefaultStopWordsTableName()) {
         return nullptr;
     }
-    return catalog::Catalog::Get(*context)->getTableCatalogEntry(context->getTransaction(),
+    auto transaction = transaction::Transaction::Get(*context);
+    return catalog::Catalog::Get(*context)->getTableCatalogEntry(transaction,
         config.stopWordsTableName);
 }
 

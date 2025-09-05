@@ -12,7 +12,6 @@
 #include "common/vector/value_vector.h"
 #include "expression_evaluator/expression_evaluator.h"
 #include "graph/graph.h"
-#include "main/client_context.h"
 #include "planner/operator/schema.h"
 #include "processor/expression_mapper.h"
 #include "storage/local_storage/local_rel_table.h"
@@ -129,7 +128,8 @@ OnDiskGraphNbrScanState::OnDiskGraphNbrScanState(ClientContext* context,
         }
         auto scanState = std::make_unique<RelTableScanState>(*MemoryManager::Get(*context),
             srcNodeIDVector.get(), outVectors, dstNodeIDVector->state, randomLookup);
-        scanState->setToTable(context->getTransaction(), table, columnIDs, {}, dataDirection);
+        scanState->setToTable(transaction::Transaction::Get(*context), table, columnIDs, {},
+            dataDirection);
         directedIterators.emplace_back(context, table, std::move(scanState));
     }
 }
@@ -239,7 +239,7 @@ bool OnDiskGraphNbrScanState::InnerIterator::next(evaluator::ExpressionEvaluator
     bool hasAtLeastOneSelectedValue = false;
     do {
         restoreSelVector(*tableScanState->outState);
-        if (!relTable->scan(context->getTransaction(), *tableScanState)) {
+        if (!relTable->scan(transaction::Transaction::Get(*context), *tableScanState)) {
             return false;
         }
         saveSelVector(*tableScanState->outState);
@@ -270,7 +270,7 @@ OnDiskGraphNbrScanState::InnerIterator::InnerIterator(const ClientContext* conte
     : context{context}, relTable{relTable}, tableScanState{std::move(tableScanState)} {}
 
 void OnDiskGraphNbrScanState::InnerIterator::initScan() const {
-    relTable->initScanState(context->getTransaction(), *tableScanState);
+    relTable->initScanState(transaction::Transaction::Get(*context), *tableScanState);
 }
 
 void OnDiskGraphNbrScanState::startScan(RelDataDirection direction) {
@@ -311,7 +311,7 @@ OnDiskGraphVertexScanState::OnDiskGraphVertexScanState(ClientContext& context,
     tableScanState =
         std::make_unique<NodeTableScanState>(nodeIDVector.get(), outVectors, propertyVectors.state);
     auto table = StorageManager::Get(context)->getTable(tableEntry->getTableID());
-    tableScanState->setToTable(context.getTransaction(), table, propertyColumnIDs);
+    tableScanState->setToTable(transaction::Transaction::Get(context), table, propertyColumnIDs);
 }
 
 void OnDiskGraphVertexScanState::startScan(offset_t beginOffset, offset_t endOffsetExclusive) {
@@ -322,8 +322,8 @@ void OnDiskGraphVertexScanState::startScan(offset_t beginOffset, offset_t endOff
     for (auto& vector : tableScanState->outputVectors) {
         vector->resetAuxiliaryBuffer();
     }
-    nodeTable.initScanState(context.getTransaction(), *tableScanState, nodeTable.getTableID(),
-        beginOffset);
+    nodeTable.initScanState(transaction::Transaction::Get(context), *tableScanState,
+        nodeTable.getTableID(), beginOffset);
 }
 
 bool OnDiskGraphVertexScanState::next() {
@@ -334,13 +334,14 @@ bool OnDiskGraphVertexScanState::next() {
 
     auto startOffsetOfNextGroup =
         StorageUtils::getStartOffsetOfNodeGroup(tableScanState->nodeGroupIdx + 1);
+    auto transaction = transaction::Transaction::Get(context);
     auto endOffset = std::min(endOffsetExclusive,
         tableScanState->source == TableScanSource::COMMITTED ?
             startOffsetOfNextGroup :
-            startOffsetOfNextGroup + context.getTransaction()->getUncommittedOffset(
+            startOffsetOfNextGroup + transaction->getUncommittedOffset(
                                          tableScanState->table->getTableID(), currentOffset));
     numNodesToScan = std::min(endOffset - currentOffset, DEFAULT_VECTOR_CAPACITY);
-    auto result = tableScanState->scanNext(context.getTransaction(), currentOffset, numNodesToScan);
+    auto result = tableScanState->scanNext(transaction, currentOffset, numNodesToScan);
     currentOffset += result.numRows;
     return result != NODE_GROUP_SCAN_EMPTY_RESULT;
 }

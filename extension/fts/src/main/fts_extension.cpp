@@ -18,7 +18,7 @@ using namespace extension;
 
 static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catalog) {
     auto storageManager = storage::StorageManager::Get(*context);
-    for (auto& indexEntry : catalog.getIndexEntries(context->getTransaction())) {
+    for (auto& indexEntry : catalog.getIndexEntries(transaction::Transaction::Get(*context))) {
         if (indexEntry->getIndexType() == FTSIndexCatalogEntry::TYPE_NAME &&
             !indexEntry->isLoaded()) {
             indexEntry->setAuxInfo(FTSIndexAuxInfo::deserialize(indexEntry->getAuxBufferReader()));

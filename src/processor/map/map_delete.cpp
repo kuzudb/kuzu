@@ -1,7 +1,6 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
-#include "main/client_context.h"
 #include "planner/operator/persistent/logical_delete.h"
 #include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
@@ -18,8 +17,8 @@ namespace processor {
 
 std::vector<RelTable*> getFwdRelTables(table_id_t nodeTableID, const main::ClientContext* context) {
     std::vector<RelTable*> result;
-    for (const auto entry :
-        Catalog::Get(*context)->getRelGroupEntries(context->getTransaction(), false)) {
+    auto transaction = transaction::Transaction::Get(*context);
+    for (const auto entry : Catalog::Get(*context)->getRelGroupEntries(transaction, false)) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
             const auto srcTableID = relEntryInfo.nodePair.srcTableID;
@@ -34,8 +33,8 @@ std::vector<RelTable*> getFwdRelTables(table_id_t nodeTableID, const main::Clien
 
 std::vector<RelTable*> getBwdRelTables(table_id_t nodeTableID, const main::ClientContext* context) {
     std::vector<RelTable*> result;
-    for (const auto entry :
-        Catalog::Get(*context)->getRelGroupEntries(context->getTransaction(), false)) {
+    auto transaction = transaction::Transaction::Get(*context);
+    for (const auto entry : Catalog::Get(*context)->getRelGroupEntries(transaction, false)) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
             const auto dstTableID = relEntryInfo.nodePair.dstTableID;

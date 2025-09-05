@@ -11,7 +11,7 @@
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -1133,8 +1133,9 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {
-            auto entry = catalog::Catalog::Get(*input.context)
-                             ->getFunctionEntry(input.context->getTransaction(), func->name);
+            auto entry =
+                catalog::Catalog::Get(*input.context)
+                    ->getFunctionEntry(transaction::Transaction::Get(*input.context), func->name);
             auto match = BuiltInFunctionsUtils::matchFunction(func->name, typeVec,
                 entry->ptrCast<catalog::FunctionCatalogEntry>());
             func->execFunc = match->constPtrCast<ScalarFunction>()->execFunc;

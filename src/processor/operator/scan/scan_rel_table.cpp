@@ -1,7 +1,6 @@
 #include "processor/operator/scan/scan_rel_table.h"
 
 #include "binder/expression/expression_util.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/local_storage/local_rel_table.h"
 
@@ -57,7 +56,7 @@ std::string ScanRelTablePrintInfo::toString() const {
 
 void ScanRelTableInfo::initScanState(TableScanState& scanState,
     const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     scanState.setToTable(transaction, table, columnIDs, copyVector(columnPredicates), direction);
     initScanStateVectors(scanState, outVectors, MemoryManager::Get(*context));
 }
@@ -73,7 +72,7 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
-    const auto transaction = context->clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*context->clientContext);
     while (true) {
         while (tableInfo.table->scan(transaction, *scanState)) {
             const auto outputSize = scanState->outState->getSelVector().getSelSize();

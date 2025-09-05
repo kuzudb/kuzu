@@ -1,6 +1,5 @@
 #include "storage/local_storage/local_storage.h"
 
-#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
@@ -17,7 +16,7 @@ namespace storage {
 LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
     auto catalog = catalog::Catalog::Get(clientContext);
-    auto transaction = clientContext.getTransaction();
+    auto transaction = transaction::Transaction::Get(clientContext);
     auto& mm = *MemoryManager::Get(clientContext);
     if (!tables.contains(tableID)) {
         switch (table.getTableType()) {
@@ -58,7 +57,7 @@ PageAllocator* LocalStorage::addOptimisticAllocator() {
 
 void LocalStorage::commit() {
     auto catalog = catalog::Catalog::Get(clientContext);
-    auto transaction = clientContext.getTransaction();
+    auto transaction = transaction::Transaction::Get(clientContext);
     auto storageManager = StorageManager::Get(clientContext);
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {

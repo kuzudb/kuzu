@@ -211,6 +211,18 @@ struct PiFunction {
     static function_set getFunctionSet();
 };
 
+struct RandFunction {
+    static constexpr const char* name = "RANDOM";
+
+    static function_set getFunctionSet();
+};
+
+struct SetSeedFunction {
+    static constexpr const char* name = "SETSEED";
+
+    static function_set getFunctionSet();
+};
+
 struct RadiansFunction {
     static constexpr const char* name = "RADIANS";
 

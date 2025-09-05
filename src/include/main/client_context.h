@@ -15,7 +15,6 @@
 #include "parser/statement.h"
 #include "prepared_statement.h"
 #include "processor/warning_context.h"
-#include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace common {
@@ -44,6 +43,11 @@ class StorageManager;
 namespace processor {
 class ImportDB;
 } // namespace processor
+
+namespace transaction {
+class TransactionContext;
+class Transaction;
+} // namespace transaction
 
 namespace main {
 struct DBConfig;
@@ -100,7 +104,6 @@ public:
     uint64_t getMaxNumThreadForExec() const;
 
     // Transaction.
-    transaction::Transaction* getTransaction() const;
     transaction::TransactionContext* getTransactionContext() const;
 
     // Progress bar

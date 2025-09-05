@@ -4,7 +4,7 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -59,7 +59,7 @@ void QueryGraphLabelAnalyzer::pruneNode(const QueryGraph& graph, NodeExpression&
         Candidates candidates;
         auto isSrcConnect = *queryRel->getSrcNode() == node;
         auto isDstConnect = *queryRel->getDstNode() == node;
-        auto tx = clientContext.getTransaction();
+        auto tx = transaction::Transaction::Get(clientContext);
         if (queryRel->getDirectionType() == RelDirectionType::BOTH) {
             if (isSrcConnect || isDstConnect) {
                 for (auto entry : queryRel->getEntries()) {

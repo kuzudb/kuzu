@@ -6,6 +6,7 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/exception/binder.h"
+#include "function/table/bind_input.h"
 #include "graph/graph_entry_set.h"
 #include "graph/on_disk_graph.h"
 #include "main/client_context.h"
@@ -76,7 +77,7 @@ NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::
 static NativeGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std::string& tableName,
     const std::string& predicate) {
     auto catalog = Catalog::Get(context);
-    auto transaction = context.getTransaction();
+    auto transaction = transaction::Transaction::Get(context);
     auto nodeEntry = catalog->getTableCatalogEntry(transaction, tableName);
     if (nodeEntry->getType() != CatalogEntryType::NODE_TABLE_ENTRY) {
         throw BinderException(stringFormat("{} is not a NODE table.", tableName));
@@ -97,7 +98,7 @@ static NativeGraphEntryTableInfo bindNodeEntry(ClientContext& context, const std
 static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std::string& tableName,
     const std::string& predicate) {
     auto catalog = Catalog::Get(context);
-    auto transaction = context.getTransaction();
+    auto transaction = transaction::Transaction::Get(context);
     auto relEntry = catalog->getTableCatalogEntry(transaction, tableName);
     if (relEntry->getType() != CatalogEntryType::REL_GROUP_ENTRY) {
         throw BinderException(
@@ -120,7 +121,7 @@ static NativeGraphEntryTableInfo bindRelEntry(ClientContext& context, const std:
 NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context,
     const ParsedNativeGraphEntry& entry) {
     auto catalog = Catalog::Get(context);
-    auto transaction = context.getTransaction();
+    auto transaction = transaction::Transaction::Get(context);
     auto result = NativeGraphEntry();
     table_id_set_t projectedNodeTableIDSet;
     for (auto& nodeInfo : entry.nodeInfos) {

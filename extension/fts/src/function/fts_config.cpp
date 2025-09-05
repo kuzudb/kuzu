@@ -8,8 +8,8 @@
 #include "common/serializer/serializer.h"
 #include "common/string_utils.h"
 #include "function/stem.h"
-#include "main/client_context.h"
 #include "re2.h"
+#include "transaction/transaction.h"
 #include "utils/fts_utils.h"
 
 namespace kuzu {
@@ -104,8 +104,9 @@ StopWordsTableInfo StopWords::bind(main::ClientContext& context, common::table_i
     if (stopWords == DEFAULT_VALUE) {
         return StopWordsTableInfo{stopWords, FTSUtils::getDefaultStopWordsTableName(),
             StopWordsSource::DEFAULT};
-    } else if (catalog->containsTable(context.getTransaction(), stopWords)) {
-        auto entry = catalog->getTableCatalogEntry(context.getTransaction(), stopWords);
+    } else if (catalog->containsTable(transaction::Transaction::Get(context), stopWords)) {
+        auto entry =
+            catalog->getTableCatalogEntry(transaction::Transaction::Get(context), stopWords);
         if (entry->getTableType() != common::TableType::NODE) {
             throw common::BinderException{"The stop words table must be a node table."};
         }

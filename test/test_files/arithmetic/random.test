@@ -1,0 +1,40 @@
+-DATASET CSV tinysnb
+
+--
+
+-CASE Random
+-STATEMENT RETURN RANDOM()
+---- ok
+-STATEMENT RETURN setseed(0.2)
+---- ok
+-STATEMENT RETURN RANDOM()
+---- 1
+0.910543
+-STATEMENT RETURN RANDOM()
+---- 1
+0.650728
+-STATEMENT RETURN RANDOM()
+---- 1
+0.111587
+-STATEMENT RETURN setseed(0.7)
+---- ok
+-STATEMENT RETURN RANDOM()
+---- 1
+0.545887
+-STATEMENT RETURN setseed(0.2)
+---- ok
+-STATEMENT RETURN RANDOM()
+---- 1
+0.910543
+-STATEMENT RETURN RANDOM()
+---- 1
+0.650728
+-STATEMENT RETURN RANDOM()
+---- 1
+0.111587
+-STATEMENT MATCH (p:person) RETURN p.id, random() limit 2
+---- 2
+0|0.528393
+2|0.708328
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN p.id, p1.id, random() as r ORDER BY r LIMIT 3
+---- ok

@@ -91,7 +91,7 @@ static void writeCopyRelStatement(stringstream& ss, const ClientContext* context
     const std::unordered_map<std::string, const std::atomic<bool>*>& canUseParallelReader) {
     const auto csvConfig = CSVReaderConfig::construct(info->options);
     std::string columns = getTablePropertyDefinitions(entry);
-    auto transaction = context->getTransaction();
+    auto transaction = Transaction::Get(*context);
     const auto catalog = Catalog::Get(*context);
     for (auto& entryInfo : entry->constCast<RelGroupCatalogEntry>().getRelEntryInfos()) {
         auto fromTableName =
@@ -130,7 +130,7 @@ std::string getSchemaCypher(ClientContext* clientContext) {
     stringstream ss;
     exportLoadedExtensions(ss, clientContext);
     const auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = Transaction::Get(*clientContext);
     ToCypherInfo toCypherInfo;
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
@@ -154,7 +154,7 @@ std::string getSchemaCypher(ClientContext* clientContext) {
 std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boundFileInfo,
     const std::unordered_map<std::string, const std::atomic<bool>*>& canUseParallelReader) {
     stringstream ss;
-    auto transaction = context->getTransaction();
+    auto transaction = Transaction::Get(*context);
     const auto catalog = Catalog::Get(*context);
     for (const auto& nodeTableEntry :
         catalog->getNodeTableEntries(transaction, false /* useInternal */)) {
@@ -169,8 +169,9 @@ std::string getCopyCypher(const ClientContext* context, const FileScanInfo* boun
 std::string getIndexCypher(ClientContext* clientContext, const FileScanInfo& exportFileInfo) {
     stringstream ss;
     IndexToCypherInfo info{clientContext, exportFileInfo};
-    for (auto entry :
-        Catalog::Get(*clientContext)->getIndexEntries(clientContext->getTransaction())) {
+    auto transaction = Transaction::Get(*clientContext);
+    auto catalog = Catalog::Get(*clientContext);
+    for (auto entry : catalog->getIndexEntries(transaction)) {
         auto indexCypher = entry->toCypher(info);
         if (!indexCypher.empty()) {
             ss << indexCypher << std::endl;

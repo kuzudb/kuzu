@@ -143,6 +143,8 @@ public:
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
 
+    static Transaction* Get(const main::ClientContext& context);
+
 private:
     common::offset_t getMinUncommittedNodeOffset(common::table_id_t tableID) const;
 

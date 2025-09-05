@@ -226,7 +226,8 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
 
 std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
     auto table = StorageManager::Get(*clientContext)->getTable(tableID)->ptrCast<NodeTable>();
-    return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
+    return SemiMaskUtil::createMask(
+        table->getNumTotalRows(transaction::Transaction::Get(*clientContext)));
 }
 
 } // namespace processor

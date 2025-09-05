@@ -39,6 +39,10 @@ pub struct SystemConfig {
     auto_checkpoint: bool,
     /// The threshold of the WAL file size in bytes. When the size of the WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
     checkpoint_threshold: i64,
+    /// If true, any WAL replaying failure when loading the database will throw an error. Otherwise, Kuzu will silently ignore the failure and replay up to where the error occured.
+    throw_on_wal_replay_failure: bool,
+    /// If true, the database will use checksums to detect corruption in the WAL file.
+    enable_checksums: bool,
 }
 
 #[cfg(test)]
@@ -52,6 +56,8 @@ pub(crate) const SYSTEM_CONFIG_FOR_TESTS: SystemConfig = SystemConfig {
     max_db_size: 16 * 1024 * 1024 * 1024,
     auto_checkpoint: true,
     checkpoint_threshold: -1_i64,
+    throw_on_wal_replay_failure: true,
+    enable_checksums: true,
 };
 
 impl Default for SystemConfig {
@@ -65,6 +71,8 @@ impl Default for SystemConfig {
             max_db_size: u64::from(u32::MAX),
             auto_checkpoint: true,
             checkpoint_threshold: -1_i64,
+            throw_on_wal_replay_failure: true,
+            enable_checksums: true,
         }
     }
 }
@@ -98,6 +106,14 @@ impl SystemConfig {
         self.checkpoint_threshold = checkpoint_threshold;
         self
     }
+    pub fn throw_on_wal_replay_failure(mut self, throw_on_wal_replay_failure: bool) -> Self {
+        self.throw_on_wal_replay_failure = throw_on_wal_replay_failure;
+        self
+    }
+    pub fn enable_checksums(mut self, enable_checksums: bool) -> Self {
+        self.enable_checksums = enable_checksums;
+        self
+    }
 }
 
 pub(crate) const IN_MEMORY_DB_NAME: &str = ":memory:";
@@ -120,6 +136,8 @@ impl Database {
                 config.max_db_size,
                 config.auto_checkpoint,
                 config.checkpoint_threshold,
+                config.throw_on_wal_replay_failure,
+                config.enable_checksums,
             )?),
         })
     }
@@ -149,6 +167,8 @@ mod tests {
     use crate::database::{Database, SystemConfig};
     use crate::value::Value;
     use std::collections::HashSet;
+    use std::fs::File;
+    use std::io::Write;
 
     #[test]
     fn create_database() -> Result<()> {
@@ -248,6 +268,48 @@ mod tests {
             result?.next().unwrap()[0],
             Value::String("1234".to_string())
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_database_throw_on_wal_replay_failure() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db_path = temp_dir.path().join("test");
+        let wal_path = db_path.with_extension("wal");
+        let mut wal_file = File::create(wal_path)?;
+        wal_file.write_all(b"aaaaaaaaaaaaaaaaaaaaaaaa")?;
+        let db = Database::new(
+            db_path,
+            SYSTEM_CONFIG_FOR_TESTS.throw_on_wal_replay_failure(false),
+        )?;
+        let conn = Connection::new(&db)?;
+        let result = conn.query("return 1");
+        assert_eq!(result?.next().unwrap()[0], Value::Int64(1));
+        Ok(())
+    }
+
+    #[test]
+    fn test_database_enable_checksums() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db_path = temp_dir.path().join("test");
+        {
+            let db = Database::new(
+                db_path.clone(),
+                SYSTEM_CONFIG_FOR_TESTS
+                    .auto_checkpoint(false)
+                    .enable_checksums(true),
+            )?;
+            let conn = Connection::new(&db)?;
+            conn.query("call force_checkpoint_on_close=false")?;
+            conn.query("create node table testtest1(id int64 primary key)")?;
+        }
+        {
+            Database::new(
+                db_path.clone(),
+                SYSTEM_CONFIG_FOR_TESTS.enable_checksums(false),
+            )
+            .expect_err("An error should be thrown if the enable_checksums config doesn't match the one used to produce a WAL file");
+        }
         Ok(())
     }
 

@@ -2,6 +2,7 @@ const { assert } = require("chai");
 const tmp = require("tmp");
 const process = require("process");
 const path = require("path");
+const fs = require('fs');
 
 const spwan = require("child_process").spawn;
 
@@ -128,6 +129,84 @@ describe("Database constructor", function () {
     assert.equal(tuple["checkpoint_threshold"], 1234);
     res.close();
     conn.close();
+    testDb.close();
+  });
+
+  it("should create a database with throwOnWalReplayFailure configured", async function () {
+    const tmpDbPath = await new Promise((resolve, reject) => {
+      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(path);
+      });
+    });
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    const walPath = dbPath + ".wal";
+    fs.writeFileSync(walPath, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    const testDb = new kuzu.Database(dbPath,
+      1 << 28 /* 256MB */,
+      true /* compression */,
+      false /* readOnly */,
+      1 << 30 /* 1GB */,
+      true /* autoCheckpoint */,
+      1234 /* checkpointThreshold */,
+      false /* throwOnWalReplayFailure */
+    );
+    const conn = new kuzu.Connection(testDb);
+    let res = await conn.query("RETURN 1");
+    assert.equal(res.getNumTuples(), 1);
+    const tuple = await res.getNext();
+    assert.equal(tuple["1"], 1);
+    res.close();
+    conn.close();
+    testDb.close();
+  });
+
+  it("should create a database with enableChecksums configured", async function () {
+    const tmpDbPath = await new Promise((resolve, reject) => {
+      tmp.dir({ unsafeCleanup: true }, (err, path, _) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(path);
+      });
+    });
+    const dbPath = path.join(tmpDbPath, "db.kz");
+    let testDb = new kuzu.Database(dbPath,
+      1 << 28 /* 256MB */,
+      true /* compression */,
+      false /* readOnly */,
+      1 << 30 /* 1GB */,
+      false /* autoCheckpoint */,
+      1234 /* checkpointThreshold */,
+      true /* throwOnWalReplayFailure */,
+      true /* enableChecksums */
+    );
+    let conn = new kuzu.Connection(testDb);
+    let res = await conn.query("call force_checkpoint_on_close=false");
+    let res1 = await conn.query("create node table testtest1(id int64 primary key)");
+    res.close();
+    res1.close();
+    conn.close();
+    testDb.close();
+
+    try {
+      testDb = new kuzu.Database(dbPath,
+        1 << 28 /* 256MB */,
+        true /* compression */,
+        false /* readOnly */,
+        1 << 30 /* 1GB */,
+        true /* autoCheckpoint */,
+        1234 /* checkpointThreshold */,
+        true /* throwOnWalReplayFailure */,
+        false /* enableChecksums */
+      );
+      await testDb.init();
+      assert.fail("No error thrown when enableChecksums config is invalid.");
+    } catch (e) {
+      assert.ok(e.message.includes("Please open your database using the correct enableChecksums config."));
+    }
     testDb.close();
   });
 

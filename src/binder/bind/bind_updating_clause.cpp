@@ -13,11 +13,11 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
-#include "main/client_context.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -192,7 +192,7 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
     // Check extension secondary index loaded
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
         if (!indexEntry->isLoaded()) {
             throw BinderException(stringFormat(
@@ -301,7 +301,7 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
     auto& property = boundSetItem.first->constCast<PropertyExpression>();
     // Check secondary index constraint
     auto catalog = Catalog::Get(*clientContext);
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     for (auto entry : nodeOrRel.getEntries()) {
         // When setting multi labeled node, skip checking if property is not in current table.
         if (!property.hasProperty(entry->getTableID())) {
@@ -350,7 +350,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
             auto deleteNodeInfo = BoundDeleteInfo(deleteType, TableType::NODE, pattern);
             auto& node = pattern->constCast<NodeExpression>();
             auto catalog = Catalog::Get(*clientContext);
-            auto transaction = clientContext->getTransaction();
+            auto transaction = transaction::Transaction::Get(*clientContext);
             for (auto entry : node.getEntries()) {
                 for (auto index : catalog->getIndexEntries(transaction, entry->getTableID())) {
                     if (!index->isLoaded()) {

@@ -698,3 +698,41 @@ Bob|Dan
 ---- ok
 -STATEMENT CREATE REL TABLE IF NOT EXISTS Knows2(FROM Person2 TO Person2) AS LOAD FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/eKnows.csv" RETURN *;
 ---- ok
+
+-CASE EscapeInDataType
+-STATEMENT CREATE NODE TABLE dt1(a serial, `b` int32[], primary key(a))
+---- ok
+-STATEMENT CALL TABLE_INFO('dt1') RETURN *;
+---- 2
+0|a|SERIAL||True
+1|b|INT32[]|NULL|False
+-STATEMENT CREATE NODE TABLE dt2(a serial, `c` union(`a` int32, d int64, `escape` int32[]), primary key(a))
+---- ok
+-STATEMENT CALL TABLE_INFO('dt2') RETURN *;
+---- 2
+0|a|SERIAL||True
+1|c|UNION(a INT32, d INT64, escape INT32[])|NULL|False
+-STATEMENT CREATE NODE TABLE dt3(a serial, `d` struct(`a` int32, `escape` int32[], b int64), primary key(a))
+---- ok
+-STATEMENT CALL TABLE_INFO('dt3') RETURN *;
+---- 2
+0|a|SERIAL||True
+1|d|STRUCT(a INT32, escape INT32[], b INT64)|NULL|False
+-STATEMENT CREATE NODE TABLE dt4(a serial, `test333` map(int32, int64), primary key(a))
+---- ok
+-STATEMENT CALL TABLE_INFO('dt4') RETURN *;
+---- 2
+0|a|SERIAL||True
+1|test333|MAP(INT32, INT64)|NULL|False
+-STATEMENT CREATE NODE TABLE dt5(a serial, `testescape` decimal(4, 2), primary key(a))
+---- ok
+-STATEMENT CALL TABLE_INFO('dt5') RETURN *;
+---- 2
+0|a|SERIAL||True
+1|testescape|DECIMAL(4, 2)|NULL|False
+-STATEMENT create node table test(`id` serial, err struct(`f1` string, `f2` double)[], primary key(id));
+---- ok
+-STATEMENT CALL TABLE_INFO('test') RETURN *;
+---- 2
+0|id|SERIAL||True
+1|err|STRUCT(f1 STRING, f2 DOUBLE)[]|NULL|False

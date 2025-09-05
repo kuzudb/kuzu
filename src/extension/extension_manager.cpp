@@ -1,11 +1,11 @@
 #include "extension/extension_manager.h"
 
-#include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "extension/extension.h"
 #include "generated_extension_loader.h"
 #include "storage/wal/local_wal.h"
+#include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace extension {
@@ -38,16 +38,13 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     if (std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
             [&](const LoadedExtension& ext) { return ext.getExtensionName() == extensionName; })) {
         libLoader.unload();
-        throw common::BinderException{
-            common::stringFormat("Extension: {} is already loaded. You can check loaded extensions "
-                                 "by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.",
-                extensionName)};
+        return;
     }
     auto init = libLoader.getInitFunc();
     (*init)(context);
     loadedExtensions.push_back(LoadedExtension(extensionName, fullPath,
         isOfficial ? ExtensionSource::OFFICIAL : ExtensionSource::USER));
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     if (transaction->shouldLogToWAL()) {
         transaction->getLocalWAL().logLoadExtension(path);
     }

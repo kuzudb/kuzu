@@ -25,8 +25,8 @@ std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context, StorageManag
     auto reader =
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
-    auto indexEntry =
-        catalog->getIndex(context->getTransaction(), indexInfo.tableID, indexInfo.name);
+    auto indexEntry = catalog->getIndex(transaction::Transaction::Get(*context), indexInfo.tableID,
+        indexInfo.name);
     auto ftsConfig = indexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config;
     return std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context);
@@ -140,8 +140,8 @@ std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContex
     auto ftsUpdateState =
         std::make_unique<FTSUpdateState>(context, internalTableInfo, indexInfo.columnIDs, columnID);
     ftsUpdateState->ftsInsertState = initInsertState(context, isVisible);
-    ftsUpdateState->ftsDeleteState =
-        initDeleteState(context->getTransaction(), MemoryManager::Get(*context), isVisible);
+    ftsUpdateState->ftsDeleteState = initDeleteState(transaction::Transaction::Get(*context),
+        MemoryManager::Get(*context), isVisible);
     return ftsUpdateState;
 }
 
@@ -206,7 +206,7 @@ void FTSIndex::finalize(main::ClientContext* context) {
     if (numTotalRows == ftsStorageInfo.numCheckpointedNodes) {
         return;
     }
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     auto dataChunk = DataChunkState::getSingleValueDataChunkState();
     ValueVector idVector{LogicalType::INTERNAL_ID(), MemoryManager::Get(*context), dataChunk};
     IndexTableState indexTableState{MemoryManager::Get(*context), transaction, internalTableInfo,

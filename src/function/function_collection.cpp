@@ -76,7 +76,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(NegateFunction), SCALAR_FUNCTION(PiFunction),
         SCALAR_FUNCTION_ALIAS(PowFunction), SCALAR_FUNCTION(RadiansFunction),
         SCALAR_FUNCTION(RoundFunction), SCALAR_FUNCTION(SinFunction), SCALAR_FUNCTION(SignFunction),
-        SCALAR_FUNCTION(SqrtFunction), SCALAR_FUNCTION(TanFunction),
+        SCALAR_FUNCTION(SqrtFunction), SCALAR_FUNCTION(TanFunction), SCALAR_FUNCTION(RandFunction),
+        SCALAR_FUNCTION(SetSeedFunction),
 
         // String Functions
         SCALAR_FUNCTION(ArrayExtractFunction), SCALAR_FUNCTION(ConcatFunction),

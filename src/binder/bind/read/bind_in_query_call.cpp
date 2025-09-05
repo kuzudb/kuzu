@@ -2,9 +2,9 @@
 #include "binder/query/reading_clause/bound_table_function_call.h"
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/query/reading_clause/in_query_call_clause.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -21,8 +21,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
     auto functionExpr = expr->constPtrCast<ParsedFunctionExpression>();
     auto functionName = functionExpr->getFunctionName();
     std::unique_ptr<BoundReadingClause> boundReadingClause;
-    auto entry = Catalog::Get(*clientContext)
-                     ->getFunctionEntry(clientContext->getTransaction(), functionName);
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto entry = Catalog::Get(*clientContext)->getFunctionEntry(transaction, functionName);
     switch (entry->getType()) {
     case CatalogEntryType::TABLE_FUNCTION_ENTRY: {
         auto boundTableFunction =

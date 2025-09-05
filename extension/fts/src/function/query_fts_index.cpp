@@ -292,7 +292,7 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     auto storageManager = StorageManager::Get(context);
     auto tableID = termsEntry->getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
-    auto tx = context.getTransaction();
+    auto tx = transaction::Transaction::Get(context);
     auto dfColumnID = termsEntry->getColumnID(DOC_FREQUENCY_PROP_NAME);
     std::vector<LogicalType> vectorTypes;
     vectorTypes.push_back(LogicalType::INTERNAL_ID());
@@ -305,7 +305,8 @@ static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& contex
     termsVector.state = dataChunk.state;
     auto nodeTableScanState =
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
-    nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
+    nodeTableScanState.setToTable(transaction::Transaction::Get(context), &termsNodeTable,
+        {dfColumnID}, {});
     std::unordered_map<offset_t, uint64_t> dfs;
     std::vector<VCQueryTerm> vcQueryTerms;
     vcQueryTerms.reserve(queryTerms.size());
@@ -369,7 +370,7 @@ static void initFrontier(FrontierPair& frontierPair, table_id_t termsTableID,
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& clientContext = *input.context->clientContext;
-    auto transaction = clientContext.getTransaction();
+    auto transaction = transaction::Transaction::Get(clientContext);
     auto sharedState = input.sharedState->ptrCast<QFTSSharedState>();
     auto graph = sharedState->graph.get();
     auto graphEntry = graph->getGraphEntry();
@@ -447,7 +448,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto tableEntry = FTSIndexUtils::bindNodeTable(*context, inputTableName, indexName,
         FTSIndexUtils::IndexOperation::QUERY);
     auto catalog = catalog::Catalog::Get(*context);
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     auto ftsIndexEntry = catalog->getIndex(transaction, tableEntry->getTableID(), indexName);
     auto entry = catalog->getTableCatalogEntry(transaction, inputTableName);
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, {entry});

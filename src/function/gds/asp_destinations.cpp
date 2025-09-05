@@ -1,8 +1,8 @@
 #include "binder/expression/node_expression.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -302,7 +302,7 @@ private:
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto multiplicitiesPair = std::make_unique<MultiplicitiesPair>(
-            graph->getMaxOffsetMap(clientContext->getTransaction()));
+            graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)));
         auto frontier = DenseFrontier::getUnvisitedFrontier(context, graph);
         auto frontierPair = std::make_unique<SPFrontierPair>(std::move(frontier));
         auto edgeCompute = std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(),

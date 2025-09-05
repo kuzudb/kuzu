@@ -217,6 +217,10 @@ public:
     std::unique_ptr<Statement> transformDropProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);
     std::unique_ptr<Statement> transformCommentOn(CypherParser::KU_CommentOnContext& ctx);
+    std::string transformUnionType(CypherParser::KU_UnionTypeContext& ctx);
+    std::string transformStructType(CypherParser::KU_StructTypeContext& ctx);
+    std::string transformMapType(CypherParser::KU_MapTypeContext& ctx);
+    std::string transformDecimalType(CypherParser::KU_DecimalTypeContext& ctx);
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
     std::string getPKName(CypherParser::KU_CreateNodeTableContext& ctx);
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);

@@ -4,8 +4,9 @@
 #include "function/config/connected_components_config.h"
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
-#include "main/client_context.h"
+#include "function/table/bind_input.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -68,7 +69,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto frontierPair =
         std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     frontierPair->setActiveNodesForNextIter();
-    auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
+    auto maxOffsetMap = graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext));
     auto offsetManager = OffsetManager(maxOffsetMap);
     auto mm = MemoryManager::Get(*clientContext);
     auto componentIDs = ComponentIDs::getSequenceComponentIDs(maxOffsetMap, offsetManager, mm);

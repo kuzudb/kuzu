@@ -6,8 +6,8 @@
 #include "common/types/value/value.h"
 #include "function/aggregate/count_star.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_subquery_expression.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::common;
@@ -34,8 +34,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindSubqueryExpression(
         std::move(boundGraphPattern.queryGraphCollection), uniqueName, std::move(rawName));
     boundSubqueryExpr->setWhereExpression(boundGraphPattern.where);
     // Bind projection
-    auto entry = catalog::Catalog::Get(*context)->getFunctionEntry(context->getTransaction(),
-        CountStarFunction::name);
+    auto entry = catalog::Catalog::Get(*context)->getFunctionEntry(
+        transaction::Transaction::Get(*context), CountStarFunction::name);
     auto function = BuiltInFunctionsUtils::matchAggregateFunction(CountStarFunction::name,
         std::vector<LogicalType>{}, false, entry->ptrCast<catalog::FunctionCatalogEntry>());
     auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));

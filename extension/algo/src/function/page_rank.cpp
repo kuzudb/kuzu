@@ -8,8 +8,10 @@
 #include "function/degrees.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "function/table/bind_input.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -265,7 +267,7 @@ private:
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);

@@ -5,7 +5,7 @@
 #include "catalog/catalog.h"
 #include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -47,7 +47,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
 
     auto catalog = Catalog::Get(*context);
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     auto functionName = ExpressionTypeUtil::toString(expressionType);
     LogicalType combinedType(LogicalTypeID::ANY);
     if (!ExpressionUtil::tryCombineDataType(children, combinedType)) {

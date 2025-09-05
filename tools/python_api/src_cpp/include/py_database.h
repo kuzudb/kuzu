@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cached_import/py_cached_import.h"
 #include "main/kuzu.h"
 #include "main/storage_driver.h"
 #include "pybind_include.h" // IWYU pragma: keep (used for py:: namespace)
@@ -19,7 +18,8 @@ public:
 
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize,
         uint64_t maxNumThreads, bool compression, bool readOnly, uint64_t maxDBSize,
-        bool autoCheckpoint, int64_t checkpointThreshold);
+        bool autoCheckpoint, int64_t checkpointThreshold, bool throwOnWalReplayFailure = true,
+        bool enableChecksums = true);
 
     ~PyDatabase();
 

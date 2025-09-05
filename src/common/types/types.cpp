@@ -18,8 +18,8 @@
 #include "common/types/ku_string.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/numeric_limits.h"
-#include "main/client_context.h"
 #include "storage/compression/float_compression.h"
+#include "transaction/transaction.h"
 
 using kuzu::function::BuiltInFunctionsUtils;
 
@@ -732,8 +732,8 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else if (context != nullptr) {
-        type = catalog::Catalog::Get(*context)->getType(context->getTransaction(),
-            upperDataTypeString);
+        auto transaction = transaction::Transaction::Get(*context);
+        type = catalog::Catalog::Get(*context)->getType(transaction, upperDataTypeString);
     } else {
         throw common::RuntimeException{"Invalid datatype string: " + str};
     }

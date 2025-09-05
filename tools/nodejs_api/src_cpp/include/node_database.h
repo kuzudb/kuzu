@@ -32,6 +32,8 @@ private:
     uint64_t maxDBSize;
     bool autoCheckpoint;
     int64_t checkpointThreshold;
+    bool throwOnWalReplayFailure;
+    bool enableChecksums;
     std::shared_ptr<Database> database;
 };
 

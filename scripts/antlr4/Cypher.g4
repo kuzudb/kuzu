@@ -242,6 +242,8 @@ PASSWORD : ( 'P' | 'p' ) ( 'A' | 'a' ) ( 'S' | 's' ) ( 'S' | 's' ) ( 'W' | 'w' )
 
 ROLE : ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
+MAP : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'P' | 'p' ) ;
+
 
 
 ku_Statements
@@ -440,14 +442,25 @@ kU_CreateNodeConstraint : PRIMARY SP KEY SP? '(' SP? oC_PropertyKeyName SP? ')' 
 
 DECIMAL: ( 'D' | 'd' ) ( 'E' | 'e' ) ( 'C' | 'c' ) ( 'I' | 'i' ) ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ;
 
+kU_UnionType
+    : UNION SP? '(' SP? kU_ColumnDefinitions SP? ')' ;
+
+kU_StructType
+    : STRUCT SP? '(' SP? kU_ColumnDefinitions SP? ')' ;
+
+kU_MapType
+    : MAP SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')' ;
+
+kU_DecimalType
+    : DECIMAL SP? '(' SP? oC_IntegerLiteral SP? ',' SP? oC_IntegerLiteral SP? ')' ;
+
 kU_DataType
     : oC_SymbolicName
         | kU_DataType kU_ListIdentifiers
-        | UNION SP? '(' SP? kU_ColumnDefinitions SP? ')'
-        | STRUCT SP? '(' SP? kU_ColumnDefinitions SP? ')'
-        | oC_SymbolicName SP? '(' SP? kU_ColumnDefinitions SP? ')'
-        | oC_SymbolicName SP? '(' SP? kU_DataType SP? ',' SP? kU_DataType SP? ')'
-        | DECIMAL SP? '(' SP? oC_IntegerLiteral SP? ',' SP? oC_IntegerLiteral SP? ')' ;
+        | kU_UnionType
+        | kU_StructType
+        | kU_MapType
+        | kU_DecimalType ;
 
 kU_ListIdentifiers : kU_ListIdentifier ( kU_ListIdentifier )* ;
 
@@ -870,7 +883,7 @@ StringLiteral
         ;
 
 EscapedChar
-    : '\\' ( '\\' | '\'' | '"' | ( 'B' | 'b' ) | ( 'F' | 'f' ) | ( 'N' | 'n' ) | ( 'R' | 'r' ) | ( 'T' | 't' ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit ) ) ) ;
+    : '\\' ( '\\' | '\'' | '"' | ( 'B' | 'b' ) | ( 'F' | 'f' ) | ( 'N' | 'n' ) | ( 'R' | 'r' ) | ( 'T' | 't' ) | ( ( 'X' | 'x' ) ( HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit ) ) ) ;
 
 oC_NumberLiteral
     : oC_DoubleLiteral
@@ -1017,6 +1030,7 @@ kU_NonReservedKeywords
         | YIELD
         | USER
         | PASSWORD
+        | MAP
         ;
 
 UnescapedSymbolicName

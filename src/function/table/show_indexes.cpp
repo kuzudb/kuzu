@@ -2,8 +2,9 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -84,10 +85,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     const TableFuncBindInput* input) {
     std::vector<IndexInfo> indexesInfo;
     auto catalog = Catalog::Get(*context);
-    auto indexEntries = catalog->getIndexEntries(context->getTransaction());
+    auto transaction = transaction::Transaction::Get(*context);
+    auto indexEntries = catalog->getIndexEntries(transaction);
     for (auto indexEntry : indexEntries) {
-        auto tableEntry =
-            catalog->getTableCatalogEntry(context->getTransaction(), indexEntry->getTableID());
+        auto tableEntry = catalog->getTableCatalogEntry(transaction, indexEntry->getTableID());
         auto tableName = tableEntry->getName();
         auto indexName = indexEntry->getIndexName();
         auto indexType = indexEntry->getIndexType();

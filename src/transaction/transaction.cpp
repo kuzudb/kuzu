@@ -8,6 +8,7 @@
 #include "storage/storage_manager.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/local_wal.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::catalog;
 
@@ -206,6 +207,10 @@ common::offset_t Transaction::getMinUncommittedNodeOffset(common::table_id_t tab
             .getStartOffset();
     }
     return 0;
+}
+
+Transaction* Transaction::Get(const main::ClientContext& context) {
+    return context.getTransactionContext()->getActiveTransaction();
 }
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);

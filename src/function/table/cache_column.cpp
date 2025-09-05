@@ -5,7 +5,6 @@
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/local_cached_column.h"
 #include "storage/storage_manager.h"
@@ -13,10 +12,6 @@
 #include "storage/table/node_table.h"
 #include "storage/table/table.h"
 #include "transaction/transaction.h"
-
-namespace kuzu::catalog {
-class TableCatalogEntry;
-}
 
 using namespace kuzu::common;
 
@@ -50,8 +45,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto columnName = input->getLiteralVal<std::string>(1);
     binder::Binder::validateTableExistence(*context, tableName);
-    const auto tableEntry =
-        catalog::Catalog::Get(*context)->getTableCatalogEntry(context->getTransaction(), tableName);
+    const auto tableEntry = catalog::Catalog::Get(*context)->getTableCatalogEntry(
+        transaction::Transaction::Get(*context), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     binder::Binder::validateColumnExistence(tableEntry, columnName);
     auto propertyID = tableEntry->getPropertyID(columnName);
@@ -107,7 +102,7 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
             std::make_unique<storage::NodeTableScanState>(&dataChunk.getValueVectorMutable(0),
                 std::vector{&dataChunk.getValueVectorMutable(1)}, dataChunk.state);
         scanState->source = storage::TableScanSource::COMMITTED;
-        scanState->setToTable(context.getTransaction(), &table, columnIDs, {});
+        scanState->setToTable(transaction::Transaction::Get(context), &table, columnIDs, {});
     }
 
     DataChunk dataChunk;
@@ -167,7 +162,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             data->cast<storage::ListChunkData>().getDataColumnChunk()->resize(
                 numRows * arrayTypeInfo->getNumElements());
         }
-        scanTableDataToChunk(i, scanState, data.get(), context->getTransaction(), table);
+        scanTableDataToChunk(i, scanState, data.get(), transaction::Transaction::Get(*context),
+            table);
         sharedState->merge(i, std::move(data));
     }
     return morsel.endOffset - morsel.startOffset;
@@ -187,7 +183,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 static void finalizeFunc(const processor::ExecutionContext* context,
     TableFuncSharedState* sharedState) {
-    auto transaction = context->clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
     auto cacheColumnSharedState = sharedState->ptrCast<CacheArrayColumnSharedState>();
     auto& localCacheManager = transaction->getLocalCacheManager();
     localCacheManager.put(std::move(cacheColumnSharedState->cachedColumn));

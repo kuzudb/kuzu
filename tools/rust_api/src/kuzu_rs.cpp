@@ -67,7 +67,8 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_
 
 std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t bufferPoolSize,
     uint64_t maxNumThreads, bool enableCompression, bool readOnly, uint64_t maxDBSize,
-    bool autoCheckpoint, int64_t checkpointThreshold) {
+    bool autoCheckpoint, int64_t checkpointThreshold, bool throwOnWalReplayFailure,
+    bool enableChecksums) {
     auto systemConfig = SystemConfig();
     if (bufferPoolSize > 0) {
         systemConfig.bufferPoolSize = bufferPoolSize;
@@ -84,6 +85,8 @@ std::unique_ptr<Database> new_database(std::string_view databasePath, uint64_t b
     if (checkpointThreshold >= 0) {
         systemConfig.checkpointThreshold = checkpointThreshold;
     }
+    systemConfig.throwOnWalReplayFailure = throwOnWalReplayFailure;
+    systemConfig.enableChecksums = enableChecksums;
     return std::make_unique<Database>(databasePath, systemConfig);
 }
 
