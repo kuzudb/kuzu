@@ -5,7 +5,6 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
 #include "simsimd.h"
 #include "transaction/transaction_context.h"
 
@@ -51,7 +50,7 @@ catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::Client
 
 void HNSWIndexUtils::validateAutoTransaction(const main::ClientContext& context,
     const std::string& funcName) {
-    if (!context.getTransactionContext()->isAutoTransaction()) {
+    if (!transaction::TransactionContext::Get(context)->isAutoTransaction()) {
         throw common::BinderException{
             common::stringFormat("{} is only supported in auto transaction mode.", funcName)};
     }

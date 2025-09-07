@@ -11,7 +11,6 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
 
@@ -586,7 +585,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     auto louvainBindData = input.bindData->constPtrCast<LouvainBindData>();
     auto& config = louvainBindData->optionalParams->constCast<LouvainOptionalParams>();
 
-    auto progressBar = clientContext->getProgressBar();
+    auto progressBar = ProgressBar::Get(*clientContext);
     const auto steps = config.maxPhases.getParamVal() * config.maxIterations.getParamVal();
 
     FinalResults finalResults(origNumNodes);

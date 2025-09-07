@@ -105,9 +105,9 @@ void EmbeddedShell::updateTableNames() {
     relTableNames.clear();
     auto clientContext = conn->getClientContext();
     bool transactionStarted = false;
+
     if (transaction::Transaction::Get(*clientContext) == NULL) {
-        clientContext->getTransactionContext()
-            ->beginReadTransaction(); // start transaction to get current table names
+        transaction::TransactionContext::Get(*clientContext)->beginReadTransaction(); // start transaction to get current table names
         transactionStarted = true;
     }
     for (auto& tableEntry : database->catalog->getTableEntries(
@@ -126,7 +126,7 @@ void EmbeddedShell::updateTableNames() {
         tableColumnNames[tableEntry->getName()] = columnNames;
     }
     if (transactionStarted) {
-        clientContext->getTransactionContext()->commit();
+        transaction::TransactionContext::Get(*clientContext)->commit();
     }
 }
 
@@ -494,12 +494,12 @@ std::string decodeEscapeSequences(const std::string& input) {
 void EmbeddedShell::checkConfidentialStatement(const std::string& query, QueryResult* queryResult,
     std::string& input) {
     if (queryResult->isSuccess() && !database->getConfig().readOnly &&
-        queryResult->getQuerySummary()->getStatementType() ==
-            common::StatementType::STANDALONE_CALL) {
+        queryResult->getQuerySummary()->getStatementType() == StatementType::STANDALONE_CALL) {
         auto clientContext = conn->getClientContext();
         auto parsedQueries = clientContext->parseQuery(query);
+        auto transactionContext = transaction::TransactionContext::Get(*clientContext);
         for (auto& parsedQuery : parsedQueries) {
-            clientContext->getTransactionContext()->beginWriteTransaction();
+            transactionContext->beginWriteTransaction();
             auto binder = binder::Binder(clientContext);
             auto boundQuery = binder.bind(*parsedQuery);
             auto boundStatementVisitor = binder::ConfidentialStatementAnalyzer{};
@@ -507,7 +507,7 @@ void EmbeddedShell::checkConfidentialStatement(const std::string& query, QueryRe
             if (boundStatementVisitor.isConfidential()) {
                 input = "";
             }
-            clientContext->getTransactionContext()->commit();
+            transactionContext->commit();
         }
     }
 }

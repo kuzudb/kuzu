@@ -265,12 +265,13 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
 }
 
 void RelBatchInsert::updateProgress(const ExecutionContext* context) const {
+    auto progressBar = ProgressBar::Get(*context->clientContext);
     if (progressSharedState->partitionsTotal == 0) {
-        context->clientContext->getProgressBar()->updateProgress(context->queryID, 0);
+        progressBar->updateProgress(context->queryID, 0);
     } else {
         double progress = static_cast<double>(progressSharedState->partitionsDone) /
                           static_cast<double>(progressSharedState->partitionsTotal);
-        context->clientContext->getProgressBar()->updateProgress(context->queryID, progress);
+        progressBar->updateProgress(context->queryID, progress);
     }
 }
 

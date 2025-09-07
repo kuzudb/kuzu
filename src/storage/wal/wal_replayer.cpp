@@ -10,7 +10,6 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "extension/extension_manager.h"
-#include "main/client_context.h"
 #include "processor/expression_mapper.h"
 #include "storage/file_db_id_utils.h"
 #include "storage/local_storage/local_rel_table.h"
@@ -20,6 +19,7 @@
 #include "storage/wal/checksum_reader.h"
 #include "storage/wal/wal_record.h"
 #include "transaction/transaction_context.h"
+#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -144,12 +144,13 @@ void WALReplayer::replay(bool throwOnWalReplayFailure, bool enableChecksums) con
             truncateWALFile(*fileInfo, offsetDeserialized);
         }
     } catch (const std::exception&) {
-        if (clientContext.getTransactionContext()->hasActiveTransaction()) {
+        auto transactionContext = TransactionContext::Get(clientContext);
+        if (transactionContext->hasActiveTransaction()) {
             // Handle the case that some transaction went during replaying. We should roll back
             // under this case. Usually this shouldn't happen, but it is possible if we have a bug
             // with the replay logic. This is to handle cases like that so we don't corrupt
             // transactions that have been replayed.
-            clientContext.getTransactionContext()->rollback();
+            transactionContext->rollback();
         }
         throw;
     }
@@ -202,10 +203,10 @@ WALReplayer::WALReplayInfo WALReplayer::dryReplay(FileInfo& fileInfo, bool throw
 void WALReplayer::replayWALRecord(WALRecord& walRecord) const {
     switch (walRecord.type) {
     case WALRecordType::BEGIN_TRANSACTION_RECORD: {
-        clientContext.getTransactionContext()->beginRecoveryTransaction();
+        TransactionContext::Get(clientContext)->beginRecoveryTransaction();
     } break;
     case WALRecordType::COMMIT_RECORD: {
-        clientContext.getTransactionContext()->commit();
+        TransactionContext::Get(clientContext)->commit();
     } break;
     case WALRecordType::CREATE_CATALOG_ENTRY_RECORD: {
         replayCreateCatalogEntryRecord(walRecord);

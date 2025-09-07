@@ -15,6 +15,7 @@
 #include "storage/table/rel_table.h"
 #include "storage/wal/wal_replayer.h"
 #include "transaction/transaction.h"
+#include "common/random_engine.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -295,7 +296,7 @@ const storage::DatabaseHeader* StorageManager::getOrInitDatabaseHeader(
         // We should only create the database header if a persistent one doesn't exist
         KU_ASSERT(std::nullopt == DatabaseHeader::readDatabaseHeader(*dataFH->getFileInfo()));
         databaseHeader = std::make_unique<DatabaseHeader>(
-            DatabaseHeader::createInitialHeader(clientContext.getRandomEngine()));
+            DatabaseHeader::createInitialHeader(RandomEngine::Get(clientContext)));
     }
     return databaseHeader.get();
 }

@@ -32,7 +32,7 @@ void ProcessorTask::run() {
 }
 
 void ProcessorTask::finalize() {
-    executionContext->clientContext->getProgressBar()->finishPipeline(executionContext->queryID);
+    ProgressBar::Get(*executionContext->clientContext)->finishPipeline(executionContext->queryID);
     sink->finalize(executionContext);
 }
 

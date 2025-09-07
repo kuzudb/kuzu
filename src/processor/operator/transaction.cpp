@@ -1,7 +1,6 @@
 #include "processor/operator/transaction.h"
 
 #include "common/exception/transaction_manager.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -24,19 +23,20 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
     }
     hasExecuted = true;
     auto clientContext = context->clientContext;
-    validateActiveTransaction(*clientContext->getTransactionContext());
+    auto transactionContext = TransactionContext::Get(*clientContext);
+    validateActiveTransaction(*transactionContext);
     switch (transactionAction) {
     case TransactionAction::BEGIN_READ: {
-        clientContext->getTransactionContext()->beginReadTransaction();
+        transactionContext->beginReadTransaction();
     } break;
     case TransactionAction::BEGIN_WRITE: {
-        clientContext->getTransactionContext()->beginWriteTransaction();
+        transactionContext->beginWriteTransaction();
     } break;
     case TransactionAction::COMMIT: {
-        clientContext->getTransactionContext()->commit();
+        transactionContext->commit();
     } break;
     case TransactionAction::ROLLBACK: {
-        clientContext->getTransactionContext()->rollback();
+        transactionContext->rollback();
     } break;
     case TransactionAction::CHECKPOINT: {
         TransactionManager::Get(*clientContext)->checkpoint(*clientContext);

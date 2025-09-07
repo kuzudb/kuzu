@@ -29,6 +29,8 @@ public:
     uint32_t nextRandomInteger();
     uint32_t nextRandomInteger(uint32_t upper);
 
+    static RandomEngine* Get(const main::ClientContext& context);
+
 private:
     std::mutex mtx;
     RandomState randomState;

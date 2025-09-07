@@ -1,6 +1,7 @@
 #include "common/task_system/progress_bar.h"
 
 #include "common/task_system/terminal_progress_bar_display.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace common {
@@ -69,6 +70,11 @@ void ProgressBar::updateDisplay(uint64_t queryID, double curPipelineProgress) {
 void ProgressBar::toggleProgressBarPrinting(bool enable) {
     trackProgress = enable;
 }
+
+ProgressBar* ProgressBar::Get(const main::ClientContext& context) {
+    return context.progressBar.get();
+}
+
 
 } // namespace common
 } // namespace kuzu

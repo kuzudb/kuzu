@@ -210,7 +210,7 @@ common::offset_t Transaction::getMinUncommittedNodeOffset(common::table_id_t tab
 }
 
 Transaction* Transaction::Get(const main::ClientContext& context) {
-    return context.getTransactionContext()->getActiveTransaction();
+    return TransactionContext::Get(context)->getActiveTransaction();
 }
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);

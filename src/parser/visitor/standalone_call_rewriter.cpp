@@ -4,10 +4,11 @@
 #include "binder/bound_standalone_call_function.h"
 #include "catalog/catalog.h"
 #include "common/exception/parser.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/standalone_call_function.h"
 #include "transaction/transaction.h"
+#include "transaction/transaction_context.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace parser {
@@ -20,7 +21,7 @@ std::string StandaloneCallRewriter::getRewriteQuery(const Statement& statement) 
 void StandaloneCallRewriter::visitStandaloneCallFunction(const Statement& statement) {
     auto& standaloneCallFunc = statement.constCast<StandaloneCallFunction>();
     main::ClientContext::TransactionHelper::runFuncInTransaction(
-        *context->getTransactionContext(),
+        *transaction::TransactionContext::Get(*context),
         [&]() -> void {
             auto funcName = standaloneCallFunc.getFunctionExpression()
                                 ->constPtrCast<ParsedFunctionExpression>()

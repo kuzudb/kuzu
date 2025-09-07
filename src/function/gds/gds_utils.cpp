@@ -53,7 +53,7 @@ static void scheduleFrontierTask(ExecutionContext* context, const GraphRelInfo& 
     // more generally decrease the number of worker threads by 1. Therefore, we instruct
     // scheduleTaskAndWaitOrError to start a new thread by passing true as the last
     // argument.
-    clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
+    TaskScheduler::Get(*context->clientContext)->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
 
@@ -132,7 +132,7 @@ static void runVertexComputeInternal(const TableCatalogEntry* currentEntry,
         currentEntry->getTableID());
     auto sharedState = task->getSharedState();
     sharedState->morselDispatcher.init(maxOffset);
-    context->clientContext->getTaskScheduler()->scheduleTaskAndWaitOrError(task, context,
+    TaskScheduler::Get(*context->clientContext)->scheduleTaskAndWaitOrError(task, context,
         true /* launchNewWorkerThread */);
 }
 
