@@ -12,7 +12,7 @@
 namespace kuzu {
 namespace vector_extension {
 
-inline bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
+bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
     const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry,
     const std::string& indexName) {
     return catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
