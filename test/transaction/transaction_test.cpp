@@ -556,9 +556,11 @@ static void updateNodesWithMixedTransactions(uint64_t startID, uint64_t num, boo
             << "Failed to update test" << id << ": " << res->getErrorMessage();
     }
     if (shouldCommit) {
-        conn->query("COMMIT;");
+        auto res = conn->query("COMMIT;");
+        ASSERT_TRUE(res->isSuccess()) << "Failed to update commit:" << res->getErrorMessage();
     } else {
-        conn->query("ROLLBACK;");
+        auto res = conn->query("ROLLBACK;");
+        ASSERT_TRUE(res->isSuccess()) << "Failed to update rollback:" << res->getErrorMessage();
     }
 }
 

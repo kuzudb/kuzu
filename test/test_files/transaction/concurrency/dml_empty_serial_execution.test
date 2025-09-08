@@ -34,26 +34,35 @@
 ---- error
 Runtime exception: Write-write conflict of updating the same row.
 
--CASE NodeUpdateSameRow
+-CASE NodeUpdateOverlappedRows
 -STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
--INSERT_STATEMENT_BLOCK COPY_TINYSNB_PERSON
--LOOP i 1 100
--STATEMENT MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Apple' RETURN p.*;
----- ok
--ENDLOOP
 -CREATE_CONNECTION conn2
+-STATEMENT CREATE NODE TABLE test(id INT64, val INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT COPY test FROM (UNWIND RANGE(0, 1000) AS id RETURN id, id + 1 AS val);
+---- ok
 -LOOP i 1 100
--STATEMENT [conn2] MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Alphabet' RETURN p.*;
+-STATEMENT MATCH (p:test) WHERE p.ID=${i} SET p.val=p.val+1000;
 ---- ok
 -ENDLOOP
--LOOP i 1 100
--STATEMENT MATCH (p:person) WHERE p.ID = 0 SET p.fName = 'Alphabet100' RETURN p.*;
+-LOOP i 50 100
+-STATEMENT [conn2] MATCH (p:test) WHERE p.ID=${i} SET p.val=p.val+2000;
 ---- ok
 -ENDLOOP
--STATEMENT MATCH (p:person) WHERE p.ID = 0 RETURN p.fName;
+-LOOP i 80 100
+-STATEMENT MATCH (p:test) WHERE p.ID=${i} SET p.val=p.val+4000;
+---- ok
+-ENDLOOP
+-STATEMENT MATCH (p:test) WHERE p.val>1000 RETURN COUNT(*);
 ---- 1
-Alphabet100
+101
+-STATEMENT MATCH (p:test) WHERE p.val>2000 RETURN COUNT(*);
+---- 1
+51
+-STATEMENT MATCH (p:test) WHERE p.val>4000 RETURN COUNT(*);
+---- 1
+21
 
 -CASE WWConflictNodeCopyDelete
 -STATEMENT CALL debug_enable_multi_writes=true;

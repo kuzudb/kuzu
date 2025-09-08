@@ -37,11 +37,7 @@ public:
      */
     KUZU_API virtual ~QueryResult() = 0;
     /**
-<<<<<<< Updated upstream
-     * @return the query is executed successfully or not.
-=======
      * @return if the query is executed successfully or not.
->>>>>>> Stashed changes
      */
     KUZU_API bool isSuccess() const;
     /**

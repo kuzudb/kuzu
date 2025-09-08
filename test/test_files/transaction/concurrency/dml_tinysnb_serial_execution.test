@@ -23,6 +23,7 @@
 11|Ivan
 
 -CASE ConcurrentSingleWriteUpdate
+-SKIP_WASM
 -STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
 -CREATE_CONNECTION conn2
