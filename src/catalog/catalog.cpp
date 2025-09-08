@@ -439,6 +439,17 @@ CatalogEntry* Catalog::getFunctionEntry(const Transaction* transaction, const st
     return result;
 }
 
+std::vector<ScalarMacroCatalogEntry*> Catalog::getMacroEntries(
+    const Transaction* transaction) const {
+    std::vector<ScalarMacroCatalogEntry*> result;
+    for (auto& [_, entry] : functions->getEntries(transaction)) {
+        if (entry->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {
+            result.push_back(entry->ptrCast<ScalarMacroCatalogEntry>());
+        }
+    }
+    return result;
+}
+
 std::vector<FunctionCatalogEntry*> Catalog::getFunctionEntries(
     const Transaction* transaction) const {
     std::vector<FunctionCatalogEntry*> result;

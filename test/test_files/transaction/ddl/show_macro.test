@@ -1,0 +1,26 @@
+-DATASET CSV empty
+--
+
+-CASE showMacroWithoutMacro
+-STATEMENT call show_macros() return *
+---- 0
+
+-CASE showMacro
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT call show_macros() return *
+---- 2
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+-STATEMENT CREATE MACRO add(a,b) AS (a+b)
+---- ok
+-STATEMENT CREATE MACRO minus(a,b) AS (a-b)
+---- ok
+-STATEMENT call show_macros() return *
+---- 4
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+MINUS|CREATE MACRO `MINUS` (a,b) AS a - b;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+ADD|CREATE MACRO `ADD` (a,b) AS a + b;
