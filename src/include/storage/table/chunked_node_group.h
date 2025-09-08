@@ -101,7 +101,7 @@ public:
     }
 
     void finalize() const;
-    virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
+    virtual std::unique_ptr<ChunkedNodeGroup> flush(
         transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator);
 
 protected:

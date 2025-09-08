@@ -141,7 +141,7 @@ std::pair<offset_t, offset_t> NodeGroupCollection::appendToLastNodeGroupAndFlush
         }
     }
     if (directFlushWhenAppend) {
-        auto flushedGroup = chunkedGroup.flushAsNewChunkedNodeGroup(transaction, mm, pageAllocator);
+        auto flushedGroup = chunkedGroup.flush(transaction, mm, pageAllocator);
 
         // If there are deleted columns that haven't been vacuumed yet,
         // we need to add extra columns to the chunked group

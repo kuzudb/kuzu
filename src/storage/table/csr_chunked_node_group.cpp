@@ -205,7 +205,7 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
     return StorageUtils::divideAndRoundUpTo(length, StorageConstants::PACKED_CSR_DENSITY) - length;
 }
 
-std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flushAsNewChunkedNodeGroup(
+std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flush(
     transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
     auto csrOffset = Column::flushChunkData(*csrHeader.offset, pageAllocator);
     auto csrLength = Column::flushChunkData(*csrHeader.length, pageAllocator);
