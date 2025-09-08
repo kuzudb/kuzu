@@ -1,6 +1,10 @@
 -DATASET CSV empty
 --
 
+-CASE showMacroWithoutMacro
+-STATEMENT call show_macros() return *
+---- 0
+
 -CASE showMacro
 -STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
 ---- ok
