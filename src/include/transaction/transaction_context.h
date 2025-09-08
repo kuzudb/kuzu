@@ -52,6 +52,8 @@ public:
 
     void clearTransaction();
 
+    static TransactionContext* Get(const main::ClientContext& context);
+
 private:
     void beginTransactionInternal(TransactionType transactionType);
 

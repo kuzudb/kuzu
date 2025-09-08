@@ -4,7 +4,7 @@
 #include "function/degrees.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
-#include "main/client_context.h"
+#include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
 
@@ -213,7 +213,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             // Repeat until all remaining nodes has degree greater than current core.
         }
         auto progress = static_cast<double>(numNodesComputed) / numNodes;
-        clientContext->getProgressBar()->updateProgress(input.context->queryID, progress);
+        ProgressBar::Get(*clientContext)->updateProgress(input.context->queryID, progress);
         coreValue++;
     }
     // Write output

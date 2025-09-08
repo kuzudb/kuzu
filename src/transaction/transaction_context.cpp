@@ -74,6 +74,10 @@ void TransactionContext::clearTransaction() {
     mode = TransactionMode::AUTO;
 }
 
+TransactionContext* TransactionContext::Get(const main::ClientContext& context) {
+    return context.transactionContext.get();
+}
+
 void TransactionContext::beginTransactionInternal(TransactionType transactionType) {
     KU_ASSERT(!activeTransaction);
     activeTransaction = clientContext.getDatabase()->getTransactionManager()->beginTransaction(

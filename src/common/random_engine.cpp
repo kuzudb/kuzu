@@ -2,6 +2,8 @@
 
 #include <random>
 
+#include "main/client_context.h"
+
 namespace kuzu {
 namespace common {
 
@@ -26,6 +28,10 @@ uint32_t RandomEngine::nextRandomInteger() {
 uint32_t RandomEngine::nextRandomInteger(uint32_t upper) {
     std::unique_lock xLck{mtx};
     return randomState.pcg(upper);
+}
+
+RandomEngine* RandomEngine::Get(const main::ClientContext& context) {
+    return context.randomEngine.get();
 }
 
 } // namespace common

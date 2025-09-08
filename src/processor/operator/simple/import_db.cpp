@@ -34,7 +34,7 @@ void ImportDB::executeInternal(ExecutionContext* context) {
     // multiple DDL and COPY statements in a single transaction.
     // Currently, we split multiple query statements into single query and execute them one by one,
     // each with an auto transaction.
-    auto transactionContext = clientContext->getTransactionContext();
+    auto transactionContext = transaction::TransactionContext::Get(*clientContext);
     if (transactionContext->hasActiveTransaction()) {
         transactionContext->commit();
     }

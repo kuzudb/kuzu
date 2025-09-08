@@ -75,6 +75,9 @@ class KUZU_API ClientContext {
     friend class EmbeddedShell;
     friend struct SpillToDiskSetting;
     friend class processor::ImportDB;
+    friend class transaction::TransactionContext;
+    friend class common::RandomEngine;
+    friend class common::ProgressBar;
 
 public:
     explicit ClientContext(Database* database);
@@ -103,12 +106,6 @@ public:
     void setMaxNumThreadForExec(uint64_t numThreads);
     uint64_t getMaxNumThreadForExec() const;
 
-    // Transaction.
-    transaction::TransactionContext* getTransactionContext() const;
-
-    // Progress bar
-    common::ProgressBar* getProgressBar() const;
-
     // Replace function.
     void addScanReplace(function::ScanReplacement scanReplacement);
     std::unique_ptr<function::ScanReplacementData> tryReplaceByName(
@@ -126,8 +123,6 @@ public:
     Database* getDatabase() const;
     AttachedKuzuDatabase* getAttachedDatabase() const;
 
-    common::TaskScheduler* getTaskScheduler() const;
-    common::RandomEngine* getRandomEngine() const;
     const CachedPreparedStatementManager& getCachedPreparedStatementManager() const {
         return cachedPreparedStatementManager;
     }

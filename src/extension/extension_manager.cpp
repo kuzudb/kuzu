@@ -91,7 +91,7 @@ std::vector<storage::StorageExtension*> ExtensionManager::getStorageExtensions()
 }
 
 void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
-    auto trxContext = context->getTransactionContext();
+    auto trxContext = transaction::TransactionContext::Get(*context);
     trxContext->beginRecoveryTransaction();
     loadLinkedExtensions(context, loadedExtensions);
     trxContext->commit();

@@ -6,7 +6,6 @@
 #include "function/gds/compute.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/gds_utils.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
 
@@ -87,6 +86,7 @@ static bool requireRelID(const RJAlgorithm& function) {
 void RecursiveExtend::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
     auto transaction = transaction::Transaction::Get(*clientContext);
+    auto progressBar = ProgressBar::Get(*clientContext);
     auto graph = sharedState->graph.get();
     auto inputNodeMaskMap = sharedState->getInputNodeMaskMap();
     offset_t totalNumNodes = 0;
@@ -136,7 +136,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
             for (const auto& offset :
                 inputNodeMaskMap->getOffsetMask(tableID)->range(0, maxOffset)) {
                 calcFunc(offset);
-                clientContext->getProgressBar()->updateProgress(context->queryID,
+                progressBar->updateProgress(context->queryID,
                     getRJProgress(totalNumNodes, completedNumNodes++));
                 if (sharedState->exceedLimit()) {
                     break;
@@ -145,7 +145,7 @@ void RecursiveExtend::executeInternal(ExecutionContext* context) {
         } else {
             for (auto offset = 0u; offset < maxOffset; ++offset) {
                 calcFunc(offset);
-                clientContext->getProgressBar()->updateProgress(context->queryID,
+                progressBar->updateProgress(context->queryID,
                     getRJProgress(totalNumNodes, completedNumNodes++));
                 if (sharedState->exceedLimit()) {
                     break;

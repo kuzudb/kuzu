@@ -8,7 +8,7 @@
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
-#include "main/client_context.h"
+#include "function/table/bind_input.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
 
@@ -236,7 +236,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto bwdComputeState = GDSComputeState(frontierPair, std::move(bwdColoringEdgeCompute),
         std::move(bwdAuxiliaryState));
 
-    auto progressBar = clientContext->getProgressBar();
+    auto progressBar = ProgressBar::Get(*clientContext);
     for (auto i = 0u; i < maxIterations; i++) {
         // Init fwd and bwd component IDs to node offsets.
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,

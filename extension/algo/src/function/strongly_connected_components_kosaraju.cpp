@@ -100,7 +100,7 @@ public:
     }
 
     void compute(const offset_t maxOffset, NodeOffsetMaskMap* map, ExecutionContext* context) {
-        auto progressBar = context->clientContext->getProgressBar();
+        auto progressBar = ProgressBar::Get(*context->clientContext);
         std::vector<offset_t> toProcess;
         for (auto i = 0u; i < maxOffset; ++i) {
             if (context->clientContext->interrupted()) {

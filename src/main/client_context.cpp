@@ -142,14 +142,6 @@ Value ClientContext::getCurrentSetting(const std::string& optionName) const {
     throw RuntimeException{"Invalid option name: " + lowerCaseOptionName + "."};
 }
 
-TransactionContext* ClientContext::getTransactionContext() const {
-    return transactionContext.get();
-}
-
-ProgressBar* ClientContext::getProgressBar() const {
-    return progressBar.get();
-}
-
 void ClientContext::addScanReplace(function::ScanReplacement scanReplacement) {
     scanReplacements.push_back(std::move(scanReplacement));
 }
@@ -203,14 +195,6 @@ Database* ClientContext::getDatabase() const {
 
 AttachedKuzuDatabase* ClientContext::getAttachedDatabase() const {
     return remoteDatabase;
-}
-
-TaskScheduler* ClientContext::getTaskScheduler() const {
-    return localDatabase->queryProcessor->getTaskScheduler();
-}
-
-RandomEngine* ClientContext::getRandomEngine() const {
-    return randomEngine.get();
 }
 
 bool ClientContext::isInMemory() const {

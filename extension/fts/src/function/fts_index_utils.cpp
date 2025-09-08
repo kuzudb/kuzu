@@ -4,7 +4,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
-#include "main/client_context.h"
 #include "transaction/transaction_context.h"
 
 namespace kuzu {
@@ -48,7 +47,7 @@ catalog::NodeTableCatalogEntry* FTSIndexUtils::bindNodeTable(const main::ClientC
 
 void FTSIndexUtils::validateAutoTransaction(const main::ClientContext& context,
     const std::string& funcName) {
-    if (!context.getTransactionContext()->isAutoTransaction()) {
+    if (!transaction::TransactionContext::Get(context)->isAutoTransaction()) {
         throw common::BinderException{
             common::stringFormat("{} is only supported in auto transaction mode.", funcName)};
     }

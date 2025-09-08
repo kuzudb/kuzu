@@ -1,7 +1,6 @@
 #include "common/random_engine.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/scalar_function.h"
-#include "main/client_context.h"
 
 namespace kuzu {
 namespace function {
@@ -11,7 +10,7 @@ using namespace kuzu::common;
 struct SetSeed {
     static void operation(double& seed, void* dataPtr) {
         auto context = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
-        context->getRandomEngine()->setSeed(
+        RandomEngine::Get(*context)->setSeed(
             static_cast<uint64_t>(seed * static_cast<double>(UINT64_MAX)));
     }
 };
