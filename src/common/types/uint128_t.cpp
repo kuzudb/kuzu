@@ -330,7 +330,7 @@ uint128_t Uint128_t::LeftShift(uint128_t lhs, int amount) {
 
 uint128_t Uint128_t::RightShift(uint128_t lhs, int amount) {
     return amount >= 64 ?
-               uint128_t(lhs.high >> (amount - 64), lhs.high >> 63) :
+               uint128_t(lhs.high >> (amount - 64), 0):
                amount == 0 ?
                lhs :
                uint128_t((lhs.low >> amount) | (lhs.high << (64 - amount)), lhs.high >> amount);
