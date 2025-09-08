@@ -11,6 +11,8 @@ namespace function {
 struct CastArrayHelper {
     static bool checkCompatibleNestedTypes(LogicalTypeID sourceTypeID, LogicalTypeID targetTypeID);
 
+    static bool isUnionSpecialCast(const LogicalType& srcType, const LogicalType& dstType);
+
     static bool containsListToArray(const LogicalType& srcType, const LogicalType& dstType);
 
     static void validateListEntry(ValueVector* inputVector, const LogicalType& resultType,

@@ -14,9 +14,9 @@ namespace processor {
 
 void CreateTable::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
-    auto memoryManager = clientContext->getMemoryManager();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     // Check conflict
     if (catalog->containsTable(transaction, info.tableName)) {
         switch (info.onConflict) {
@@ -41,7 +41,7 @@ void CreateTable::executeInternal(ExecutionContext* context) {
     default:
         KU_UNREACHABLE;
     }
-    clientContext->getStorageManager()->createTable(entry->ptrCast<TableCatalogEntry>());
+    storage::StorageManager::Get(*clientContext)->createTable(entry->ptrCast<TableCatalogEntry>());
     appendMessage(stringFormat("Table {} has been created.", info.tableName), memoryManager);
     sharedState->tableCreated = true;
 }

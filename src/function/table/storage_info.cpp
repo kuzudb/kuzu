@@ -8,6 +8,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/list_chunk_data.h"
@@ -87,7 +88,7 @@ struct StorageInfoBindData final : TableFuncBindData {
 
 static std::unique_ptr<TableFuncLocalState> initLocalState(
     const TableFuncInitLocalStateInput& input) {
-    return std::make_unique<StorageInfoLocalState>(input.clientContext->getMemoryManager());
+    return std::make_unique<StorageInfoLocalState>(MemoryManager::Get(*input.clientContext));
 }
 
 struct StorageInfoOutputData {
@@ -252,7 +253,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput& output) 
     auto& dataChunk = output.dataChunk;
     auto localState = ku_dynamic_cast<StorageInfoLocalState*>(input.localState);
     KU_ASSERT(dataChunk.state->getSelVector().isUnfiltered());
-    auto storageManager = input.context->clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*input.context->clientContext);
     while (true) {
         if (localState->currChunkIdx < localState->dataChunkCollection->getNumChunks()) {
             // Copy from local state chunk.
@@ -349,11 +350,12 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnTypes.emplace_back(LogicalType::STRING());
     columnTypes.emplace_back(LogicalType::STRING());
     auto tableName = input->getLiteralVal<std::string>(0);
-    auto catalog = context->getCatalog();
-    if (!catalog->containsTable(context->getTransaction(), tableName)) {
+    auto catalog = Catalog::Get(*context);
+    if (!catalog->containsTable(transaction::Transaction::Get(*context), tableName)) {
         throw BinderException{"Table " + tableName + " does not exist!"};
     }
-    auto tableEntry = catalog->getTableCatalogEntry(context->getTransaction(), tableName);
+    auto tableEntry =
+        catalog->getTableCatalogEntry(transaction::Transaction::Get(*context), tableName);
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(columnNames, columnTypes);
     return std::make_unique<StorageInfoBindData>(columns, tableEntry, context);

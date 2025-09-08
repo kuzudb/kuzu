@@ -53,6 +53,8 @@ public:
 
     function::TableFunction getHandleFunction(const std::string& path) const override;
 
+    static VirtualFileSystem* GetUnsafe(const main::ClientContext& context);
+
 protected:
     void readFromFile(FileInfo& fileInfo, void* buffer, uint64_t numBytes,
         uint64_t position) const override;

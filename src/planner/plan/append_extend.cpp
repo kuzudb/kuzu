@@ -3,7 +3,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/enums/join_type.h"
-#include "main/client_context.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/operator/extend/logical_extend.h"
 #include "planner/operator/extend/logical_recursive_extend.h"
@@ -11,6 +10,7 @@
 #include "planner/operator/logical_node_label_filter.h"
 #include "planner/operator/logical_path_property_probe.h"
 #include "planner/planner.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -83,8 +83,8 @@ void Planner::appendNonRecursiveExtend(const std::shared_ptr<NodeExpression>& bo
         properties_, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Update cost & cardinality. Note that extend does not change factorized cardinality.
-    const auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
+    auto transaction = Transaction::Get(*clientContext);
+    const auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode, transaction);
     extend->setCardinality(plan.getLastOperator()->getCardinality());
     plan.setCost(CostModel::computeExtendCost(plan));
     auto group = extend->getSchema()->getGroup(nbrNode->getInternalID());
@@ -148,8 +148,8 @@ void Planner::appendRecursiveExtend(const std::shared_ptr<NodeExpression>& bound
     pathPropertyProbe->pathNodeIDs = recursiveInfo->bindData->pathNodeIDsExpr;
     pathPropertyProbe->pathEdgeIDs = recursiveInfo->bindData->pathEdgeIDsExpr;
     pathPropertyProbe->computeFactorizedSchema();
-    auto extensionRate =
-        cardinalityEstimator.getExtensionRate(*rel, *boundNode, clientContext->getTransaction());
+    auto transaction = Transaction::Get(*clientContext);
+    auto extensionRate = cardinalityEstimator.getExtensionRate(*rel, *boundNode, transaction);
     auto resultCard =
         cardinalityEstimator.multiply(extensionRate, plan.getLastOperator()->getCardinality());
     pathPropertyProbe->setCardinality(resultCard);

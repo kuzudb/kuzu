@@ -83,3 +83,41 @@ Bob2
 -STATEMENT MATCH (p:person) WHERE p.fName='Dave' RETURN ID(p), p.fName;
 ---- 1
 0:3|Dave
+
+-CASE DetachDeleteLocalNode
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-STATEMENT CREATE NODE TABLE Teacher(name STRING, age INT64, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE (:Teacher {name: 'Alice', age: 40});
+---- ok
+-STATEMENT CREATE (:Teacher {name: 'Bob', age: 35});
+---- ok
+-STATEMENT CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE (:Person {name: 'A', age: 25});
+---- ok
+-STATEMENT CREATE (:Person {name: 'B', age: 30});
+---- ok
+-STATEMENT CREATE (:Person {name: 'C', age: 30});
+---- ok
+-STATEMENT CREATE (:Person {name: 'D', age: 30});
+---- ok
+-STATEMENT CREATE REL TABLE Teaches(FROM Teacher TO Person, since INT64);
+---- ok
+-STATEMENT MATCH (a:Teacher {name: 'Alice'}), (b:Person {name: 'B'}) CREATE (a)-[:Teaches {since: 2020}]->(b);
+---- ok
+-STATEMENT MATCH (a:Teacher {name: 'Alice'}), (b:Person {name: 'C'}) CREATE (a)-[:Teaches {since: 2020}]->(b);
+---- ok
+-STATEMENT MATCH (a:Teacher {name: 'Alice'}), (b:Person {name: 'D'}) CREATE (a)-[:Teaches {since: 2020}]->(b);
+---- ok
+-STATEMENT MATCH (p:Person) WHERE p.name='B' DETACH DELETE p;
+---- ok
+-STATEMENT MATCH (a:Teacher)-[e]->(b:Person) HINT (a JOIN e) JOIN b RETURN COUNT(e);
+---- 1
+2
+-STATEMENT MATCH (a:Teacher)-[e]->(b:Person) HINT (b JOIN e) JOIN a RETURN COUNT(e);
+---- 1
+2
+-STATEMENT COMMIT;
+---- ok

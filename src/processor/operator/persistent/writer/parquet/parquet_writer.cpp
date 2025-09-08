@@ -6,6 +6,7 @@
 #include "common/system_config.h"
 #include "main/client_context.h"
 #include "protocol/TCompactProtocol.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,8 +18,8 @@ ParquetWriter::ParquetWriter(std::string fileName, std::vector<common::LogicalTy
     std::vector<std::string> columnNames, kuzu_parquet::format::CompressionCodec::type codec,
     main::ClientContext* context)
     : fileName{std::move(fileName)}, types{std::move(types)}, columnNames{std::move(columnNames)},
-      codec{codec}, fileOffset{0}, mm{context->getMemoryManager()} {
-    fileInfo = context->getVFSUnsafe()->openFile(this->fileName,
+      codec{codec}, fileOffset{0}, mm{storage::MemoryManager::Get(*context)} {
+    fileInfo = VirtualFileSystem::GetUnsafe(*context)->openFile(this->fileName,
         FileOpenFlags(FileFlags::WRITE | FileFlags::CREATE_AND_TRUNCATE_IF_EXISTS), context);
     // Parquet files start with the string "PAR1".
     fileInfo->writeFile(reinterpret_cast<const uint8_t*>(ParquetConstants::PARQUET_MAGIC_WORDS),

@@ -4,7 +4,6 @@
 
 #include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "function/gds/gds.h"
 
 namespace kuzu {
 namespace function {
@@ -35,15 +34,6 @@ struct NormalizeInitial {
     static constexpr const char* NAME = "normalizeinitial";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
     static constexpr bool DEFAULT_VALUE = true;
-};
-
-struct PageRankConfig final : public GDSConfig {
-    double dampingFactor = DampingFactor::DEFAULT_VALUE;
-    uint64_t maxIterations = 20;
-    double tolerance = Tolerance::DEFAULT_VALUE;
-    bool normalize = NormalizeInitial::DEFAULT_VALUE;
-
-    PageRankConfig() = default;
 };
 
 } // namespace function

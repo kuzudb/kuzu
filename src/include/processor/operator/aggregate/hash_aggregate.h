@@ -14,7 +14,6 @@
 #include "common/mpsc_queue.h"
 #include "common/types/types.h"
 #include "common/vector/value_vector.h"
-#include "main/client_context.h"
 #include "processor/operator/aggregate/aggregate_input.h"
 #include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/operator/physical_operator.h"

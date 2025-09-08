@@ -11,7 +11,7 @@ namespace kuzu {
 namespace transaction {
 
 TransactionContext::TransactionContext(main::ClientContext& clientContext)
-    : clientContext{clientContext}, mode{TransactionMode::AUTO} {}
+    : clientContext{clientContext}, mode{TransactionMode::AUTO}, activeTransaction{nullptr} {}
 
 TransactionContext::~TransactionContext() = default;
 
@@ -28,9 +28,12 @@ void TransactionContext::beginWriteTransaction() {
 }
 
 void TransactionContext::beginAutoTransaction(bool readOnlyStatement) {
-    if (mode == TransactionMode::AUTO && hasActiveTransaction()) {
-        activeTransaction.reset();
+    // LCOV_EXCL_START
+    if (hasActiveTransaction()) {
+        throw TransactionManagerException(
+            "Cannot start a new transaction while there is an active transaction.");
     }
+    // LCOV_EXCL_STOP
     beginTransactionInternal(
         readOnlyStatement ? TransactionType::READ_ONLY : TransactionType::WRITE);
 }
@@ -53,7 +56,7 @@ void TransactionContext::commit() {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->transactionManager->commit(clientContext);
+    clientContext.getDatabase()->getTransactionManager()->commit(clientContext, activeTransaction);
     clearTransaction();
 }
 
@@ -61,8 +64,8 @@ void TransactionContext::rollback() {
     if (!hasActiveTransaction()) {
         return;
     }
-    clientContext.getDatabase()->transactionManager->rollback(clientContext,
-        activeTransaction.get());
+    clientContext.getDatabase()->getTransactionManager()->rollback(clientContext,
+        activeTransaction);
     clearTransaction();
 }
 
@@ -73,7 +76,7 @@ void TransactionContext::clearTransaction() {
 
 void TransactionContext::beginTransactionInternal(TransactionType transactionType) {
     KU_ASSERT(!activeTransaction);
-    activeTransaction = clientContext.getDatabase()->transactionManager->beginTransaction(
+    activeTransaction = clientContext.getDatabase()->getTransactionManager()->beginTransaction(
         clientContext, transactionType);
 }
 

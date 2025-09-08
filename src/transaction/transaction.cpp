@@ -8,6 +8,7 @@
 #include "storage/storage_manager.h"
 #include "storage/undo_buffer.h"
 #include "storage/wal/local_wal.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::catalog;
 
@@ -30,9 +31,10 @@ Transaction::Transaction(main::ClientContext& clientContext, TransactionType tra
       commitTS{common::INVALID_TRANSACTION}, forceCheckpoint{false}, hasCatalogChanges{false} {
     this->clientContext = &clientContext;
     localStorage = std::make_unique<storage::LocalStorage>(clientContext);
-    undoBuffer = std::make_unique<storage::UndoBuffer>(clientContext.getMemoryManager());
+    undoBuffer = std::make_unique<storage::UndoBuffer>(storage::MemoryManager::Get(clientContext));
     currentTS = common::Timestamp::getCurrentTimestamp().value;
-    localWAL = std::make_unique<storage::LocalWAL>(*clientContext.getMemoryManager());
+    localWAL = std::make_unique<storage::LocalWAL>(*storage::MemoryManager::Get(clientContext),
+        clientContext.getDBConfig()->enableChecksums);
 }
 
 Transaction::Transaction(TransactionType transactionType) noexcept
@@ -68,19 +70,18 @@ void Transaction::commit(storage::WAL* wal) {
         localWAL->clear();
     }
     if (hasCatalogChanges) {
-        clientContext->getCatalog()->incrementVersion();
+        Catalog::Get(*clientContext)->incrementVersion();
         hasCatalogChanges = false;
     }
 }
 
 void Transaction::rollback(storage::WAL*) {
-    localStorage->rollback();
+    // Rolling back the local storage will free + evict all optimistically-allocated pages
+    // Since the undo buffer may do some scanning (e.g. to delete inserted keys from the hash index)
+    // this must be rolled back first
     undoBuffer->rollback(clientContext);
+    localStorage->rollback();
     hasCatalogChanges = false;
-}
-
-uint64_t Transaction::getEstimatedMemUsage() const {
-    return localStorage->getEstimatedMemUsage() + undoBuffer->getMemUsage();
 }
 
 bool Transaction::isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const {
@@ -206,6 +207,10 @@ common::offset_t Transaction::getMinUncommittedNodeOffset(common::table_id_t tab
             .getStartOffset();
     }
     return 0;
+}
+
+Transaction* Transaction::Get(const main::ClientContext& context) {
+    return context.getTransactionContext()->getActiveTransaction();
 }
 
 Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);

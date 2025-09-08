@@ -37,9 +37,10 @@ public:
         const bool inDBInit = ctx == nullptr;
 
         const bool inCheckpoint =
-            ctx && !ctx->getTransactionManagerUnsafe()->hasActiveWriteTransactionNoLock();
-        const bool inCommit = !inCheckpoint && ctx && ctx->getTransaction() &&
-                              ctx->getTransaction()->getCommitTS() != common::INVALID_TRANSACTION;
+            ctx && !transaction::TransactionManager::Get(*ctx)->hasActiveWriteTransactionNoLock();
+        const bool inCommit =
+            !inCheckpoint && ctx && transaction::Transaction::Get(*ctx) &&
+            transaction::Transaction::Get(*ctx)->getCommitTS() != common::INVALID_TRANSACTION;
         const bool inExecute = (!inCommit && !inCheckpoint);
         reserveCount = (reserveCount + 1) % failureFrequency;
         if (!inRollback && !inDBInit && (canFailDuringCommit || !inCommit) &&
@@ -114,12 +115,11 @@ public:
 };
 
 static decltype(auto) getDbSizeInPages(main::Connection* conn) {
-    return conn->getClientContext()->getStorageManager()->getDataFH()->getNumPages();
+    return storage::StorageManager::Get(*conn->getClientContext())->getDataFH()->getNumPages();
 }
 
 static decltype(auto) getNumFreePages(main::Connection* conn) {
-    auto& pageManager =
-        *conn->getClientContext()->getStorageManager()->getDataFH()->getPageManager();
+    auto& pageManager = *storage::PageManager::Get(*conn->getClientContext());
     auto numFreeEntries = pageManager.getNumFreeEntries();
     auto entries = pageManager.getFreeEntries(0, numFreeEntries);
     return std::accumulate(entries.begin(), entries.end(), 0ull,
@@ -157,9 +157,10 @@ struct FSMLeakChecker {
         const auto numUsedPages = numTotalPages - getNumFreePages(conn);
 
         storage::Checkpointer checkpointer{*conn->getClientContext()};
-        auto databaseHeader = checkpointer.getCurrentDatabaseHeader();
-        ASSERT_EQ(1 + databaseHeader.catalogPageRange.numPages +
-                      databaseHeader.metadataPageRange.numPages,
+        auto databaseHeader = storage::StorageManager::Get(*conn->getClientContext())
+                                  ->getOrInitDatabaseHeader(*conn->getClientContext());
+        ASSERT_EQ(1 + databaseHeader->catalogPageRange.numPages +
+                      databaseHeader->metadataPageRange.numPages,
             numUsedPages);
     }
 };

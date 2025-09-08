@@ -17,6 +17,7 @@
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -190,8 +191,8 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     auto nodeEntry = entry->ptrCast<NodeTableCatalogEntry>();
     validatePrimaryKeyExistence(nodeEntry, *node, insertInfo.columnDataExprs);
     // Check extension secondary index loaded
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
         if (!indexEntry->isLoaded()) {
             throw BinderException(stringFormat(
@@ -299,18 +300,18 @@ BoundSetPropertyInfo Binder::bindSetPropertyInfo(const ParsedExpression* column,
     auto& nodeOrRel = expr->constCast<NodeOrRelExpression>();
     auto& property = boundSetItem.first->constCast<PropertyExpression>();
     // Check secondary index constraint
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
     for (auto entry : nodeOrRel.getEntries()) {
         // When setting multi labeled node, skip checking if property is not in current table.
         if (!property.hasProperty(entry->getTableID())) {
             continue;
         }
         auto propertyID = entry->getPropertyID(property.getPropertyName());
-        if (catalog->containsIndex(transaction, entry->getTableID(), propertyID)) {
+        if (catalog->containsUnloadedIndex(transaction, entry->getTableID(), propertyID)) {
             throw BinderException(
                 stringFormat("Cannot set property {} in table {} because it is used in one or more "
-                             "indexes. Try delete and then insert.",
+                             "indexes which is unloaded.",
                     property.getPropertyName(), entry->getName()));
         }
     }
@@ -348,8 +349,8 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
         if (ExpressionUtil::isNodePattern(*pattern)) {
             auto deleteNodeInfo = BoundDeleteInfo(deleteType, TableType::NODE, pattern);
             auto& node = pattern->constCast<NodeExpression>();
-            auto catalog = clientContext->getCatalog();
-            auto transaction = clientContext->getTransaction();
+            auto catalog = Catalog::Get(*clientContext);
+            auto transaction = transaction::Transaction::Get(*clientContext);
             for (auto entry : node.getEntries()) {
                 for (auto index : catalog->getIndexEntries(transaction, entry->getTableID())) {
                     if (!index->isLoaded()) {

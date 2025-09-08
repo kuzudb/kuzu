@@ -2,7 +2,6 @@
 #include "function/table/bind_data.h"
 #include "function/table/simple_table_function.h"
 #include "main/client_context.h"
-#include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 
@@ -32,8 +31,8 @@ static common::offset_t internalTableFunc(const TableFuncMorsel& /*morsel*/,
 
 static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* context,
     const TableFuncBindInput* input) {
-    auto memLimit = context->getMemoryManager()->getBufferManager()->getMemoryLimit();
-    auto memUsage = context->getMemoryManager()->getBufferManager()->getUsedMemory();
+    auto memLimit = storage::MemoryManager::Get(*context)->getBufferManager()->getMemoryLimit();
+    auto memUsage = storage::MemoryManager::Get(*context)->getBufferManager()->getUsedMemory();
     std::vector<common::LogicalType> returnTypes;
     returnTypes.emplace_back(common::LogicalType::UINT64());
     returnTypes.emplace_back(common::LogicalType::UINT64());

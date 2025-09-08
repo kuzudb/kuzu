@@ -1,4 +1,3 @@
-#include "binder/copy/bound_copy_from.h"
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
@@ -7,6 +6,7 @@
 #include "function/table/bind_data.h"
 #include "index/hnsw_index_utils.h"
 #include "index/hnsw_rel_batch_insert.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_operator.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "processor/execution_context.h"
@@ -27,7 +27,7 @@ namespace vector_extension {
 
 CreateInMemHNSWSharedState::CreateInMemHNSWSharedState(const CreateHNSWIndexBindData& bindData)
     : SimpleTableFuncSharedState{bindData.numRows}, name{bindData.indexName},
-      nodeTable{bindData.context->getStorageManager()
+      nodeTable{storage::StorageManager::Get(*bindData.context)
                     ->getTable(bindData.tableEntry->getTableID())
                     ->cast<storage::NodeTable>()},
       numNodes{bindData.numRows}, bindData{&bindData} {
@@ -48,10 +48,12 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
         HNSWIndexUtils::IndexOperation::CREATE);
     const auto tableID = tableEntry->getTableID();
     HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
-    const auto& table = context->getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
+    const auto& table =
+        storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
     auto propertyID = tableEntry->getPropertyID(columnName);
     auto config = HNSWIndexConfig{input->optionalParams};
-    auto numNodes = table.getStats(context->getTransaction()).getTableCard();
+    auto transaction = transaction::Transaction::Get(*context);
+    auto numNodes = table.getStats(transaction).getTableCard();
     return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
         numNodes, std::move(config));
 }
@@ -116,9 +118,11 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     createDummySink->setDescriptor(std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     // Append _FinalizeHNSWIndex table function.
     auto clientContext = planMapper->clientContext;
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto finalizeFuncEntry =
-        clientContext->getCatalog()->getFunctionEntry(clientContext->getTransaction(),
-            InternalFinalizeHNSWIndexFunction::name, true /* useInternal */);
+        catalog::Catalog::Get(*clientContext)
+            ->getFunctionEntry(transaction, InternalFinalizeHNSWIndexFunction::name,
+                true /* useInternal */);
     auto func = BuiltInFunctionsUtils::matchFunction(InternalFinalizeHNSWIndexFunction::name,
         finalizeFuncEntry->ptrCast<catalog::FunctionCatalogEntry>());
     auto info = TableFunctionCallInfo();
@@ -146,9 +150,8 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
         std::make_unique<ResultSetDescriptor>(logicalOp->getSchema()));
     // Append RelBatchInsert pipelines.
     // Get tables from storage.
-    const auto storageManager = clientContext->getStorageManager();
-    const auto catalog = clientContext->getCatalog();
-    const auto transaction = clientContext->getTransaction();
+    const auto storageManager = storage::StorageManager::Get(*clientContext);
+    const auto catalog = catalog::Catalog::Get(*clientContext);
     auto nodeTable = storageManager->getTable(logicalCallBoundData->tableEntry->getTableID())
                          ->ptrCast<storage::NodeTable>();
     auto nodeTableID = nodeTable->getTableID();
@@ -171,8 +174,8 @@ static std::unique_ptr<PhysicalOperator> getPhysicalPlan(PlanMapper* planMapper,
     callColumnTypes.push_back(LogicalType::INTERNAL_ID());
     finalizeFuncSharedState->partitionerSharedState->initialize(callColumnTypes, clientContext);
     // Initialize fTable for BatchInsert.
-    auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+    auto fTable = FactorizedTableUtils::getSingleStringColumnFTable(
+        storage::MemoryManager::Get(*clientContext));
     // Create RelBatchInsert and dummy sink operators.
     const auto upperBatchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
     auto upperInsertInfo = std::make_unique<RelBatchInsertInfo>(upperRelTableEntry->getName(),
@@ -247,11 +250,11 @@ static offset_t finalizeHNSWTableFunc(const TableFuncInput& input, TableFuncOutp
 static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
     TableFuncSharedState* sharedState) {
     const auto clientContext = context->clientContext;
-    const auto transaction = clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     const auto hnswSharedState = sharedState->ptrCast<FinalizeHNSWSharedState>();
     const auto index = hnswSharedState->hnswIndex.get();
     const auto bindData = hnswSharedState->bindData->constPtrCast<CreateHNSWIndexBindData>();
-    const auto catalog = clientContext->getCatalog();
+    const auto catalog = catalog::Catalog::Get(*clientContext);
     const auto nodeTableID = bindData->tableEntry->getTableID();
     auto& upperTableEntry =
         catalog
@@ -280,7 +283,7 @@ static void finalizeHNSWTableFinalizeFunc(const ExecutionContext* context,
         index->getUpperEntryPoint(), index->getLowerEntryPoint(), bindData->numRows);
     auto onDiskIndex = std::make_unique<OnDiskHNSWIndex>(context->clientContext, indexInfo,
         std::move(storageInfo), bindData->config.copy());
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = storage::StorageManager::Get(*clientContext);
     auto nodeTable = storageManager->getTable(nodeTableID)->ptrCast<storage::NodeTable>();
     nodeTable->addIndex(std::move(onDiskIndex));
     index->moveToPartitionState(*hnswSharedState->partitionerSharedState);

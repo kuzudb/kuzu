@@ -14,29 +14,45 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void FlatTuple::addValue(std::unique_ptr<Value> value) {
-    values.push_back(std::move(value));
+FlatTuple::FlatTuple(const std::vector<LogicalType>& types) {
+    for (auto& type : types) {
+        values.emplace_back(Value::createDefaultValue(type));
+    }
 }
 
 uint32_t FlatTuple::len() const {
     return values.size();
 }
 
-Value* FlatTuple::getValue(uint32_t idx) const {
-    if (idx >= len()) {
+static void checkOutOfRange(idx_t idx, idx_t size) {
+    if (idx >= size) {
         throw RuntimeException(stringFormat(
-            "ValIdx is out of range. Number of values in flatTuple: {}, valIdx: {}.", len(), idx));
+            "ValIdx is out of range. Number of values in flatTuple: {}, valIdx: {}.", size, idx));
     }
-    return values[idx].get();
 }
 
-std::string FlatTuple::toString() {
+Value* FlatTuple::getValue(uint32_t idx) {
+    checkOutOfRange(idx, len());
+    return &values[idx];
+}
+
+Value& FlatTuple::operator[](idx_t idx) {
+    checkOutOfRange(idx, len());
+    return values[idx];
+}
+
+const Value& FlatTuple::operator[](idx_t idx) const {
+    checkOutOfRange(idx, len());
+    return values[idx];
+}
+
+std::string FlatTuple::toString() const {
     std::string result;
     for (auto i = 0ul; i < values.size(); i++) {
         if (i != 0) {
             result += "|";
         }
-        result += values[i]->toString();
+        result += values[i].toString();
     }
     result += "\n";
     return result;
@@ -46,7 +62,7 @@ std::string FlatTuple::toString(const std::vector<uint32_t>& colsWidth,
     const std::string& delimiter, const uint32_t maxWidth) {
     std::ostringstream result;
     for (auto i = 0ul; i < values.size(); i++) {
-        auto value = values[i]->toString();
+        auto value = values[i].toString();
         auto fieldLen = 0u;
         auto cutoff = 0u, cutoffLen = 0u;
         for (auto iter = 0u; iter < value.length();) {

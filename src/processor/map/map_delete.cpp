@@ -17,13 +17,13 @@ namespace processor {
 
 std::vector<RelTable*> getFwdRelTables(table_id_t nodeTableID, const main::ClientContext* context) {
     std::vector<RelTable*> result;
-    for (const auto entry :
-        context->getCatalog()->getRelGroupEntries(context->getTransaction(), false)) {
+    auto transaction = transaction::Transaction::Get(*context);
+    for (const auto entry : Catalog::Get(*context)->getRelGroupEntries(transaction, false)) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
             const auto srcTableID = relEntryInfo.nodePair.srcTableID;
             if (srcTableID == nodeTableID) {
-                const auto relTable = context->getStorageManager()->getTable(relEntryInfo.oid);
+                const auto relTable = StorageManager::Get(*context)->getTable(relEntryInfo.oid);
                 result.push_back(relTable->ptrCast<RelTable>());
             }
         }
@@ -33,13 +33,13 @@ std::vector<RelTable*> getFwdRelTables(table_id_t nodeTableID, const main::Clien
 
 std::vector<RelTable*> getBwdRelTables(table_id_t nodeTableID, const main::ClientContext* context) {
     std::vector<RelTable*> result;
-    for (const auto entry :
-        context->getCatalog()->getRelGroupEntries(context->getTransaction(), false)) {
+    auto transaction = transaction::Transaction::Get(*context);
+    for (const auto entry : Catalog::Get(*context)->getRelGroupEntries(transaction, false)) {
         auto& relGroupEntry = entry->constCast<RelGroupCatalogEntry>();
         for (auto& relEntryInfo : relGroupEntry.getRelEntryInfos()) {
             const auto dstTableID = relEntryInfo.nodePair.dstTableID;
             if (dstTableID == nodeTableID) {
-                const auto relTable = context->getStorageManager()->getTable(relEntryInfo.oid);
+                const auto relTable = StorageManager::Get(*context)->getTable(relEntryInfo.oid);
                 result.push_back(relTable->ptrCast<RelTable>());
             }
         }
@@ -49,7 +49,7 @@ std::vector<RelTable*> getBwdRelTables(table_id_t nodeTableID, const main::Clien
 
 NodeTableDeleteInfo PlanMapper::getNodeTableDeleteInfo(const TableCatalogEntry& entry,
     DataPos pkPos) const {
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*clientContext);
     auto tableID = entry.getTableID();
     auto table = storageManager->getTable(tableID)->ptrCast<NodeTable>();
     std::unordered_set<RelTable*> fwdRelTables;
@@ -133,7 +133,7 @@ std::unique_ptr<RelDeleteExecutor> PlanMapper::getRelDeleteExecutor(
     auto srcNodeIDPos = getDataPos(*rel.getSrcNode()->getInternalID(), schema);
     auto dstNodeIDPos = getDataPos(*rel.getDstNode()->getInternalID(), schema);
     auto info = RelDeleteInfo(srcNodeIDPos, dstNodeIDPos, relIDPos);
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*clientContext);
     if (rel.isMultiLabeled()) {
         table_id_map_t<RelTable*> tableIDToTableMap;
         for (auto entry : rel.getEntries()) {

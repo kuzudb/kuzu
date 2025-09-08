@@ -1,3 +1,5 @@
+add_subdirectory(query_result)
+
 add_library(kuzu_main
         OBJECT
         attached_database.cpp
@@ -7,6 +9,7 @@ add_library(kuzu_main
         database_manager.cpp
         plan_printer.cpp
         prepared_statement.cpp
+        prepared_statement_manager.cpp
         query_result.cpp
         query_summary.cpp
         storage_driver.cpp

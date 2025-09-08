@@ -125,15 +125,17 @@ struct KUZU_API RelTableDeleteState final : TableDeleteState {
     common::ValueVector& srcNodeIDVector;
     common::ValueVector& dstNodeIDVector;
     common::ValueVector& relIDVector;
+    common::RelDataDirection detachDeleteDirection;
 
     common::ValueVector& getBoundNodeIDVector(common::RelDataDirection direction) const {
         return direction == common::RelDataDirection::FWD ? srcNodeIDVector : dstNodeIDVector;
     }
 
     RelTableDeleteState(common::ValueVector& srcNodeIDVector, common::ValueVector& dstNodeIDVector,
-        common::ValueVector& relIDVector)
-        : TableDeleteState{}, srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
-          relIDVector{relIDVector} {}
+        common::ValueVector& relIDVector,
+        common::RelDataDirection detachDeleteDirection = common::RelDataDirection::FWD)
+        : srcNodeIDVector{srcNodeIDVector}, dstNodeIDVector{dstNodeIDVector},
+          relIDVector{relIDVector}, detachDeleteDirection{detachDeleteDirection} {}
 };
 
 class KUZU_API RelTable final : public Table {
@@ -163,8 +165,7 @@ public:
     // Deletes all edges attached to the node(s) specified in the deleteState
     // Currently only supports deleting from a single src node
     // Note that since the rel table doesn't store nodes this doesn't delete the node itself
-    void detachDelete(transaction::Transaction* transaction, common::RelDataDirection direction,
-        RelTableDeleteState* deleteState);
+    void detachDelete(transaction::Transaction* transaction, RelTableDeleteState* deleteState);
     bool checkIfNodeHasRels(transaction::Transaction* transaction,
         common::RelDataDirection direction, common::ValueVector* srcNodeIDVector) const;
     void throwIfNodeHasRels(transaction::Transaction* transaction,

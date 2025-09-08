@@ -7,6 +7,8 @@
 #include "common/types/value/value.h"
 #include "common/vector/value_vector.h"
 #include "factorized_table_schema.h"
+#include "flat_tuple.h"
+
 namespace kuzu {
 namespace storage {
 class MemoryManager;
@@ -265,16 +267,15 @@ private:
     bool preventDestruction = false;
 };
 
-class FlatTupleIterator {
+class FactorizedTableIterator {
 public:
-    explicit FlatTupleIterator(FactorizedTable& factorizedTable,
-        std::vector<common::Value*> values);
+    explicit FactorizedTableIterator(FactorizedTable& factorizedTable);
 
-    bool hasNextFlatTuple() {
+    bool hasNext() {
         return nextTupleIdx < factorizedTable.getNumTuples() || nextFlatTupleIdx < numFlatTuples;
     }
 
-    void getNextFlatTuple();
+    void getNext(FlatTuple& tuple);
 
     void resetState();
 
@@ -285,13 +286,10 @@ private:
     bool isValidDataChunkPos(uint32_t dataChunkPos) const {
         return flatTuplePositionsInDataChunk[dataChunkPos].first != UINT64_MAX;
     }
-    void readValueBufferToValue(uint64_t colIdx, const uint8_t* valueBuffer) {
-        values[colIdx]->copyFromRowLayout(valueBuffer);
-    }
 
-    void readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
+    void readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer, FlatTuple& tuple);
 
-    void readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
+    void readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer, FlatTuple& tuple);
 
     // We put pair(UINT64_MAX, UINT64_MAX) in all invalid entries in
     // FlatTuplePositionsInDataChunk.
@@ -311,15 +309,13 @@ private:
     // the first element in the second unflat column.
     void updateFlatTuplePositionsInDataChunk();
 
-    FactorizedTable& factorizedTable;
+    const FactorizedTable& factorizedTable;
     uint8_t* currentTupleBuffer;
     uint64_t numFlatTuples;
     ft_tuple_idx_t nextFlatTupleIdx;
     ft_tuple_idx_t nextTupleIdx;
     // This field stores the (nextIdxToReadInDataChunk, numElementsInDataChunk) of each dataChunk.
     std::vector<std::pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
-
-    std::vector<common::Value*> values;
 };
 
 } // namespace processor

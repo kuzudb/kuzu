@@ -19,7 +19,7 @@ public class Connection implements AutoCloseable {
     public Connection(Database db) {
         if (db == null)
             throw new AssertionError("Cannot create connection, database is null.");
-        conn_ref = Native.kuzu_connection_init(db);
+        conn_ref = Native.kuzuConnectionInit(db);
     }
 
     /**
@@ -49,7 +49,7 @@ public class Connection implements AutoCloseable {
      */
     private void destroy() {
         checkNotDestroyed();
-        Native.kuzu_connection_destroy(this);
+        Native.kuzuConnectionDestroy(this);
         destroyed = true;
     }
 
@@ -61,7 +61,7 @@ public class Connection implements AutoCloseable {
      */
     public long getMaxNumThreadForExec() {
         checkNotDestroyed();
-        return Native.kuzu_connection_get_max_num_thread_for_exec(this);
+        return Native.kuzuConnectionGetMaxNumThreadForExec(this);
     }
 
     /**
@@ -72,7 +72,7 @@ public class Connection implements AutoCloseable {
      */
     public void setMaxNumThreadForExec(long numThreads) {
         checkNotDestroyed();
-        Native.kuzu_connection_set_max_num_thread_for_exec(this, numThreads);
+        Native.kuzuConnectionSetMaxNumThreadForExec(this, numThreads);
     }
 
     /**
@@ -84,7 +84,7 @@ public class Connection implements AutoCloseable {
      */
     public QueryResult query(String queryStr) {
         checkNotDestroyed();
-        return Native.kuzu_connection_query(this, queryStr);
+        return Native.kuzuConnectionQuery(this, queryStr);
     }
 
     /**
@@ -96,7 +96,7 @@ public class Connection implements AutoCloseable {
      */
     public PreparedStatement prepare(String queryStr) {
         checkNotDestroyed();
-        return Native.kuzu_connection_prepare(this, queryStr);
+        return Native.kuzuConnectionPrepare(this, queryStr);
     }
 
     /**
@@ -110,7 +110,7 @@ public class Connection implements AutoCloseable {
      */
     public QueryResult execute(PreparedStatement ps, Map<String, Value> m) {
         checkNotDestroyed();
-        return Native.kuzu_connection_execute(this, ps, m);
+        return Native.kuzuConnectionExecute(this, ps, m);
     }
 
     /**
@@ -120,7 +120,7 @@ public class Connection implements AutoCloseable {
      */
     public void interrupt() {
         checkNotDestroyed();
-        Native.kuzu_connection_interrupt(this);
+        Native.kuzuConnectionInterrupt(this);
     }
 
     /**
@@ -131,6 +131,6 @@ public class Connection implements AutoCloseable {
      */
     public void setQueryTimeout(long timeoutInMs) {
         checkNotDestroyed();
-        Native.kuzu_connection_set_query_timeout(this, timeoutInMs);
+        Native.kuzuConnectionSetQueryTimeout(this, timeoutInMs);
     }
 }

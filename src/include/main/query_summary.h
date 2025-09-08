@@ -1,9 +1,14 @@
 #pragma once
 
+#include <cstdint>
+
 #include "common/api.h"
-#include "kuzu_fwd.h"
 
 namespace kuzu {
+namespace common {
+enum class StatementType : uint8_t;
+}
+
 namespace main {
 
 /**
@@ -18,10 +23,11 @@ struct PreparedSummary { // NOLINT(*-pro-type-member-init)
  * @brief QuerySummary stores the execution time, plan, compiling time and query options of a query.
  */
 class QuerySummary {
-    friend class ClientContext;
-    friend class benchmark::Benchmark;
 
 public:
+    QuerySummary() = default;
+    explicit QuerySummary(const PreparedSummary& preparedSummary)
+        : preparedSummary{preparedSummary} {}
     /**
      * @return query compiling time in milliseconds.
      */
@@ -31,10 +37,11 @@ public:
      */
     KUZU_API double getExecutionTime() const;
 
-    void incrementCompilingTime(double increment);
-    void incrementExecutionTime(double increment);
+    void setExecutionTime(double time);
 
-    void setPreparedSummary(PreparedSummary preparedSummary_);
+    void incrementCompilingTime(double increment);
+
+    void incrementExecutionTime(double increment);
 
     /**
      * @return true if the query is executed with EXPLAIN.

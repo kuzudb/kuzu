@@ -206,7 +206,7 @@ NodeGroupScanResult NodeGroup::scan(const Transaction* transaction, TableScanSta
 }
 
 NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& state,
-    offset_t startOffset, offset_t numRowsToScan) const {
+    offset_t startOffsetInGroup, offset_t numRowsToScan) const {
     bool enableSemiMask =
         state.source == TableScanSource::COMMITTED && state.semiMask && state.semiMask->isEnabled();
     if (enableSemiMask) {
@@ -217,24 +217,18 @@ NodeGroupScanResult NodeGroup::scan(Transaction* transaction, TableScanState& st
         }
     }
     if (state.outputVectors.size() == 0) {
-        auto startOffsetInGroup =
-            startOffset - StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-        KU_ASSERT(scanInternal(chunkedGroups.lock(), transaction, state, startOffset,
+        KU_ASSERT(scanInternal(chunkedGroups.lock(), transaction, state, startOffsetInGroup,
                       numRowsToScan) == NodeGroupScanResult(startOffsetInGroup, numRowsToScan));
         return NodeGroupScanResult{startOffsetInGroup, numRowsToScan};
     }
-    return scanInternal(chunkedGroups.lock(), transaction, state, startOffset, numRowsToScan);
+    return scanInternal(chunkedGroups.lock(), transaction, state, startOffsetInGroup,
+        numRowsToScan);
 }
 
 NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* transaction,
-    TableScanState& state, offset_t startOffset, offset_t numRowsToScan) const {
+    TableScanState& state, offset_t startOffsetInGroup, offset_t numRowsToScan) const {
     // Only meant for scanning once
     KU_ASSERT(numRowsToScan <= DEFAULT_VECTOR_CAPACITY);
-
-    auto nodeGroupStartOffset = StorageUtils::getStartOffsetOfNodeGroup(nodeGroupIdx);
-    KU_ASSERT(startOffset >= nodeGroupStartOffset);
-    auto startOffsetInGroup = startOffset - nodeGroupStartOffset;
-    KU_ASSERT(startOffsetInGroup + numRowsToScan <= numRows);
 
     auto startRowIdxInGroup = getStartRowIdxInGroupNoLock();
     if (startOffsetInGroup < startRowIdxInGroup) {
@@ -262,6 +256,7 @@ NodeGroupScanResult NodeGroup::scanInternal(const UniqLock& lock, Transaction* t
         (startOffsetInGroup + numRowsScanned) - chunkedGroupToScan->getStartRowIdx();
     uint64_t numRowsToScanInChunk = std::min(numRowsToScan - numRowsScanned,
         chunkedGroupToScan->getNumRows() - rowIdxInChunkToScan);
+    KU_ASSERT(startOffsetInGroup + numRowsToScanInChunk <= numRows);
     chunkedGroupToScan->scan(transaction, state, nodeGroupScanState, rowIdxInChunkToScan,
         numRowsToScanInChunk);
     numRowsScanned += numRowsToScanInChunk;

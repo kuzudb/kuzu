@@ -1,6 +1,7 @@
 #include "planner/operator/scan/logical_dummy_scan.h"
 #include "processor/expression_mapper.h"
 #include "processor/plan_mapper.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -20,7 +21,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDummyScan(const LogicalOperator
     tableSchema.appendColumn(std::move(columnSchema));
     auto exprMapper = ExpressionMapper(inSchema.get());
     auto expressionEvaluator = exprMapper.getEvaluator(expression);
-    auto memoryManager = clientContext->getMemoryManager();
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     // expression can be evaluated statically and does not require an actual resultset to init
     expressionEvaluator->init(ResultSet(0) /* dummy resultset */, clientContext);
     expressionEvaluator->evaluate();

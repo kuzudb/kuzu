@@ -55,6 +55,8 @@ public:
     Catalog();
     virtual ~Catalog() = default;
 
+    static Catalog* Get(const main::ClientContext& context);
+
     // ----------------------------- Tables ----------------------------
 
     // Check if table entry exists.
@@ -132,6 +134,9 @@ public:
     // Check if index exists for given table and property
     bool containsIndex(const transaction::Transaction* transaction, common::table_id_t tableID,
         common::property_id_t propertyID) const;
+    // Check if there is any unloaded index for given table and property
+    bool containsUnloadedIndex(const transaction::Transaction* transaction,
+        common::table_id_t tableID, common::property_id_t propertyID) const;
     // Get index entry with name.
     IndexCatalogEntry* getIndex(const transaction::Transaction* transaction,
         common::table_id_t tableID, const std::string& indexName) const;

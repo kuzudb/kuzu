@@ -4,6 +4,7 @@
 #include <numeric>
 
 #include "common/exception/test.h"
+#include "common/random_engine.h"
 #include "test_helper/test_helper.h"
 #include "test_runner/test_group.h"
 
@@ -11,11 +12,13 @@ namespace kuzu {
 namespace testing {
 
 enum class TokenType {
-    // header
+    // header only
     DATASET,
+    BUFFER_POOL_SIZE,
+
+    // Skip or enable tests
     SKIP,
     SKIP_MUSL,
-    SKIP_32BIT,
     SKIP_WASM,
     SKIP_STATIC_LINK,
     WASM_ONLY,
@@ -24,23 +27,21 @@ enum class TokenType {
     SKIP_NODE_GROUP_SIZE_TESTS,
     SKIP_PAGE_SIZE_TESTS,
     TEST_FWD_ONLY_REL,
-    // body
-    BUFFER_POOL_SIZE,
+
+    // Test case statements
     CASE,
     CHECK_COLUMN_NAMES,
     CHECK_PRECISION,
     CHECK_ORDER,
-    COMMIT,
-    DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
     END_OF_STATEMENT_BLOCK,
     INSERT_STATEMENT_BLOCK,
     LOG,
-    PARALLELISM,
     RESULT,
-    ROLLBACK,
     SEPARATOR,
+    SET,
+    SET_ENV,
     STATEMENT,
     _SKIP_LINE,
     CREATE_DATASET_SCHEMA,
@@ -53,44 +54,46 @@ enum class TokenType {
     CREATE_CONNECTION,
     RELOADDB,
     BATCH_STATEMENTS,
-    SET,
     BEGIN_CONCURRENT_EXECUTION,
     END_CONCURRENT_EXECUTION,
 
-    // special for testing exporting database
+    // Special tokens for testing exporting database
     IMPORT_DATABASE,
-    REMOVE_FILE
+    REMOVE_FILE,
+
+    // Loop control tokens
+    LOOP,
+    ENDLOOP
 };
 
-const std::unordered_map<std::string, TokenType> tokenMap = {{"-DATASET", TokenType::DATASET},
-    {"-CASE", TokenType::CASE}, {"-COMMIT", TokenType::COMMIT},
-    {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-LOG", TokenType::LOG},
-    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
-    {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
-    {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::DEFINE},
-    {"-SKIP_32BIT", TokenType::SKIP_32BIT}, {"-SKIP_WASM", TokenType::SKIP_WASM},
+const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", TokenType::DATASET},
+    {"-CASE", TokenType::CASE}, {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-LOG", TokenType::LOG},
+    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK}, {"-SKIP", TokenType::SKIP},
+    {"-SKIP_MUSL", TokenType::SKIP_MUSL}, {"-SKIP_LINE", TokenType::SET},
+    {"-SKIP_WASM", TokenType::SKIP_WASM},
     {"-LOAD_DYNAMIC_EXTENSION", TokenType::LOAD_DYNAMIC_EXTENSION},
     {"-SKIP_STATIC_LINK", TokenType::SKIP_STATIC_LINK}, {"-WASM_ONLY", TokenType::WASM_ONLY},
     {"-SKIP_IN_MEM", TokenType::SKIP_IN_MEM},
     {"-SKIP_VECTOR_CAPACITY_TESTS", TokenType::SKIP_VECTOR_CAPACITY_TESTS},
     {"-SKIP_NODE_GROUP_SIZE_TESTS", TokenType::SKIP_NODE_GROUP_SIZE_TESTS},
     {"-SKIP_PAGE_SIZE_TESTS", TokenType::SKIP_PAGE_SIZE_TESTS},
-    {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL}, {"-DEFINE", TokenType::DEFINE},
-    {"-STATEMENT", TokenType::STATEMENT},
+    {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL}, {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
-    {"-ROLLBACK", TokenType::ROLLBACK}, {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
+    {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
     {"-CHECKPOINT_WAIT_TIMEOUT", TokenType::CHECKPOINT_WAIT_TIMEOUT},
     {"-BATCH_STATEMENTS", TokenType::BATCH_STATEMENTS}, {"-RELOADDB", TokenType::RELOADDB},
     {"-CREATE_CONNECTION", TokenType::CREATE_CONNECTION}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
     {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY},
-    {"-SET", TokenType::SET}, {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE},
-    {"-REMOVE_FILE", TokenType::REMOVE_FILE}, {"-CHECK_PRECISION", TokenType::CHECK_PRECISION},
+    {"-SET", TokenType::SET}, {"-SET_ENV", TokenType::SET_ENV},
+    {"-IMPORT_DATABASE", TokenType::IMPORT_DATABASE}, {"-REMOVE_FILE", TokenType::REMOVE_FILE},
+    {"-CHECK_PRECISION", TokenType::CHECK_PRECISION},
     {"-CHECK_COLUMN_NAMES", TokenType::CHECK_COLUMN_NAMES},
     {"-BEGIN_CONCURRENT_EXECUTION", TokenType::BEGIN_CONCURRENT_EXECUTION},
     {"-END_CONCURRENT_EXECUTION", TokenType::END_CONCURRENT_EXECUTION},
     {"-CREATE_DATASET_SCHEMA", TokenType::CREATE_DATASET_SCHEMA},
     {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW},
-    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}};
+    {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}, {"-LOOP", TokenType::LOOP},
+    {"-ENDLOOP", TokenType::ENDLOOP}};
 
 class LogicToken {
 public:
@@ -104,37 +107,35 @@ public:
     static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
     static constexpr uint64_t STANDARD_PAGE_SIZE_LOG_2 = 12;
 
-    explicit TestParser(const std::string& path)
-        : path{path}, testGroup{std::make_unique<TestGroup>()}, currentToken{} {}
+    explicit TestParser(std::string path);
     std::unique_ptr<TestGroup> parseTestFile();
 
 private:
-    std::string path;
-    std::ifstream fileStream;
-    std::streampos previousFilePosition;
-    std::string line;
-    std::string logMessage;
-    std::unique_ptr<TestGroup> testGroup;
     std::string extractTextBeforeNextStatement(bool ignoreLineBreak = false);
-    std::string parseCommand();
-    std::string parseCommandArange() const;
-    std::string parseCommandRepeat();
-    LogicToken currentToken;
+    common::Value parseAndEvaluateFunction();
+    common::Value evaluateARange() const;
+    common::Value evaluateRepeat();
+    static common::Value evaluateCurrentTimestamp();
+    common::Value evaluateRandom(const std::string& funcCall);
+    common::Value evaluateRandomDotFunction(const std::string& funcCall);
 
     void openFile();
     void tokenize();
     void genGroupName() const;
     void parseHeader();
     void parseBody();
-    void extractExpectedResults(TestStatement* statement);
+    void parseLoop(const std::string& testCaseName);
+    void extractExpectedResults(TestStatement& statement);
     TestQueryResult extractExpectedResultFromToken();
     void extractStatementBlock();
     void extractDataset();
     void addStatementBlock(const std::string& blockName, const std::string& testCaseName) const;
     void replaceVariables(std::string& str) const;
-    static void extractConnName(std::string& query, TestStatement* statement);
+    static void extractConnName(std::string& query, TestStatement& statement);
 
     void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
+    void setToPosition(uint64_t position) { fileStream.seekg(position); }
+    uint64_t getFilePosition() { return fileStream.tellg(); }
 
     bool nextLine() {
         previousFilePosition = fileStream.tellg();
@@ -159,17 +160,30 @@ private:
 
     std::string getParam(int paramIdx) { return currentToken.params[paramIdx]; }
 
-    TestStatement* extractStatement(TestStatement* statement, const std::string& testCaseName);
-    TestStatement* addNewStatement(const std::string& testGroupName) const;
+    static bool shouldSkip(TokenType type);
+    TestStatement parseStatement(const std::string& testCaseName);
 
+private:
     const std::string exportDBPath = TestHelper::getTempDir("export_db");
+    const std::string REPEAT_FUNC = "REPEAT";
+    const std::string ARANGE_FUNC = "ARANGE";
+    const std::string CURRENT_TIMESTAMP_FUNC = "current_timestamp()";
+    const std::string RANDOM_FUNC = "RANDOM";
     // Any value here will be replaced inside the .test files
     // in queries/statements and expected error message.
     // Example: ${KUZU_ROOT_DIRECTORY} will be replaced by
     // KUZU_ROOT_DIRECTORY
-    std::unordered_map<std::string, std::string> variableMap = {
-        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}, {"KUZU_VERSION", common::KUZU_VERSION},
-        {"KUZU_EXPORT_DB_DIRECTORY", exportDBPath}};
+    std::unordered_map<std::string, common::Value> variableMap;
+
+private:
+    std::string path;
+    std::ifstream fileStream;
+    std::streampos previousFilePosition;
+    std::string line;
+    std::string logMessage;
+    std::unique_ptr<TestGroup> testGroup;
+    LogicToken currentToken;
+    common::RandomEngine randomEngine;
 };
 
 } // namespace testing

@@ -25,7 +25,6 @@ public:
     virtual bool addColumn(TableAddColumnState& addColumnState) = 0;
     virtual void clear(MemoryManager& mm) = 0;
     virtual common::TableType getTableType() const = 0;
-    virtual uint64_t getEstimatedMemUsage() = 0;
     virtual common::row_idx_t getNumTotalRows() = 0;
 
     template<class TARGET>

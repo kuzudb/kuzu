@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.11.0 LANGUAGES CXX C)
+project(Kuzu VERSION 0.11.2.1 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
@@ -129,7 +129,24 @@ if(NOT KUZU_NODE_GROUP_SIZE_LOG2)
 endif()
 message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
 
-configure_file(${CMAKE_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_BINARY_DIR}/src/include/common/system_config.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/include/common/system_config.h @ONLY)
+
+include(CheckCXXSymbolExists)
+check_cxx_symbol_exists(F_FULLFSYNC "fcntl.h" HAS_FULLFSYNC)
+check_cxx_symbol_exists(fdatasync "unistd.h" HAS_FDATASYNC)
+if(HAS_FULLFSYNC)
+    message(STATUS "✓ F_FULLFSYNC will be used on this platform")
+    add_compile_definitions(HAS_FULLFSYNC)
+else()
+    message(STATUS "✗ F_FULLFSYNC not available")
+endif()
+
+if(HAS_FDATASYNC)
+    message(STATUS "✓ fdatasync will be used on this platform")
+    add_compile_definitions(HAS_FDATASYNC)
+else()
+    message(STATUS "✗ fdatasync not available, using fsync fallback")
+endif()
 
 if(MSVC)
     # Required for M_PI on Windows
@@ -387,7 +404,7 @@ add_subdirectory(third_party)
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
 add_definitions(-DKUZU_CMAKE_VERSION="${CMAKE_PROJECT_VERSION}")
-add_definitions(-DKUZU_EXTENSION_VERSION="0.11.0")
+add_definitions(-DKUZU_EXTENSION_VERSION="0.11.1")
 
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/CMakeLists.txt")
     add_subdirectory(extension)
@@ -397,7 +414,7 @@ if(BUILD_KUZU)
 
 include_directories(
     src/include
-    ${CMAKE_BINARY_DIR}/src/include
+    ${CMAKE_CURRENT_BINARY_DIR}/src/include
 )
 
 add_subdirectory(src)

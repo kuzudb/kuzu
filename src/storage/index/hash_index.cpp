@@ -8,6 +8,7 @@
 #include "common/types/int128_t.h"
 #include "common/types/ku_string.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
 #include "storage/disk_array.h"
 #include "storage/disk_array_collection.h"
 #include "storage/file_handle.h"
@@ -700,7 +701,7 @@ std::unique_ptr<Index> PrimaryKeyIndex::load(main::ClientContext* context,
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = PrimaryKeyIndexStorageInfo::deserialize(std::move(storageInfoBufferReader));
     return std::make_unique<PrimaryKeyIndex>(indexInfo, std::move(storageInfo),
-        storageManager->isInMemory(), *context->getMemoryManager(),
+        storageManager->isInMemory(), *MemoryManager::Get(*context),
         *storageManager->getDataFH()->getPageManager(), &storageManager->getShadowFile());
 }
 

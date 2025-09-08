@@ -5,6 +5,7 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
 #include "storage/local_storage/local_storage.h"
@@ -30,13 +31,12 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     localState = std::make_unique<RelBatchInsertLocalState>();
     const auto relInfo = info->ptrCast<RelBatchInsertInfo>();
     localState->chunkedGroup =
-        std::make_unique<ChunkedCSRNodeGroup>(*context->clientContext->getMemoryManager(),
+        std::make_unique<ChunkedCSRNodeGroup>(*MemoryManager::Get(*context->clientContext),
             relInfo->columnTypes, relInfo->compressionEnabled, 0, 0, ResidencyState::IN_MEMORY);
-    localState->optimisticAllocator =
-        context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
+    const auto transaction = transaction::Transaction::Get(*context->clientContext);
+    localState->optimisticAllocator = transaction->getLocalStorage()->addOptimisticAllocator();
     const auto clientContext = context->clientContext;
-    const auto catalog = clientContext->getCatalog();
-    const auto transaction = clientContext->getTransaction();
+    const auto catalog = Catalog::Get(*clientContext);
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
     auto tableID = relGroupEntry.getRelEntryInfo(relInfo->fromTableID, relInfo->toTableID)->oid;
@@ -51,7 +51,7 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
     relLocalState->dummyAllNullDataChunk = std::make_unique<DataChunk>(relInfo->columnTypes.size());
     for (auto i = 0u; i < relInfo->columnTypes.size(); i++) {
         auto valueVector = std::make_shared<ValueVector>(relInfo->columnTypes[i].copy(),
-            context->clientContext->getMemoryManager());
+            MemoryManager::Get(*context->clientContext));
         valueVector->setAllNull();
         relLocalState->dummyAllNullDataChunk->insert(i, std::move(valueVector));
     }
@@ -60,12 +60,12 @@ void RelBatchInsert::initLocalStateInternal(ResultSet*, ExecutionContext* contex
 void RelBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     const auto relBatchInsertInfo = info->ptrCast<RelBatchInsertInfo>();
     const auto clientContext = context->clientContext;
-    const auto catalog = clientContext->getCatalog();
-    const auto transaction = clientContext->getTransaction();
+    const auto catalog = Catalog::Get(*clientContext);
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     const auto catalogEntry = catalog->getTableCatalogEntry(transaction, info->tableName);
     const auto& relGroupEntry = catalogEntry->constCast<RelGroupCatalogEntry>();
     // Init info
-    info->compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    info->compressionEnabled = StorageManager::Get(*clientContext)->compressionEnabled();
     auto dataColumnIdx = 0u;
     // Handle internal id column
     info->columnTypes.push_back(LogicalType::INTERNAL_ID());
@@ -97,26 +97,26 @@ void RelBatchInsert::executeInternal(ExecutionContext* context) {
     const auto relTable = sharedState->table->ptrCast<RelTable>();
     const auto relLocalState = localState->ptrCast<RelBatchInsertLocalState>();
     const auto clientContext = context->clientContext;
-    const auto& relGroupEntry =
-        context->clientContext->getCatalog()
-            ->getTableCatalogEntry(clientContext->getTransaction(), relInfo->tableName)
-            ->constCast<RelGroupCatalogEntry>();
+    const auto catalog = Catalog::Get(*clientContext);
+    const auto transaction = transaction::Transaction::Get(*clientContext);
+    const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, relInfo->tableName)
+                                    ->constCast<RelGroupCatalogEntry>();
     while (true) {
         relLocalState->nodeGroupIdx =
             partitionerSharedState->getNextPartition(relInfo->partitioningIdx);
-        ++progressSharedState->partitionsDone;
         if (relLocalState->nodeGroupIdx == INVALID_PARTITION_IDX) {
             // No more partitions left in the partitioning buffer.
             break;
         }
+        ++progressSharedState->partitionsDone;
         // TODO(Guodong): We need to handle the concurrency between COPY and other insertions
         // into the same node group.
-        auto& nodeGroup = relTable
-                              ->getOrCreateNodeGroup(context->clientContext->getTransaction(),
-                                  relLocalState->nodeGroupIdx, relInfo->direction)
-                              ->cast<CSRNodeGroup>();
-        appendNodeGroup(relGroupEntry, *clientContext->getMemoryManager(),
-            clientContext->getTransaction(), nodeGroup, *relInfo, *relLocalState);
+        auto& nodeGroup =
+            relTable
+                ->getOrCreateNodeGroup(transaction, relLocalState->nodeGroupIdx, relInfo->direction)
+                ->cast<CSRNodeGroup>();
+        appendNodeGroup(relGroupEntry, *MemoryManager::Get(*clientContext), transaction, nodeGroup,
+            *relInfo, *relLocalState);
         updateProgress(context);
     }
 }
@@ -244,7 +244,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), relInfo->tableName);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
-            context->clientContext->getMemoryManager());
+            MemoryManager::Get(*context->clientContext));
 
         const auto warningCount =
             context->clientContext->getWarningContextUnsafe().getWarningCount(context->queryID);
@@ -254,7 +254,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
                              "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
                     warningCount, context->queryID);
             FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
-                context->clientContext->getMemoryManager());
+                MemoryManager::Get(*context->clientContext));
             context->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(
                 context->queryID);
         }

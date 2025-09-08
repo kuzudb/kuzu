@@ -56,9 +56,9 @@ std::string ScanRelTablePrintInfo::toString() const {
 
 void ScanRelTableInfo::initScanState(TableScanState& scanState,
     const std::vector<ValueVector*>& outVectors, main::ClientContext* context) {
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     scanState.setToTable(transaction, table, columnIDs, copyVector(columnPredicates), direction);
-    initScanStateVectors(scanState, outVectors, context->getMemoryManager());
+    initScanStateVectors(scanState, outVectors, MemoryManager::Get(*context));
 }
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -66,13 +66,13 @@ void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
     auto clientContext = context->clientContext;
     auto boundNodeIDVector = resultSet->getValueVector(opInfo.nodeIDPos).get();
     auto nbrNodeIDVector = outVectors[0];
-    scanState = std::make_unique<RelTableScanState>(*clientContext->getMemoryManager(),
+    scanState = std::make_unique<RelTableScanState>(*MemoryManager::Get(*clientContext),
         boundNodeIDVector, outVectors, nbrNodeIDVector->state);
     tableInfo.initScanState(*scanState, outVectors, clientContext);
 }
 
 bool ScanRelTable::getNextTuplesInternal(ExecutionContext* context) {
-    const auto transaction = context->clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*context->clientContext);
     while (true) {
         while (tableInfo.table->scan(transaction, *scanState)) {
             const auto outputSize = scanState->outState->getSelVector().getSelSize();

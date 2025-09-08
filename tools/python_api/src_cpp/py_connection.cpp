@@ -13,6 +13,7 @@
 #include "function/cast/functions/cast_string_non_nested_functions.h"
 #include "include/py_udf.h"
 #include "main/connection.h"
+#include "main/query_result/materialized_query_result.h"
 #include "pandas/pandas_scan.h"
 #include "processor/result/factorized_table.h"
 #include "pyarrow/pyarrow_scan.h"
@@ -221,11 +222,12 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
-        auto table = result->getTable();
-        auto tableSchema = table->getTableSchema();
+        KU_ASSERT(result->getType() == QueryResultType::FTABLE);
+        auto& table = result->constCast<MaterializedQueryResult>().getFactorizedTable();
+        auto tableSchema = table.getTableSchema();
         if (tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat()) {
-            for (auto i = 0u; i < table->getNumTuples(); ++i) {
-                auto tuple = table->getTuple(i);
+            for (auto i = 0u; i < table.getNumTuples(); ++i) {
+                auto tuple = table.getTuple(i);
                 auto overflowValue = (overflow_value_t*)(tuple + tableSchema->getColOffset(1));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
@@ -237,8 +239,8 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
                 dstBuffer += overflowValue->numElements;
             }
         } else if (tableSchema->getColumn(1)->isFlat() && !tableSchema->getColumn(0)->isFlat()) {
-            for (auto i = 0u; i < table->getNumTuples(); ++i) {
-                auto tuple = table->getTuple(i);
+            for (auto i = 0u; i < table.getNumTuples(); ++i) {
+                auto tuple = table.getTuple(i);
                 auto overflowValue = (overflow_value_t*)(tuple + tableSchema->getColOffset(0));
                 for (auto j = 0u; j < overflowValue->numElements; ++j) {
                     srcBuffer[j] = ((int64_t*)overflowValue->value)[j];
@@ -383,6 +385,8 @@ static LogicalType pyLogicalType(const py::handle& val) {
         return LogicalType::DECIMAL(precision, -exponent);
     } else if (py::isinstance<py::str>(val)) {
         return LogicalType::STRING();
+    } else if (py::isinstance<py::bytes>(val)) {
+        return LogicalType::BLOB();
     } else if (py::isinstance(val, datetime_datetime)) {
         return LogicalType::TIMESTAMP();
     } else if (py::isinstance(val, datetime_date)) {
@@ -571,6 +575,13 @@ Value PyConnection::transformPythonValueAs(const py::handle& val, const LogicalT
         } else {
             return Value::createValue<std::string>(py::str(val));
         }
+    case LogicalTypeID::BLOB: {
+        auto bytes = py::cast<py::bytes>(val);
+        const char* data = PyBytes_AsString(bytes.ptr());
+        Py_ssize_t size = PyBytes_Size(bytes.ptr());
+        std::string blobStr(data, size);
+        return Value(LogicalType::BLOB(), blobStr);
+    }
     case LogicalTypeID::TIMESTAMP: {
         // LCOV_EXCL_START
         if (!py::isinstance(val, datetime_datetime)) {

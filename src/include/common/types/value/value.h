@@ -852,5 +852,14 @@ KUZU_API inline Value Value::createValue(uint8_t* val) {
     return Value(val);
 }
 
+/**
+ * @param val the uuid_t* val
+ * @return a Value with UUID type and val val.
+ */
+template<>
+KUZU_API inline Value Value::createValue(ku_uuid_t val) {
+    return Value(val);
+}
+
 } // namespace common
 } // namespace kuzu

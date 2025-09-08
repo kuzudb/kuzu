@@ -7,7 +7,6 @@
 #include "common/constants.h"
 #include "common/system_config.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
 #include <concepts>
 
 namespace kuzu {

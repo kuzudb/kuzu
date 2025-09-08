@@ -6,6 +6,8 @@
 #include "cypher_parser.h"
 #pragma GCC diagnostic pop
 
+#include "common/enums/conflict_action.h"
+#include "extension/transformer_extension.h"
 #include "parser/ddl/parsed_property_definition.h"
 #include "statement.h"
 
@@ -34,19 +36,24 @@ struct YieldVariable;
 
 class Transformer {
 public:
-    explicit Transformer(CypherParser::Ku_StatementsContext& root) : root{root} {}
+    Transformer(CypherParser::Ku_StatementsContext& root,
+        std::vector<extension::TransformerExtension*> transformerExtensions)
+        : root{root}, transformerExtensions{std::move(transformerExtensions)} {}
 
     std::vector<std::shared_ptr<Statement>> transform();
 
-private:
+    void registerTransformExtension(
+        std::unique_ptr<extension::TransformerExtension> transformerExtension);
+
     std::unique_ptr<Statement> transformStatement(CypherParser::OC_StatementContext& ctx);
 
     std::unique_ptr<ParsedExpression> transformWhere(CypherParser::OC_WhereContext& ctx);
 
-    std::string transformVariable(CypherParser::OC_VariableContext& ctx);
+    static std::string transformVariable(CypherParser::OC_VariableContext& ctx);
     std::string transformSchemaName(CypherParser::OC_SchemaNameContext& ctx);
-    std::string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
-    std::string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
+    static std::string transformSymbolicName(CypherParser::OC_SymbolicNameContext& ctx);
+    static std::string transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral);
+    static common::ConflictAction transformConflictAction(CypherParser::KU_IfNotExistsContext* ctx);
 
     // Transform copy statement.
     std::unique_ptr<Statement> transformCopyTo(CypherParser::KU_CopyTOContext& ctx);
@@ -184,14 +191,14 @@ private:
         CypherParser::OC_CaseExpressionContext& ctx);
     ParsedCaseAlternative transformCaseAlternative(CypherParser::OC_CaseAlternativeContext& ctx);
     std::unique_ptr<ParsedExpression> transformNumberLiteral(
-        CypherParser::OC_NumberLiteralContext& ctx);
+        CypherParser::OC_NumberLiteralContext& ctx, bool negative);
     std::unique_ptr<ParsedExpression> transformProperty(
         CypherParser::OC_PropertyExpressionContext& ctx);
     std::string transformPropertyKeyName(CypherParser::OC_PropertyKeyNameContext& ctx);
     std::unique_ptr<ParsedExpression> transformIntegerLiteral(
-        CypherParser::OC_IntegerLiteralContext& ctx);
+        CypherParser::OC_IntegerLiteralContext& ctx, bool negative);
     std::unique_ptr<ParsedExpression> transformDoubleLiteral(
-        CypherParser::OC_DoubleLiteralContext& ctx);
+        CypherParser::OC_DoubleLiteralContext& ctx, bool negative);
 
     // Transform ddl.
     std::unique_ptr<Statement> transformAlterTable(CypherParser::KU_AlterTableContext& ctx);
@@ -238,8 +245,11 @@ private:
     std::unique_ptr<Statement> transformDetachDatabase(CypherParser::KU_DetachDatabaseContext& ctx);
     std::unique_ptr<Statement> transformUseDatabase(CypherParser::KU_UseDatabaseContext& ctx);
 
+    std::unique_ptr<Statement> transformExtensionStatement(antlr4::ParserRuleContext* ctx);
+
 private:
     CypherParser::Ku_StatementsContext& root;
+    std::vector<extension::TransformerExtension*> transformerExtensions;
 };
 
 } // namespace parser

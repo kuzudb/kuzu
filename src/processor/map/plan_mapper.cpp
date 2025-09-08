@@ -1,5 +1,8 @@
 #include "processor/plan_mapper.h"
 
+#include "main/client_context.h"
+#include "main/database.h"
+#include "planner/operator/logical_plan.h"
 #include "processor/operator/profile.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
@@ -12,12 +15,24 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(const LogicalPlan* logicalPlan,
-    const expression_vector& expressionsToCollect) {
+PlanMapper::PlanMapper(ExecutionContext* executionContext)
+    : executionContext{executionContext}, physicalOperatorID{0} {
+    clientContext = executionContext->clientContext;
+    mapperExtensions = clientContext->getDatabase()->getMapperExtensions();
+}
+
+std::unique_ptr<PhysicalPlan> PlanMapper::getPhysicalPlan(const LogicalPlan* logicalPlan,
+    const expression_vector& expressions, main::QueryResultType resultType,
+    ArrowResultConfig arrowConfig) {
     auto root = mapOperator(logicalPlan->getLastOperator().get());
     if (!root->isSink()) {
-        root = createResultCollector(AccumulateType::REGULAR, expressionsToCollect,
-            logicalPlan->getSchema(), std::move(root));
+        if (resultType == main::QueryResultType::ARROW) {
+            root = createArrowResultCollector(arrowConfig, expressions, logicalPlan->getSchema(),
+                std::move(root));
+        } else {
+            root = createResultCollector(AccumulateType::REGULAR, expressions,
+                logicalPlan->getSchema(), std::move(root));
+        }
     }
     auto physicalPlan = std::make_unique<PhysicalPlan>(std::move(root));
     if (logicalPlan->isProfile()) {
@@ -176,6 +191,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(const LogicalOperator*
     case LogicalOperatorType::USE_DATABASE: {
         physicalOperator = mapUseDatabase(logicalOperator);
     } break;
+    case LogicalOperatorType::EXTENSION_CLAUSE: {
+        physicalOperator = mapExtensionClause(logicalOperator);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -207,8 +225,9 @@ FactorizedTableSchema PlanMapper::createFlatFTableSchema(const expression_vector
 }
 
 std::unique_ptr<SemiMask> PlanMapper::createSemiMask(table_id_t tableID) const {
-    auto table = clientContext->getStorageManager()->getTable(tableID)->ptrCast<NodeTable>();
-    return SemiMaskUtil::createMask(table->getNumTotalRows(clientContext->getTransaction()));
+    auto table = StorageManager::Get(*clientContext)->getTable(tableID)->ptrCast<NodeTable>();
+    return SemiMaskUtil::createMask(
+        table->getNumTotalRows(transaction::Transaction::Get(*clientContext)));
 }
 
 } // namespace processor

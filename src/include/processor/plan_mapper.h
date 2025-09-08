@@ -1,7 +1,8 @@
 #pragma once
 
+#include "common/arrow/arrow_result_config.h"
+#include "main/query_result.h"
 #include "planner/operator/logical_operator.h"
-#include "planner/operator/logical_plan.h"
 #include "processor/execution_context.h"
 #include "processor/operator/result_collector.h"
 #include "processor/physical_plan.h"
@@ -15,6 +16,9 @@ class SemiMask;
 } // namespace common
 namespace main {
 class ClientContext;
+}
+namespace extension {
+class MapperExtension;
 }
 
 namespace binder {
@@ -31,6 +35,7 @@ namespace planner {
 class LogicalSemiMasker;
 struct LogicalInsertInfo;
 class LogicalCopyFrom;
+class LogicalPlan;
 } // namespace planner
 
 namespace processor {
@@ -49,15 +54,15 @@ struct RelTableSetInfo;
 struct BatchInsertSharedState;
 struct PartitionerSharedState;
 class RelBatchInsertImpl;
+class ArrowResultCollector;
 
 class PlanMapper {
 public:
-    explicit PlanMapper(processor::ExecutionContext* executionContext)
-        : executionContext{executionContext}, clientContext{executionContext->clientContext},
-          physicalOperatorID{0} {}
+    explicit PlanMapper(ExecutionContext* executionContext);
 
-    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(const planner::LogicalPlan* logicalPlan,
-        const binder::expression_vector& expressionsToCollect);
+    std::unique_ptr<PhysicalPlan> getPhysicalPlan(const planner::LogicalPlan* logicalPlan,
+        const binder::expression_vector& expressions, main::QueryResultType resultType,
+        common::ArrowResultConfig arrowConfig);
 
     uint32_t getOperatorID() { return physicalOperatorID++; }
 
@@ -159,10 +164,15 @@ public:
     std::unique_ptr<PhysicalOperator> mapUnwind(const planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapUseDatabase(
         const planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExtensionClause(
+        const planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<ResultCollector> createResultCollector(common::AccumulateType accumulateType,
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
+    std::unique_ptr<PhysicalOperator> createArrowResultCollector(
+        common::ArrowResultConfig arrowConfig, const binder::expression_vector& expressions,
+        planner::Schema* schema, std::unique_ptr<PhysicalOperator> prevOperator);
 
     // Scan fTable
     std::unique_ptr<PhysicalOperator> createFTableScan(const binder::expression_vector& exprs,
@@ -241,6 +251,7 @@ public:
 private:
     std::unordered_map<const planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
     physical_op_id physicalOperatorID;
+    std::vector<extension::MapperExtension*> mapperExtensions;
 };
 
 } // namespace processor

@@ -1,15 +1,18 @@
 #pragma once
 
-#include "storage/optimistic_allocator.h"
+#include "storage/database_header.h"
 #include "storage/page_range.h"
 
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace catalog {
 class Catalog;
 }
 namespace common {
 class VirtualFileSystem;
-}
+} // namespace common
 namespace testing {
 struct FSMLeakChecker;
 }
@@ -19,17 +22,6 @@ class AttachedKuzuDatabase;
 
 namespace storage {
 class StorageManager;
-
-class PageManager;
-
-struct DatabaseHeader {
-    PageRange catalogPageRange;
-    PageRange metadataPageRange;
-
-    void updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange);
-    void freeMetadataPageRange(PageManager& pageManager) const;
-    void serialize(common::Serializer& ser) const;
-};
 
 class Checkpointer {
     friend class main::AttachedKuzuDatabase;
@@ -44,7 +36,8 @@ public:
 
     void readCheckpoint();
 
-    static bool canAutoCheckpoint(const main::ClientContext& clientContext);
+    static bool canAutoCheckpoint(const main::ClientContext& clientContext,
+        const transaction::Transaction& transaction);
 
 protected:
     virtual bool checkpointStorage();
@@ -57,7 +50,6 @@ private:
     static void readCheckpoint(main::ClientContext* context, catalog::Catalog* catalog,
         StorageManager* storageManager);
 
-    DatabaseHeader getCurrentDatabaseHeader() const;
     PageRange serializeCatalog(const catalog::Catalog& catalog, StorageManager& storageManager);
     PageRange serializeMetadata(const catalog::Catalog& catalog, StorageManager& storageManager);
 

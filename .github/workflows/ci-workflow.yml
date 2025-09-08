@@ -18,7 +18,6 @@ on:
       buffer_pool_size:
         description: 'Database config - buffer pool size'
         required: false
-        default: 67108864
         type: number
 
       max_num_threads:
@@ -168,7 +167,6 @@ jobs:
 
       - name: Test
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Test in mem
@@ -194,6 +192,12 @@ jobs:
       - name: Test sparse frontier threshold at 2
         env:
           SPARSE_FRONTIER_THRESHOLD: 2
+        run: |
+          make test
+
+      - name: Test with checksums disabled
+        env:
+          ENABLE_CHECKSUMS: false
         run: |
           make test
 
@@ -258,7 +262,6 @@ jobs:
         env:
           IN_MEM_MODE: true
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test VECTOR_CAPACITY_LOG2=10
 
       - name: Test vector capacity of 1024 under in-memory mode
@@ -300,9 +303,6 @@ jobs:
         with:
           name: binary-demo
           path: dataset/binary-demo
-
-      - name: Setup dataset symlink
-        run: ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
 
       - name: Test coverage for on-disk mode
         run: make lcov
@@ -406,7 +406,6 @@ jobs:
 
       - name: Kernel build & test
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           source /home/runner/emsdk/emsdk_env.sh
           make wasmtest
 
@@ -472,7 +471,6 @@ jobs:
 
       - name: Test with TSAN
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
         env:
           TSAN_OPTIONS: "halt_on_error=1"
@@ -503,7 +501,6 @@ jobs:
 
       - name: Test with ASAN
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test ASAN=1 BM_MALLOC=ON
         env:
           ASAN_OPTIONS: "detect_leaks=1"
@@ -551,7 +548,6 @@ jobs:
 
       - name: Test
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Test fwd only rel tables
@@ -627,7 +623,6 @@ jobs:
 
       - name: Build
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           make release PAGE_SIZE_LOG2=${{ matrix.page_size_log2 }}
 
       - name: Generate binary demo
@@ -664,7 +659,6 @@ jobs:
 
       - name: Build
         run: |
-          ln -s /home/runner/ldbc-1-csv dataset/ldbc-1/csv
           if [ ${{ matrix.node_group_size_log2 }} -ge 11 ]; then
             make release VECTOR_CAPACITY_LOG2=11 NODE_GROUP_SIZE_LOG2=${{ matrix.node_group_size_log2 }}
           else
@@ -992,7 +986,6 @@ jobs:
       - name: Test
         run: |
           ulimit -n 10240
-          ln -s /Users/runner/ldbc-1-csv dataset/ldbc-1/csv
           make test
 
       - name: Test in mem
@@ -1011,6 +1004,16 @@ jobs:
       - name: Test sparse frontier threshold at 2
         env:
           SPARSE_FRONTIER_THRESHOLD: 2
+        run: |
+          make test
+
+      - name: Test with deserializer debugging info
+        env:
+          ENABLE_DESER_DEBUG: 1
+          # don't run any tests that use existing serialized data
+          # or any tests that serializing debugging info would make too slow
+          # also skip FSM-related tests as the debugging info can mess with database sizes
+          GTEST_FILTER: "*~*-*binary_demo*:*hash_leak*:*Reclaim*"
         run: |
           make test
 
@@ -1273,13 +1276,13 @@ jobs:
         run: |
           python3 scripts/setup-extension-repo.py &
           make extension-static-link-test
-          
+
       - name: Static link extension test in mem mode
         env:
           IN_MEM_MODE: true
           HTTP_CACHE_FILE: false
         run: |
-          make extension-static-link-test && make clean    
+          make extension-static-link-test && make clean
 
   windows-extension-test:
     name: windows extension test

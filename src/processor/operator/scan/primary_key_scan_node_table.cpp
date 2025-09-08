@@ -39,7 +39,7 @@ void PrimaryKeyScanNodeTable::initLocalStateInternal(ResultSet* resultSet,
 }
 
 bool PrimaryKeyScanNodeTable::getNextTuplesInternal(ExecutionContext* context) {
-    auto transaction = context->clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
     auto tableIdx = sharedState->getTableIdx();
     if (tableIdx >= tableInfos.size()) {
         return false;

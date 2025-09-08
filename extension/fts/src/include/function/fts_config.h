@@ -47,8 +47,27 @@ struct IgnorePattern {
     static constexpr const char* NAME = "ignore_pattern";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
     static constexpr const char* DEFAULT_VALUE = "[0-9!@#$%^&*()_+={}\\[\\]:;<>,.?~\\/\\|'\"`-]+";
+    // We store a second ignore pattern for queries to not replace on wildcard characters
+    static constexpr const char* DEFAULT_VALUE_QUERY =
+        "[0-9!@#$%^&()_+={}\\[\\]:;<>,.~\\/\\|'\"`-]+";
 
     static void validate(const std::string& ignorePattern);
+};
+
+struct Tokenizer {
+    static constexpr const char* NAME = "tokenizer";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::STRING;
+    static constexpr const char* DEFAULT_VALUE = "simple";
+
+    static void validate(const std::string& tokenizer);
+};
+
+struct TokenizerInfo {
+    std::string tokenizer = Tokenizer::DEFAULT_VALUE;
+    std::string jiebaDictDir =
+        common::stringFormat("{}/extension/fts/build/dict", KUZU_ROOT_DIRECTORY);
+
+    TokenizerInfo() = default;
 };
 
 struct FTSConfig;
@@ -57,6 +76,8 @@ struct CreateFTSConfig {
     std::string stemmer = Stemmer::DEFAULT_VALUE;
     StopWordsTableInfo stopWordsTableInfo;
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
+    std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
+    TokenizerInfo tokenizerInfo;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
@@ -72,12 +93,18 @@ struct FTSConfig {
     // used by show_index.
     std::string stopWordsSource = "";
     std::string ignorePattern = "";
+    std::string ignorePatternQuery = "";
+    std::string tokenizer = "";
+    std::string jiebaDictDir = "";
 
     FTSConfig() = default;
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
-        std::string ignorePattern)
+        std::string ignorePattern, std::string ignorePatternQuery, std::string tokenizer,
+        std::string jiebaDictDir)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
-          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)} {}
+          stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)},
+          ignorePatternQuery{std::move(ignorePatternQuery)}, tokenizer{std::move(tokenizer)},
+          jiebaDictDir{std::move(jiebaDictDir)} {}
 
     void serialize(common::Serializer& serializer) const;
 
@@ -109,22 +136,6 @@ struct TopK {
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::UINT64;
     static constexpr uint64_t DEFAULT_VALUE = UINT64_MAX;
     static void validate(uint64_t value);
-};
-
-constexpr uint64_t INVALID_TOP_K = UINT64_MAX;
-
-struct QueryFTSConfig {
-    // k: parameter controls the influence of term frequency saturation. It limits the effect of
-    // additional occurrences of a term within a document.
-    double k = K::DEFAULT_VALUE;
-    // b: parameter controls the degree of length normalization by adjusting the influence of
-    // document length.
-    double b = B::DEFAULT_VALUE;
-    bool isConjunctive = Conjunctive::DEFAULT_VALUE;
-    uint64_t topK = TopK::DEFAULT_VALUE;
-
-    QueryFTSConfig() = default;
-    explicit QueryFTSConfig(const function::optional_params_t& optionalParams);
 };
 
 } // namespace fts_extension

@@ -18,6 +18,7 @@
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/planner.h"
 #include "processor/execution_context.h"
+#include "re2.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "utils/fts_utils.h"
@@ -81,11 +82,13 @@ struct QFTSTopKSharedState : public QFTSSharedState {
     };
     std::priority_queue<DocScore, std::vector<DocScore>, PriorityQueueComp> minHeap;
     std::mutex mtx;
-    uint64_t topK;
+    uint64_t topK = UINT64_MAX;
 
     QFTSTopKSharedState(std::shared_ptr<processor::FactorizedTable> fTable,
-        std::unique_ptr<graph::Graph> graph, uint64_t topK, common::table_id_t outputTableID)
-        : QFTSSharedState{std::move(fTable), std::move(graph), outputTableID}, topK{topK} {}
+        std::unique_ptr<graph::Graph> graph, common::table_id_t outputTableID)
+        : QFTSSharedState{std::move(fTable), std::move(graph), outputTableID} {}
+
+    void setTopK(uint64_t topK_) { topK = topK_; }
 
     void addDocScore(std::vector<ValueVector*> /*vectors*/,
         processor::FactorizedTable& /*localTable*/, DocScore docScore) override {
@@ -157,21 +160,19 @@ struct QFTSEdgeCompute final : EdgeCompute {
 class QFTSOutputWriter {
 public:
     QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-        QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
-        QFTSSharedState& sharedState);
+        const QueryFTSBindData& bindData, uint64_t numUniqueTerms, QFTSSharedState& sharedState);
 
     void write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
         int64_t docsID);
 
     std::unique_ptr<QFTSOutputWriter> copy() {
-        return std::make_unique<QFTSOutputWriter>(scores, mm, config, bindData, numUniqueTerms,
+        return std::make_unique<QFTSOutputWriter>(scores, mm, bindData, numUniqueTerms,
             sharedState);
     }
 
 private:
     const node_id_map_t<ScoreInfo>& scores;
     MemoryManager* mm;
-    QueryFTSConfig config;
     const QueryFTSBindData& bindData;
     uint64_t numUniqueTerms;
     QFTSSharedState& sharedState;
@@ -179,15 +180,15 @@ private:
 };
 
 QFTSOutputWriter::QFTSOutputWriter(const node_id_map_t<ScoreInfo>& scores, MemoryManager* mm,
-    QueryFTSConfig config, const QueryFTSBindData& bindData, uint64_t numUniqueTerms,
-    QFTSSharedState& sharedState)
-    : scores{scores}, mm{mm}, config{config}, bindData{bindData}, numUniqueTerms{numUniqueTerms},
+    const QueryFTSBindData& bindData, uint64_t numUniqueTerms, QFTSSharedState& sharedState)
+    : scores{scores}, mm{mm}, bindData{bindData}, numUniqueTerms{numUniqueTerms},
       sharedState{sharedState}, scoreFtInsertState{} {}
 
 void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNodeID, uint64_t len,
     int64_t docsID) {
-    auto k = config.k;
-    auto b = config.b;
+    auto& qFTSOptionalParams = bindData.optionalParams->constCast<QueryFTSOptionalParams>();
+    auto k = qFTSOptionalParams.k.getParamVal();
+    auto b = qFTSOptionalParams.b.getParamVal();
 
     if (!scores.contains(docNodeID)) {
         return;
@@ -196,7 +197,8 @@ void QFTSOutputWriter::write(processor::FactorizedTable& scoreFT, nodeID_t docNo
     double score = 0;
     // If the query is conjunctive, the numbers of distinct terms in the doc and the number of
     // distinct terms in the query must be equal to each other.
-    if (config.isConjunctive && scoreInfo.scoreData.size() != numUniqueTerms) {
+    if (bindData.optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal() &&
+        scoreInfo.scoreData.size() != numUniqueTerms) {
         return;
     }
     auto auxInfo = bindData.entry.getAuxInfo().cast<FTSIndexAuxInfo>();
@@ -240,6 +242,44 @@ private:
     std::unique_ptr<QFTSOutputWriter> writer;
 };
 
+using VCQueryTerm = std::variant<std::string, std::unique_ptr<RE2>>;
+class MatchTermsVertexCompute final : public VertexCompute {
+public:
+    explicit MatchTermsVertexCompute(std::unordered_map<offset_t, uint64_t>& resDfs,
+        std::vector<VCQueryTerm>& queryTerms)
+        : resDfs{resDfs}, queryTerms{queryTerms} {}
+    void vertexCompute(const graph::VertexScanState::Chunk& chunk) override {
+        auto terms = chunk.getProperties<ku_string_t>(0);
+        auto dfs = chunk.getProperties<uint64_t>(1);
+        auto nodeIds = chunk.getNodeIDs();
+        for (auto& queryTerm : queryTerms) {
+            // queryTerm.index() is 0 for string, 1 for unique_ptr<RE2>
+            if (queryTerm.index() == 0) {
+                std::string& queryString = std::get<0>(queryTerm);
+                for (auto i = 0u; i < chunk.size(); ++i) {
+                    if (queryString == terms[i].getAsString()) {
+                        resDfs[nodeIds[i].offset] = dfs[i];
+                    }
+                }
+            } else {
+                RE2& regex = *std::get<1>(queryTerm);
+                for (auto i = 0u; i < chunk.size(); ++i) {
+                    if (RE2::FullMatch(terms[i].getAsString(), regex)) {
+                        resDfs[nodeIds[i].offset] = dfs[i];
+                    }
+                }
+            }
+        }
+    }
+    std::unique_ptr<VertexCompute> copy() override {
+        return std::make_unique<MatchTermsVertexCompute>(resDfs, queryTerms);
+    }
+
+private:
+    std::unordered_map<offset_t, uint64_t>& resDfs;
+    std::vector<VCQueryTerm>& queryTerms;
+};
+
 static constexpr char SCORE_PROP_NAME[] = "score";
 static constexpr char DOC_FREQUENCY_PROP_NAME[] = "df";
 static constexpr char TERM_FREQUENCY_PROP_NAME[] = "tf";
@@ -247,36 +287,59 @@ static constexpr char DOC_LEN_PROP_NAME[] = "len";
 static constexpr char DOC_ID_PROP_NAME[] = "docID";
 
 static std::unordered_map<offset_t, uint64_t> getDFs(main::ClientContext& context,
-    const catalog::NodeTableCatalogEntry& termsEntry, const std::vector<std::string>& terms) {
-    auto storageManager = context.getStorageManager();
-    auto tableID = termsEntry.getTableID();
+    processor::ExecutionContext* executionContext, graph::Graph* graph,
+    catalog::TableCatalogEntry* termsEntry, std::vector<std::string>& queryTerms) {
+    auto storageManager = StorageManager::Get(context);
+    auto tableID = termsEntry->getTableID();
     auto& termsNodeTable = storageManager->getTable(tableID)->cast<NodeTable>();
-    auto tx = context.getTransaction();
-    auto dfColumnID = termsEntry.getColumnID(DOC_FREQUENCY_PROP_NAME);
+    auto tx = transaction::Transaction::Get(context);
+    auto dfColumnID = termsEntry->getColumnID(DOC_FREQUENCY_PROP_NAME);
     std::vector<LogicalType> vectorTypes;
     vectorTypes.push_back(LogicalType::INTERNAL_ID());
     vectorTypes.push_back(LogicalType::UINT64());
-    auto dataChunk = Table::constructDataChunk(context.getMemoryManager(), std::move(vectorTypes));
+    auto dataChunk = Table::constructDataChunk(MemoryManager::Get(context), std::move(vectorTypes));
     dataChunk.state->getSelVectorUnsafe().setSelSize(1);
     auto nodeIDVector = &dataChunk.getValueVectorMutable(0);
     auto dfVector = &dataChunk.getValueVectorMutable(1);
-    auto termsVector = ValueVector(LogicalType::STRING(), context.getMemoryManager());
+    auto termsVector = ValueVector(LogicalType::STRING(), MemoryManager::Get(context));
     termsVector.state = dataChunk.state;
     auto nodeTableScanState =
         NodeTableScanState(nodeIDVector, std::vector{dfVector}, dataChunk.state);
-    nodeTableScanState.setToTable(context.getTransaction(), &termsNodeTable, {dfColumnID}, {});
+    nodeTableScanState.setToTable(transaction::Transaction::Get(context), &termsNodeTable,
+        {dfColumnID}, {});
     std::unordered_map<offset_t, uint64_t> dfs;
-    for (auto& term : terms) {
-        termsVector.setValue(0, term);
-        offset_t offset = 0;
-        if (!termsNodeTable.lookupPK(tx, &termsVector, 0 /* vectorPos */, offset)) {
-            continue;
+    std::vector<VCQueryTerm> vcQueryTerms;
+    vcQueryTerms.reserve(queryTerms.size());
+    bool hasWildcardQueryTerm = false;
+    for (auto& queryTerm : queryTerms) {
+        bool checkWc = FTSUtils::hasWildcardPattern(queryTerm);
+        if (checkWc) {
+            RE2::GlobalReplace(&queryTerm, "\\*", ".*");
+            RE2::GlobalReplace(&queryTerm, "\\?", ".");
+            hasWildcardQueryTerm = true;
+            vcQueryTerms.emplace_back(std::in_place_type<std::unique_ptr<RE2>>,
+                std::make_unique<RE2>(queryTerm));
+        } else {
+            vcQueryTerms.emplace_back(std::in_place_type<std::string>, queryTerm);
         }
-        auto nodeID = nodeID_t{offset, tableID};
-        nodeIDVector->setValue(0, nodeID);
-        termsNodeTable.initScanState(tx, nodeTableScanState, tableID, offset);
-        [[maybe_unused]] auto res = termsNodeTable.lookup(tx, nodeTableScanState);
-        dfs.emplace(offset, dfVector->getValue<uint64_t>(0));
+    }
+    if (hasWildcardQueryTerm) {
+        auto matchVc = MatchTermsVertexCompute{dfs, vcQueryTerms};
+        GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, matchVc,
+            termsEntry, std::vector<std::string>{"term", DOC_FREQUENCY_PROP_NAME});
+    } else {
+        for (auto& queryTerm : queryTerms) {
+            termsVector.setValue(0, queryTerm);
+            offset_t offset = 0;
+            if (!termsNodeTable.lookupPK(tx, &termsVector, 0 /* vectorPos */, offset)) {
+                continue;
+            }
+            auto nodeID = nodeID_t{offset, tableID};
+            nodeIDVector->setValue(0, nodeID);
+            termsNodeTable.initScanState(tx, nodeTableScanState, tableID, offset);
+            [[maybe_unused]] auto res = termsNodeTable.lookup(tx, nodeTableScanState);
+            dfs.emplace(offset, dfVector->getValue<uint64_t>(0));
+        }
     }
     return dfs;
 }
@@ -306,15 +369,19 @@ static void initFrontier(FrontierPair& frontierPair, table_id_t termsTableID,
 }
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
-    auto clientContext = input.context->clientContext;
-    auto transaction = clientContext->getTransaction();
+    auto& clientContext = *input.context->clientContext;
+    auto transaction = transaction::Transaction::Get(clientContext);
     auto sharedState = input.sharedState->ptrCast<QFTSSharedState>();
     auto graph = sharedState->graph.get();
     auto graphEntry = graph->getGraphEntry();
-    auto qFTSBindData = input.bindData->constPtrCast<QueryFTSBindData>();
-    auto& termsEntry = graphEntry->nodeInfos[0].entry->constCast<catalog::NodeTableCatalogEntry>();
-    auto terms = qFTSBindData->getTerms(*input.context->clientContext);
-    auto dfs = getDFs(*input.context->clientContext, termsEntry, terms);
+    auto& qFTSBindData = input.bindData->cast<QueryFTSBindData>();
+    auto qFTSOptionalParams = qFTSBindData.optionalParams->constCast<QueryFTSOptionalParams>();
+    if (qFTSOptionalParams.topK.isSet()) {
+        sharedState->ptrCast<QFTSTopKSharedState>()->setTopK(qFTSOptionalParams.topK.getParamVal());
+    }
+    auto termsEntry = graphEntry->nodeInfos[0].entry;
+    auto queryTerms = qFTSBindData.getQueryTerms(clientContext);
+    auto dfs = getDFs(clientContext, input.context, graph, termsEntry, queryTerms);
     // Do edge compute to extend terms -> docs and save the term frequency and document frequency
     // for each term-doc pair. The reason why we store the term frequency and document frequency
     // is that: we need the `len` property from the docs table which is only available during the
@@ -323,9 +390,9 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(std::move(currentFrontier),
         std::move(nextFrontier));
-    auto termsTableID = termsEntry.getTableID();
+    auto termsTableID = termsEntry->getTableID();
     initFrontier(*frontierPair, termsTableID, dfs);
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(clientContext);
     frontierPair->setActiveNodesForNextIter();
 
     node_id_map_t<ScoreInfo> scores;
@@ -337,10 +404,10 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         {TERM_FREQUENCY_PROP_NAME});
 
     // Do vertex compute to calculate the score for doc with the length property.
-    auto mm = clientContext->getMemoryManager();
-    auto numUniqueTerms = getNumUniqueTerms(terms);
-    auto writer = std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData->getConfig(),
-        *qFTSBindData, numUniqueTerms, *sharedState);
+    auto mm = MemoryManager::Get(clientContext);
+    auto numUniqueTerms = getNumUniqueTerms(queryTerms);
+    auto writer =
+        std::make_unique<QFTSOutputWriter>(scores, mm, qFTSBindData, numUniqueTerms, *sharedState);
     auto vc = std::make_unique<QFTSVertexCompute>(mm, sharedState, std::move(writer));
     auto vertexPropertiesToScan = std::vector<std::string>{DOC_LEN_PROP_NAME, DOC_ID_PROP_NAME};
     auto docsEntry = graphEntry->nodeInfos[1].entry;
@@ -380,8 +447,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 
     auto tableEntry = FTSIndexUtils::bindNodeTable(*context, inputTableName, indexName,
         FTSIndexUtils::IndexOperation::QUERY);
-    auto catalog = context->getCatalog();
-    auto transaction = context->getTransaction();
+    auto catalog = catalog::Catalog::Get(*context);
+    auto transaction = transaction::Transaction::Get(*context);
     auto ftsIndexEntry = catalog->getIndex(transaction, tableEntry->getTableID(), indexName);
     auto entry = catalog->getTableCatalogEntry(transaction, inputTableName);
     auto nodeOutput = GDSFunction::bindNodeOutput(*input, {entry});
@@ -404,15 +471,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto scoreColumn = input->binder->createVariable(scoreColumnName, LogicalType::DOUBLE());
     columns.push_back(scoreColumn);
     auto nodeTable =
-        context->getStorageManager()->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
+        StorageManager::Get(*context)->getTable(ftsIndexEntry->getTableID())->ptrCast<NodeTable>();
     auto index = nodeTable->getIndex(indexName);
     KU_ASSERT(index.has_value());
     auto& ftsIndex = index.value()->cast<FTSIndex>();
     auto& ftsStorageInfo = ftsIndex.getStorageInfo().constCast<FTSStorageInfo>();
     auto bindData = std::make_unique<QueryFTSBindData>(std::move(columns), std::move(graphEntry),
         nodeOutput, std::move(query), *ftsIndexEntry,
-        QueryFTSOptionalParams{context, input->optionalParamsLegacy}, ftsStorageInfo.numDocs,
-        ftsStorageInfo.avgDocLen);
+        std::make_unique<QueryFTSOptionalParams>(input->optionalParamsLegacy),
+        ftsStorageInfo.numDocs, ftsStorageInfo.avgDocLen);
     context->setUseInternalCatalogEntry(false /* useInternalCatalogEntry */);
     return bindData;
 }
@@ -425,7 +492,7 @@ static void getLogicalPlan(Planner* planner, const BoundReadingClause& readingCl
     op->computeFactorizedSchema();
     planner->planReadOp(std::move(op), predicates, plan);
 
-    auto nodeOutput = bindData->nodeOutput->ptrCast<NodeExpression>();
+    auto nodeOutput = bindData->output[0]->ptrCast<NodeExpression>();
     KU_ASSERT(nodeOutput != nullptr);
     planner->getCardinliatyEstimatorUnsafe().init(*nodeOutput);
     auto scanPlan = planner->getNodePropertyScanPlan(*nodeOutput);
@@ -443,13 +510,13 @@ std::shared_ptr<TableFuncSharedState> initSharedState(const TableFuncInitSharedS
     auto bindData = input.bindData->constPtrCast<QueryFTSBindData>();
     auto graph = std::make_unique<graph::OnDiskGraph>(input.context->clientContext,
         bindData->graphEntry.copy());
-    auto topK = bindData->getConfig().topK;
-    if (bindData->getConfig().topK == INVALID_TOP_K) {
+    if (!bindData->optionalParams->constCast<QueryFTSOptionalParams>().topK.isSet()) {
+        // The user does not give a topK parameter, skip topK optimization.
         return std::make_shared<QFTSSharedState>(bindData->getResultTable(), std::move(graph),
             bindData->outputTableID);
     } else {
         return std::make_shared<QFTSTopKSharedState>(bindData->getResultTable(), std::move(graph),
-            topK, bindData->outputTableID);
+            bindData->outputTableID);
     }
 }
 

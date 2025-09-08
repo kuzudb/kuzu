@@ -4,7 +4,6 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "catalog/catalog_set.h"
-#include "main/client_context.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/update_info.h"
 #include "storage/table/version_record_handler.h"
@@ -175,14 +174,6 @@ void UndoBuffer::rollback(ClientContext* context) const {
     });
 }
 
-uint64_t UndoBuffer::getMemUsage() const {
-    uint64_t totalMemUsage = 0;
-    for (const auto& buffer : memoryBuffers) {
-        totalMemUsage += buffer.getSize();
-    }
-    return totalMemUsage;
-}
-
 void UndoBuffer::commitRecord(UndoRecordType recordType, const uint8_t* record,
     transaction_t commitTS) {
     switch (recordType) {
@@ -248,7 +239,7 @@ void UndoBuffer::rollbackRecord(ClientContext* context, const UndoRecordType rec
         rollbackVersionInfo(context, recordType, record);
     } break;
     case UndoRecordType::UPDATE_INFO: {
-        rollbackVectorUpdateInfo(context->getTransaction(), record);
+        rollbackVectorUpdateInfo(transaction::Transaction::Get(*context), record);
     } break;
     default: {
         KU_UNREACHABLE;
@@ -297,7 +288,7 @@ void UndoBuffer::rollbackVersionInfo(ClientContext* context, UndoRecordType reco
     case UndoRecordType::DELETE_INFO: {
         undoRecord.versionRecordHandler->applyFuncToChunkedGroups(&ChunkedNodeGroup::rollbackDelete,
             undoRecord.nodeGroupIdx, undoRecord.startRow, undoRecord.numRows,
-            context->getTransaction()->getCommitTS());
+            transaction::Transaction::Get(*context)->getCommitTS());
     } break;
     default: {
         KU_UNREACHABLE;

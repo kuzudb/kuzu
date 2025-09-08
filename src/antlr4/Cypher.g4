@@ -7,6 +7,8 @@ oC_Cypher
 
 oC_Statement
     : oC_Query
+        | kU_CreateUser
+        | kU_CreateRole
         | kU_CreateNodeTable
         | kU_CreateRelTable
         | kU_CreateSequence
@@ -123,6 +125,15 @@ kU_SequenceOptions
         | kU_MaxValue
         | kU_StartWith
         | kU_Cycle;
+
+kU_WithPasswd
+    : SP WITH SP PASSWORD SP StringLiteral ;
+
+kU_CreateUser
+    : CREATE SP USER SP (kU_IfNotExists SP)? oC_Variable kU_WithPasswd? ;
+
+kU_CreateRole
+    : CREATE SP ROLE SP (kU_IfNotExists SP)? oC_Variable ;
 
 kU_IncrementBy : INCREMENT SP ( BY SP )? MINUS? oC_IntegerLiteral ;
 
@@ -614,7 +625,7 @@ StringLiteral
         ;
 
 EscapedChar
-    : '\\' ( '\\' | '\'' | '"' | ( 'B' | 'b' ) | ( 'F' | 'f' ) | ( 'N' | 'n' ) | ( 'R' | 'r' ) | ( 'T' | 't' ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit ) ) ) ;
+    : '\\' ( '\\' | '\'' | '"' | ( 'B' | 'b' ) | ( 'F' | 'f' ) | ( 'N' | 'n' ) | ( 'R' | 'r' ) | ( 'T' | 't' ) | ( ( 'X' | 'x' ) ( HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit ) ) | ( ( 'U' | 'u' ) ( HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit HexDigit ) ) ) ;
 
 oC_NumberLiteral
     : oC_DoubleLiteral
@@ -743,6 +754,7 @@ kU_NonReservedKeywords
         | RENAME
         | RETURN
         | ROLLBACK
+        | ROLE
         | SEQUENCE
         | SET
         | START
@@ -758,6 +770,8 @@ kU_NonReservedKeywords
         | FROM
         | TO
         | YIELD
+        | USER
+        | PASSWORD
         ;
 
 UnescapedSymbolicName

@@ -1,6 +1,7 @@
 #include "processor/operator/persistent/merge.h"
 
 #include "binder/expression/expression_util.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 namespace processor {
@@ -50,7 +51,7 @@ void MergeLocalState::init(ResultSet& resultSet, main::ClientContext* context, M
         keyVectors.push_back(keyVector);
     }
     // TODO: remove types
-    hashTable = std::make_unique<PatternCreationInfoTable>(*context->getMemoryManager(),
+    hashTable = std::make_unique<PatternCreationInfoTable>(*storage::MemoryManager::Get(*context),
         std::move(types), std::move(info.tableSchema));
     existenceVector = resultSet.getValueVector(info.existenceMark).get();
 }

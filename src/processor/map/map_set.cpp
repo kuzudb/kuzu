@@ -1,5 +1,6 @@
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
+#include "main/client_context.h"
 #include "planner/operator/persistent/logical_set.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/persistent/set.h"
@@ -59,7 +60,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
         for (auto entry : node.getEntries()) {
             auto tableID = entry->getTableID();
             auto tableInfo =
-                getNodeTableSetInfo(*entry, property, clientContext->getStorageManager());
+                getNodeTableSetInfo(*entry, property, StorageManager::Get(*clientContext));
             if (tableInfo.columnID == INVALID_COLUMN_ID) {
                 continue;
             }
@@ -70,7 +71,7 @@ std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(
     }
     KU_ASSERT(node.getNumEntries() == 1);
     auto tableInfo =
-        getNodeTableSetInfo(*node.getEntry(0), property, clientContext->getStorageManager());
+        getNodeTableSetInfo(*node.getEntry(0), property, StorageManager::Get(*clientContext));
     return std::make_unique<SingleLabelNodeSetExecutor>(std::move(setInfo), std::move(tableInfo));
 }
 
@@ -130,7 +131,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
                 auto srcTableID = relEntryInfo.nodePair.srcTableID;
                 auto dstTableID = relEntryInfo.nodePair.dstTableID;
                 auto tableInfo = getRelTableSetInfo(relGroupEntry, srcTableID, dstTableID, property,
-                    clientContext->getStorageManager());
+                    StorageManager::Get(*clientContext));
                 if (tableInfo.columnID == INVALID_COLUMN_ID) {
                     continue;
                 }
@@ -143,7 +144,7 @@ std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(const BoundSetProp
     auto& relGroupEntry = rel.getEntry(0)->constCast<RelGroupCatalogEntry>();
     auto fromToNodePair = relGroupEntry.getSingleRelEntryInfo().nodePair;
     auto tableInfo = getRelTableSetInfo(relGroupEntry, fromToNodePair.srcTableID,
-        fromToNodePair.dstTableID, property, clientContext->getStorageManager());
+        fromToNodePair.dstTableID, property, StorageManager::Get(*clientContext));
     return std::make_unique<SingleLabelRelSetExecutor>(std::move(info), std::move(tableInfo));
 }
 

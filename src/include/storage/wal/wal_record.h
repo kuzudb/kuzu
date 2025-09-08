@@ -7,6 +7,7 @@
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/enums/rel_direction.h"
 #include "common/enums/table_type.h"
+#include "common/types/uuid.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -38,6 +39,11 @@ enum class WALRecordType : uint8_t {
     LOAD_EXTENSION_RECORD = 100,
 
     CHECKPOINT_RECORD = 254,
+};
+
+struct WALHeader {
+    common::ku_uuid_t databaseID;
+    bool enableChecksums;
 };
 
 struct WALRecord {

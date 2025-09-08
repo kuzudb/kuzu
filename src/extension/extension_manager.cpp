@@ -1,18 +1,18 @@
 #include "extension/extension_manager.h"
 
-#include "common/exception/binder.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_utils.h"
 #include "extension/extension.h"
 #include "generated_extension_loader.h"
 #include "storage/wal/local_wal.h"
+#include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace extension {
 
 static void executeExtensionLoader(main::ClientContext* context, const std::string& extensionName) {
     auto loaderPath = ExtensionUtils::getLocalPathForExtensionLoader(context, extensionName);
-    if (context->getVFSUnsafe()->fileOrPathExists(loaderPath)) {
+    if (common::VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(loaderPath)) {
         auto libLoader = ExtensionLibLoader(extensionName, loaderPath);
         auto load = libLoader.getLoadFunc();
         (*load)(context);
@@ -24,8 +24,9 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     bool isOfficial = ExtensionUtils::isOfficialExtension(path);
     if (isOfficial) {
         auto localPathForSharedLib = ExtensionUtils::getLocalPathForSharedLib(context);
-        if (!context->getVFSUnsafe()->fileOrPathExists(localPathForSharedLib)) {
-            context->getVFSUnsafe()->createDir(localPathForSharedLib);
+        if (!common::VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(
+                localPathForSharedLib)) {
+            common::VirtualFileSystem::GetUnsafe(*context)->createDir(localPathForSharedLib);
         }
         executeExtensionLoader(context, path);
         fullPath = ExtensionUtils::getLocalPathForExtensionLib(context, path);
@@ -37,16 +38,13 @@ void ExtensionManager::loadExtension(const std::string& path, main::ClientContex
     if (std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
             [&](const LoadedExtension& ext) { return ext.getExtensionName() == extensionName; })) {
         libLoader.unload();
-        throw common::BinderException{
-            common::stringFormat("Extension: {} is already loaded. You can check loaded extensions "
-                                 "by `CALL SHOW_LOADED_EXTENSIONS() RETURN *`.",
-                extensionName)};
+        return;
     }
     auto init = libLoader.getInitFunc();
     (*init)(context);
     loadedExtensions.push_back(LoadedExtension(extensionName, fullPath,
         isOfficial ? ExtensionSource::OFFICIAL : ExtensionSource::USER));
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     if (transaction->shouldLogToWAL()) {
         transaction->getLocalWAL().logLoadExtension(path);
     }
@@ -97,6 +95,10 @@ void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
     trxContext->beginRecoveryTransaction();
     loadLinkedExtensions(context, loadedExtensions);
     trxContext->commit();
+}
+
+ExtensionManager* ExtensionManager::Get(const main::ClientContext& context) {
+    return context.getDatabase()->getExtensionManager();
 }
 
 } // namespace extension

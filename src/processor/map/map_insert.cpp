@@ -1,4 +1,5 @@
 #include "binder/expression/rel_expression.h"
+#include "main/client_context.h"
 #include "planner/operator/persistent/logical_insert.h"
 #include "processor/expression_mapper.h"
 #include "processor/operator/persistent/insert.h"
@@ -34,7 +35,7 @@ NodeInsertExecutor PlanMapper::getNodeInsertExecutor(const LogicalInsertInfo* bo
     auto nodeIDPos = getDataPos(*node.getInternalID(), outSchema);
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = NodeInsertInfo(nodeIDPos, columnsPos, boundInfo->conflictAction);
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*clientContext);
     KU_ASSERT(node.getNumEntries() == 1);
     ;
     auto table = storageManager->getTable(node.getEntry(0)->getTableID())->ptrCast<NodeTable>();
@@ -56,7 +57,7 @@ RelInsertExecutor PlanMapper::getRelInsertExecutor(const LogicalInsertInfo* boun
     auto dstNodeIDPos = getDataPos(*dstNode->getInternalID(), inSchema);
     auto columnsPos = populateReturnColumnsPos(*boundInfo, outSchema);
     auto info = RelInsertInfo(srcNodeIDPos, dstNodeIDPos, std::move(columnsPos));
-    auto storageManager = clientContext->getStorageManager();
+    auto storageManager = StorageManager::Get(*clientContext);
     KU_ASSERT(srcNode->getNumEntries() == 1 && dstNode->getNumEntries() == 1);
     auto srcTableID = srcNode->getEntry(0)->getTableID();
     auto dstTableID = dstNode->getEntry(0)->getTableID();

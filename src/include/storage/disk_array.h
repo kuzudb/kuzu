@@ -359,8 +359,6 @@ public:
     // memory and not on disk (nor on the wal).
     uint8_t* operator[](uint64_t idx) const;
 
-    uint64_t getMemUsage() const { return inMemArrayPages.size() * common::KUZU_PAGE_SIZE; }
-
 private:
     inline uint64_t getNumArrayPagesNeededForElements(uint64_t numElements) const {
         return (numElements + this->storageInfo.numElementsPerPage - 1) /
@@ -404,8 +402,6 @@ public:
     static constexpr uint32_t getAlignedElementSize() {
         return DiskArray<U>::getAlignedElementSize();
     }
-
-    uint64_t getMemUsage() const { return vector.getMemUsage(); }
 
 private:
     BlockVectorInternal vector;

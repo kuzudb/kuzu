@@ -2,7 +2,7 @@
 --
 -CASE InsertNodeStr
 # Too large of a test to run on 32-bit at the moment
--SKIP_32BIT
+-SKIP_WASM
 -STATEMENT CREATE NODE TABLE n (id SERIAL, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE REL TABLE e (FROM n TO n, prop STRING)

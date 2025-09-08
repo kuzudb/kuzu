@@ -24,16 +24,18 @@ class Table;
 class NodeTable;
 class RelTable;
 class DiskArrayCollection;
+struct DatabaseHeader;
 
 class KUZU_API StorageManager {
 public:
-    StorageManager(const std::string& databasePath, bool readOnly, MemoryManager& memoryManager,
-        bool enableCompression, common::VirtualFileSystem* vfs);
+    StorageManager(const std::string& databasePath, bool readOnly, bool enableChecksums,
+        MemoryManager& memoryManager, bool enableCompression, common::VirtualFileSystem* vfs);
     ~StorageManager();
 
     Table* getTable(common::table_id_t tableID);
 
-    static void recover(main::ClientContext& clientContext);
+    static void recover(main::ClientContext& clientContext, bool throwOnWalReplayFailure,
+        bool enableChecksums);
 
     void createTable(catalog::TableCatalogEntry* entry);
     void addRelTable(catalog::RelGroupCatalogEntry* entry,
@@ -65,6 +67,16 @@ public:
 
     void initDataFileHandle(common::VirtualFileSystem* vfs, main::ClientContext* context);
 
+    // If the database header hasn't been created yet, calling these methods will create + return
+    // the header
+    common::ku_uuid_t getOrInitDatabaseID(const main::ClientContext& clientContext);
+    const storage::DatabaseHeader* getOrInitDatabaseHeader(
+        const main::ClientContext& clientContext);
+
+    void setDatabaseHeader(std::unique_ptr<storage::DatabaseHeader> header);
+
+    static StorageManager* Get(const main::ClientContext& context);
+
 private:
     void createNodeTable(catalog::NodeTableCatalogEntry* entry);
 
@@ -75,6 +87,7 @@ private:
 private:
     std::mutex mtx;
     std::string databasePath;
+    std::unique_ptr<storage::DatabaseHeader> databaseHeader;
     bool readOnly;
     FileHandle* dataFH;
     std::unordered_map<common::table_id_t, std::unique_ptr<Table>> tables;

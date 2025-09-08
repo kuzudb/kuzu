@@ -1,4 +1,5 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
+#include "main/client_context.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/expression_mapper.h"
@@ -46,7 +47,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNodeFrom(
     const auto outFSchema = copyFrom.getSchema();
     auto prevOperator = mapOperator(copyFrom.getChild(0).get());
     auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+        FactorizedTableUtils::getSingleStringColumnFTable(MemoryManager::Get(*clientContext));
 
     auto sharedState = std::make_shared<NodeBatchInsertSharedState>(fTable);
     if (prevOperator->getOperatorType() == PhysicalOperatorType::TABLE_FUNCTION_CALL) {
@@ -101,7 +102,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapPartitioner(
         extraInfo.toTableName, LogicalType::copy(columnTypes), std::move(columnEvaluators),
         copyFromInfo.columnEvaluateTypes);
     auto sharedState =
-        std::make_shared<CopyPartitionerSharedState>(*clientContext->getMemoryManager());
+        std::make_shared<CopyPartitionerSharedState>(*MemoryManager::Get(*clientContext));
     expression_vector expressions;
     for (auto& info : partitionerInfo.infos) {
         expressions.push_back(copyFromInfo.columnExprs[info.keyIdx]);
@@ -121,8 +122,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
     auto partitioner = mapOperator(copyFrom.getChild(0).get());
     KU_ASSERT(partitioner->getOperatorType() == PhysicalOperatorType::PARTITIONER);
     auto partitionerSharedState = partitioner->ptrCast<Partitioner>()->getSharedState();
-    const auto catalog = clientContext->getCatalog();
-    const auto transaction = clientContext->getTransaction();
+    const auto catalog = Catalog::Get(*clientContext);
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     auto extraInfo = copyFromInfo->extraInfo->constCast<ExtraBoundCopyRelInfo>();
     auto fromTableID =
         catalog->getTableCatalogEntry(transaction, extraInfo.fromTableName)->getTableID();
@@ -133,7 +134,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRelFrom(
         warningColumnTypes.push_back(column->getDataType().copy());
     }
     auto fTable =
-        FactorizedTableUtils::getSingleStringColumnFTable(clientContext->getMemoryManager());
+        FactorizedTableUtils::getSingleStringColumnFTable(MemoryManager::Get(*clientContext));
     auto batchInsertSharedState = std::make_shared<BatchInsertSharedState>(fTable);
     // If the table entry doesn't exist, assume both directions
     std::vector directions = {RelDataDirection::FWD, RelDataDirection::BWD};

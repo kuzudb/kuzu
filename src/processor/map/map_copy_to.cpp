@@ -1,7 +1,7 @@
-#include "main/client_context.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "processor/operator/persistent/copy_to.h"
 #include "processor/plan_mapper.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -35,7 +35,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(const LogicalOperator* l
     auto copyTo = std::make_unique<CopyTo>(std::move(info), std::move(sharedState),
         std::move(prevOperator), getOperatorID(), std::move(printInfo));
     copyTo->setDescriptor(std::make_unique<ResultSetDescriptor>(childSchema));
-    return createEmptyFTableScan(FactorizedTable::EmptyTable(clientContext->getMemoryManager()), 0,
+    return createEmptyFTableScan(FactorizedTable::EmptyTable(MemoryManager::Get(*clientContext)), 0,
         std::move(copyTo));
 }
 

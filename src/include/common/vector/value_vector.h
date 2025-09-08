@@ -304,6 +304,12 @@ public:
         return StructVector::getFieldVector(vector, UnionType::getInternalFieldIdx(fieldIdx)).get();
     }
 
+    static inline std::shared_ptr<ValueVector> getSharedValVector(const ValueVector* vector,
+        union_field_idx_t fieldIdx) {
+        KU_ASSERT(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        return StructVector::getFieldVector(vector, UnionType::getInternalFieldIdx(fieldIdx));
+    }
+
     static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,
         std::shared_ptr<ValueVector> vectorToReference) {
         StructVector::referenceVector(vector, UnionType::getInternalFieldIdx(fieldIdx),

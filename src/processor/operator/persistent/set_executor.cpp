@@ -1,5 +1,7 @@
 #include "processor/operator/persistent/set_executor.h"
 
+#include "transaction/transaction.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -51,7 +53,8 @@ void SingleLabelNodeSetExecutor::set(ExecutionContext* context) {
     info.evaluator->evaluate();
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
         *info.nodeIDVector, *info.columnDataVector);
-    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
+    tableInfo.table->initUpdateState(context->clientContext, *updateState);
+    tableInfo.table->update(transaction::Transaction::Get(*context->clientContext), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
     }
@@ -72,7 +75,8 @@ void MultiLabelNodeSetExecutor::set(ExecutionContext* context) {
     auto& tableInfo = tableInfos.at(nodeID.tableID);
     auto updateState = std::make_unique<storage::NodeTableUpdateState>(tableInfo.columnID,
         *info.nodeIDVector, *info.columnDataVector);
-    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
+    tableInfo.table->initUpdateState(context->clientContext, *updateState);
+    tableInfo.table->update(transaction::Transaction::Get(*context->clientContext), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.nodeIDVector, info.columnVector, info.columnDataVector);
     }
@@ -107,7 +111,7 @@ void SingleLabelRelSetExecutor::set(ExecutionContext* context) {
     info.evaluator->evaluate();
     auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
         *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
-    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
+    tableInfo.table->update(transaction::Transaction::Get(*context->clientContext), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
     }
@@ -127,7 +131,7 @@ void MultiLabelRelSetExecutor::set(ExecutionContext* context) {
     auto& tableInfo = tableInfos.at(relID.tableID);
     auto updateState = std::make_unique<storage::RelTableUpdateState>(tableInfo.columnID,
         *info.srcNodeIDVector, *info.dstNodeIDVector, *info.relIDVector, *info.columnDataVector);
-    tableInfo.table->update(context->clientContext->getTransaction(), *updateState);
+    tableInfo.table->update(transaction::Transaction::Get(*context->clientContext), *updateState);
     if (info.columnVectorPos.isValid()) {
         writeColumnUpdateResult(info.relIDVector, info.columnVector, info.columnDataVector);
     }

@@ -14,7 +14,7 @@ struct CastFunctionBindData : public FunctionBindData {
     uint64_t numOfEntries;
 
     explicit CastFunctionBindData(common::LogicalType dataType)
-        : FunctionBindData{std::move(dataType)}, numOfEntries(0) {}
+        : FunctionBindData{std::move(dataType)}, numOfEntries{0} {}
 
     inline std::unique_ptr<FunctionBindData> copy() const override {
         auto result = std::make_unique<CastFunctionBindData>(resultType.copy());

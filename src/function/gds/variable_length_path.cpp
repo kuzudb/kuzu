@@ -4,6 +4,7 @@
 #include "function/gds/rec_joins.h"
 #include "graph/graph.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -116,9 +117,10 @@ private:
     std::unique_ptr<GDSComputeState> getComputeState(ExecutionContext* context, const RJBindData&,
         RecursiveExtendSharedState* sharedState) override {
         auto clientContext = context->clientContext;
-        auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
+        auto transaction = transaction::Transaction::Get(*clientContext);
+        auto bfsGraph =
+            std::make_unique<BFSGraphManager>(sharedState->graph->getMaxOffsetMap(transaction),
+                storage::MemoryManager::Get(*clientContext));
         auto currentDenseFrontier =
             DenseFrontier::getUninitializedFrontier(context, sharedState->graph.get());
         auto nextDenseFrontier =

@@ -36,17 +36,14 @@ struct CastRelToString {
 };
 
 struct CastToUnion {
-    template<typename T>
-    static inline void operation(T&, common::union_entry_t&, common::ValueVector& inputVector,
-        common::ValueVector& resultVector, void* pBindData) {
-        auto& bindData = *reinterpret_cast<CastToUnionBindData*>(pBindData);
-        auto* selVector = inputVector.getSelVectorPtr();
-        auto* tagVector = common::UnionVector::getTagVector(&resultVector);
-        auto* valVector = common::UnionVector::getValVector(&resultVector, bindData.minCostTag);
-        for (auto& pos : selVector->getSelectedPositions()) {
-            tagVector->setValue<common::union_field_idx_t>(pos, bindData.minCostTag);
-        }
-        bindData.innerFunc(inputVector, *valVector, *selVector, bindData);
+    static inline void operation(common::ValueVector& inputVector,
+        common::ValueVector& resultVector, uint64_t inputPos, uint64_t resultPos, void* dataPtr) {
+        const auto& bindData = *reinterpret_cast<CastToUnionBindData*>(dataPtr);
+        auto& tagVector = *common::UnionVector::getTagVector(&resultVector);
+        auto& valVector = *common::UnionVector::getValVector(&resultVector, bindData.targetTag);
+        tagVector.setValue<common::union_field_idx_t>(resultPos, bindData.targetTag);
+        bindData.innerFunc(&inputVector, valVector, inputVector.getSelVectorPtr(), inputPos,
+            resultPos);
     }
 };
 

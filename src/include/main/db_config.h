@@ -6,7 +6,6 @@
 
 namespace kuzu {
 namespace common {
-class Value;
 enum class LogicalTypeID : uint8_t;
 } // namespace common
 
@@ -64,6 +63,8 @@ struct DBConfig {
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
+    bool throwOnWalReplayFailure;
+    bool enableChecksums;
     bool enableSpillingToDisk;
 #if defined(__APPLE__)
     uint32_t threadQos;

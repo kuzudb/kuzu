@@ -5,6 +5,8 @@
 #include "common/exception/buffer_manager.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/types/types.h"
+#include "main/client_context.h"
+#include "main/database.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/file_handle.h"
 
@@ -103,6 +105,10 @@ void MemoryManager::updateUsedMemoryForFreedBlock(page_idx_t pageIdx, std::span<
         std::unique_lock<std::mutex> lock(allocatorLock);
         freePages.push(pageIdx);
     }
+}
+
+MemoryManager* MemoryManager::Get(const main::ClientContext& context) {
+    return context.getDatabase()->getMemoryManager();
 }
 
 } // namespace storage

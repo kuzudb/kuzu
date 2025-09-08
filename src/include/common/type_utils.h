@@ -11,6 +11,7 @@
 #include "common/types/timestamp_t.h"
 #include "common/types/types.h"
 #include "common/types/uuid.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace common {

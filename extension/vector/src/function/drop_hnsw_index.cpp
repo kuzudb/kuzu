@@ -3,7 +3,10 @@
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index_utils.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction_context.h"
 
 using namespace kuzu::function;
 
@@ -34,7 +37,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
 static common::offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto& context = *input.context->clientContext;
     const auto bindData = input.bindData->constPtrCast<DropHNSWIndexBindData>();
-    context.getCatalog()->dropIndex(context.getTransaction(), bindData->tableEntry->getTableID(),
+    auto tableID = bindData->tableEntry->getTableID();
+    auto transaction = transaction::Transaction::Get(context);
+    catalog::Catalog::Get(context)->dropIndex(transaction, tableID, bindData->indexName);
+    storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>().dropIndex(
         bindData->indexName);
     return 0;
 }

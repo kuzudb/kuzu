@@ -1,18 +1,19 @@
-#include <cmath>
-
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/exception/runtime.h"
 #include "common/in_mem_gds_utils.h"
 #include "common/in_mem_graph.h"
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
+#include "common/types/types.h"
 #include "function/algo_function.h"
 #include "function/config/louvain_config.h"
 #include "function/config/max_iterations_config.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "function/table/bind_input.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace std;
 using namespace kuzu::binder;
@@ -40,51 +41,47 @@ namespace algo_extension {
 constexpr double THRESHOLD = 1e-6;
 constexpr offset_t UNASSIGNED_COMM = numeric_limits<offset_t>::max();
 
-struct LouvainOptionalParams final : public GDSOptionalParams {
-    std::shared_ptr<Expression> maxPhases;
-    std::shared_ptr<Expression> maxIteration;
+struct LouvainOptionalParams final : public MaxIterationOptionalParams {
+    OptionalParam<MaxPhases> maxPhases;
 
     explicit LouvainOptionalParams(const expression_vector& optionalParams);
 
-    std::unique_ptr<GDSConfig> getConfig() const override;
+    // For copy only
+    LouvainOptionalParams(OptionalParam<MaxIterations> maxIterations,
+        OptionalParam<MaxPhases> maxPhases)
+        : MaxIterationOptionalParams{maxIterations}, maxPhases{std::move(maxPhases)} {}
 
-    std::unique_ptr<GDSOptionalParams> copy() const override {
-        return std::make_unique<LouvainOptionalParams>(*this);
+    void evaluateParams(main::ClientContext* context) override {
+        MaxIterationOptionalParams::evaluateParams(context);
+        maxPhases.evaluateParam(context);
+    }
+
+    std::unique_ptr<function::OptionalParams> copy() override {
+        return std::make_unique<LouvainOptionalParams>(maxIterations, maxPhases);
     }
 };
 
-LouvainOptionalParams::LouvainOptionalParams(const expression_vector& optionalParams) {
+LouvainOptionalParams::LouvainOptionalParams(const expression_vector& optionalParams)
+    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)} {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == MaxPhases::NAME) {
-            maxPhases = optionalParam;
+            maxPhases = function::OptionalParam<MaxPhases>(optionalParam);
         } else if (paramName == MaxIterations::NAME) {
-            maxIteration = optionalParam;
+            continue;
         } else {
             throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
     }
 }
 
-std::unique_ptr<GDSConfig> LouvainOptionalParams::getConfig() const {
-    auto config = std::make_unique<LouvainConfig>();
-    if (maxPhases != nullptr) {
-        config->maxPhases = ExpressionUtil::evaluateLiteral<int64_t>(*maxPhases,
-            LogicalType::INT64(), MaxPhases::validate);
-    }
-    if (maxIteration != nullptr) {
-        config->maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
-            LogicalType::INT64(), MaxIterations::validate);
-    }
-    return config;
-}
-
 struct LouvainBindData final : public GDSBindData {
     LouvainBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<LouvainOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
-              std::move(optionalParams)} {}
+        : GDSBindData{std::move(columns), std::move(graphEntry), expression_vector{nodeOutput}} {
+        this->optionalParams = std::move(optionalParams);
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<LouvainBindData>(*this);
@@ -163,12 +160,13 @@ struct PhaseState {
     void finalize() { graph.initNextNode(); }
 };
 
-class ResetPhaseStateVC final : public InMemVertexCompute {
+class ResetPhaseStateVC final : public InMemParallelCompute {
 public:
     explicit ResetPhaseStateVC(PhaseState& state) : state{state} {}
     ~ResetPhaseStateVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.nodeWeightedDegrees.set(nodeId, 0, memory_order_relaxed);
             state.currCommInfos.set(nodeId, CommInfo());
@@ -178,7 +176,7 @@ public:
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<ResetPhaseStateVC>(state);
     }
 
@@ -186,19 +184,20 @@ private:
     PhaseState& state;
 };
 
-class StartNewIterVC final : public InMemVertexCompute {
+class StartNewIterVC final : public InMemParallelCompute {
 public:
     explicit StartNewIterVC(PhaseState& state) : state{state} {}
     ~StartNewIterVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             state.selfCommWeights.set(nodeId, 0, memory_order_relaxed);
             state.nextCommInfos.set(nodeId, CommInfo());
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<StartNewIterVC>(state);
     }
 
@@ -217,7 +216,7 @@ void PhaseState::reinit(const offset_t numNodes, MemoryManager* mm, ExecutionCon
     nextComm.reallocate(numNodes, mm);
 
     ResetPhaseStateVC resetPhaseStateVC(*this);
-    InMemGDSUtils::runVertexCompute(resetPhaseStateVC, numNodes, context);
+    InMemGDSUtils::runParallelCompute(resetPhaseStateVC, numNodes, context);
 }
 
 void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
@@ -225,7 +224,7 @@ void PhaseState::startNewIter(MemoryManager* mm, ExecutionContext* context) {
     nextCommInfos.reallocate(graph.numNodes, mm);
 
     StartNewIterVC startNewIterVC(*this);
-    InMemGDSUtils::runVertexCompute(startNewIterVC, graph.numNodes, context);
+    InMemGDSUtils::runParallelCompute(startNewIterVC, graph.numNodes, context);
 
     modularityConstant = 1.0 / totalWeight;
 }
@@ -236,14 +235,15 @@ struct FinalResults {
     explicit FinalResults(const offset_t numNodes) { communities.resize(numNodes); }
 };
 
-class SaveCommAssignmentsVC final : public InMemVertexCompute {
+class SaveCommAssignmentsVC final : public InMemParallelCompute {
 public:
     explicit SaveCommAssignmentsVC(const offset_t phaseId, FinalResults& finalResults,
         PhaseState& state)
         : phaseId{phaseId}, finalResults{finalResults}, state{state} {}
     ~SaveCommAssignmentsVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         if (phaseId == 0) {
             for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
                 finalResults.communities[nodeId] =
@@ -263,7 +263,7 @@ public:
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<SaveCommAssignmentsVC>(phaseId, finalResults, state);
     }
 
@@ -273,12 +273,13 @@ private:
     PhaseState& state;
 };
 
-class RunIterationVC final : public InMemVertexCompute {
+class RunIterationVC final : public InMemParallelCompute {
 public:
     explicit RunIterationVC(PhaseState& state) : state{state} {}
     ~RunIterationVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         // For every `nodeId`, separately stores the edge weights to its own community (at index 0)
         // and each of its neighboring communities.
         vector<weight_t> intraCommWeights;
@@ -397,7 +398,7 @@ public:
         return newComm;
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<RunIterationVC>(state);
     }
 
@@ -405,14 +406,15 @@ private:
     PhaseState& state;
 };
 
-class ComputeModularityVC final : public InMemVertexCompute {
+class ComputeModularityVC final : public InMemParallelCompute {
 public:
     ComputeModularityVC(PhaseState& state, std::atomic<weight_t>& sumIntraWeights,
         std::atomic<weight_t>& sumWeightedDegrees)
         : state{state}, sumIntraWeights{sumIntraWeights}, sumWeightedDegrees{sumWeightedDegrees} {}
     ~ComputeModularityVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         weight_t sumIntraLocal = 0;
         weight_t sumTotalLocal = 0;
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
@@ -425,7 +427,7 @@ public:
         sumWeightedDegrees.fetch_add(sumTotalLocal);
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<ComputeModularityVC>(state, sumIntraWeights, sumWeightedDegrees);
     }
 
@@ -435,12 +437,13 @@ private:
     std::atomic<weight_t>& sumWeightedDegrees;
 };
 
-class UpdateCommInfosVC final : public InMemVertexCompute {
+class UpdateCommInfosVC final : public InMemParallelCompute {
 public:
     explicit UpdateCommInfosVC(PhaseState& state) : state{state} {}
     ~UpdateCommInfosVC() override = default;
 
-    void vertexCompute(const offset_t startOffset, const offset_t endOffset) override {
+    void parallelCompute(const offset_t startOffset, const offset_t endOffset,
+        const std::optional<table_id_t>&) override {
         for (auto nodeId = startOffset; nodeId < endOffset; ++nodeId) {
             const offset_t size =
                 state.nextCommInfos.getUnsafe(nodeId).size.load(memory_order_relaxed);
@@ -451,7 +454,7 @@ public:
         }
     }
 
-    std::unique_ptr<InMemVertexCompute> copy() override {
+    std::unique_ptr<InMemParallelCompute> copy() override {
         return std::make_unique<UpdateCommInfosVC>(state);
     }
 
@@ -494,8 +497,9 @@ void initInMemoryGraph(const table_id_t tableId, const offset_t numNodes, Graph*
     const auto nbrTables = graph->getRelInfos(tableId);
     const auto nbrInfo = nbrTables[0];
     KU_ASSERT(nbrInfo.srcTableID == nbrInfo.dstTableID);
-    const auto scanState =
-        graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID, nbrInfo.dstTableID, {});
+    // Set randomLookup to false to enable caching during graph materialization.
+    const auto scanState = graph->prepareRelScan(*nbrInfo.relGroupEntry, nbrInfo.relTableID,
+        nbrInfo.dstTableID, {}, false /*randomLookup*/);
 
     for (auto nodeId = 0u; nodeId < numNodes; ++nodeId) {
         state.initNextNode(nodeId);
@@ -570,20 +574,20 @@ void aggregateCommunities(const offset_t newCommCount, PhaseState& state, Memory
 
 static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     const auto clientContext = input.context->clientContext;
-    const auto transaction = clientContext->getTransaction();
+    const auto transaction = transaction::Transaction::Get(*clientContext);
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
-    auto mm = clientContext->getMemoryManager();
+    auto mm = MemoryManager::Get(*clientContext);
     const auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     KU_ASSERT(graph->getNodeTableIDs().size() == 1);
     const auto tableID = graph->getNodeTableIDs()[0];
-    const auto origNumNodes = graph->getMaxOffset(clientContext->getTransaction(), tableID);
+    const auto origNumNodes = graph->getMaxOffset(transaction, tableID);
 
     auto louvainBindData = input.bindData->constPtrCast<LouvainBindData>();
-    auto config = louvainBindData->getConfig()->constCast<LouvainConfig>();
+    auto& config = louvainBindData->optionalParams->constCast<LouvainOptionalParams>();
 
     auto progressBar = clientContext->getProgressBar();
-    const auto steps = config.maxPhases * config.maxIterations;
+    const auto steps = config.maxPhases.getParamVal() * config.maxIterations.getParamVal();
 
     FinalResults finalResults(origNumNodes);
     PhaseState state(origNumNodes, mm, input.context);
@@ -592,11 +596,11 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
     initInMemoryGraph(tableID, origNumNodes, graph, state);
 
     // Each phases attempts to decrease the number of communities by merging nodes into supernodes.
-    for (auto phase = 0u; phase < config.maxPhases; ++phase) {
+    for (auto phase = 0u; phase < config.maxPhases.getParamVal(); ++phase) {
         double oldMod = -1;
 
         // Each iteration attempts to increase the modularity by moving nodes to new communities.
-        for (auto iter = 0u; iter < config.maxIterations; ++iter) {
+        for (auto iter = 0u; iter < config.maxIterations.getParamVal(); ++iter) {
             double progress = static_cast<double>((phase + 1) * (iter + 1)) / steps;
 
             // Reset state.
@@ -606,7 +610,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             // community increases the graph modularity. Note that the new community assignments are
             // sensitive to the order in which the nodes are processed.
             RunIterationVC runIteration(state);
-            InMemGDSUtils::runVertexCompute(runIteration, state.graph.numNodes, input.context);
+            InMemGDSUtils::runParallelCompute(runIteration, state.graph.numNodes, input.context);
 
             progressBar->updateProgress(input.context->queryID, progress * 0.5);
 
@@ -615,7 +619,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             std::atomic<weight_t> sumIntraWeights{0};
             std::atomic<weight_t> sumWeightedDegrees{0};
             ComputeModularityVC newModularityVC(state, sumIntraWeights, sumWeightedDegrees);
-            InMemGDSUtils::runVertexCompute(newModularityVC, state.graph.numNodes, input.context);
+            InMemGDSUtils::runParallelCompute(newModularityVC, state.graph.numNodes, input.context);
             const double currMod =
                 sumIntraWeights.load() * state.modularityConstant -
                 (sumWeightedDegrees.load() * state.modularityConstant * state.modularityConstant);
@@ -629,7 +633,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
             oldMod = currMod;
             // nextCommInfo -> currCommInfo.
             UpdateCommInfosVC updateCommInfosVC(state);
-            InMemGDSUtils::runVertexCompute(updateCommInfosVC, state.graph.numNodes, input.context);
+            InMemGDSUtils::runParallelCompute(updateCommInfosVC, state.graph.numNodes,
+                input.context);
 
             // Save `currComm` to `acceptedComm`.
             std::swap(state.acceptedComm, state.currComm);
@@ -643,7 +648,7 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
 
         // Save the renumbered communities as output.
         SaveCommAssignmentsVC setFinalComms(phase, finalResults, state);
-        InMemGDSUtils::runVertexCompute(setFinalComms, origNumNodes, input.context);
+        InMemGDSUtils::runParallelCompute(setFinalComms, origNumNodes, input.context);
 
         if (oldCommCount == newCommCount) {
             // No node merged into a neighbor community. The assignments saved above are final.
@@ -656,8 +661,8 @@ static common::offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&)
         aggregateCommunities(newCommCount, state, mm, input.context);
     }
 
-    const auto vertexCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
-    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *vertexCompute);
+    const auto parallelCompute = make_unique<WriteResultsVC>(mm, sharedState, finalResults);
+    GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *parallelCompute);
 
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

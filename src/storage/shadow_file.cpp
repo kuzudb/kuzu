@@ -1,5 +1,6 @@
 #include "storage/shadow_file.h"
 
+#include "common/exception/io.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "common/serializer/deserializer.h"
@@ -8,6 +9,8 @@
 #include "main/db_config.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/database_header.h"
+#include "storage/file_db_id_utils.h"
 #include "storage/file_handle.h"
 #include "storage/storage_manager.h"
 
@@ -63,17 +66,26 @@ page_idx_t ShadowFile::getShadowPage(file_idx_t originalFile, page_idx_t origina
 void ShadowFile::applyShadowPages(ClientContext& context) const {
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1; // Skip header page.
-    auto dataFileInfo = context.getStorageManager()->getDataFH()->getFileInfo();
+    auto dataFileInfo = StorageManager::Get(context)->getDataFH()->getFileInfo();
     KU_ASSERT(shadowingFH);
     for (const auto& record : shadowPageRecords) {
         shadowingFH->readPageFromDisk(pageBuffer.get(), shadowPageIdx++);
         dataFileInfo->writeFile(pageBuffer.get(), KUZU_PAGE_SIZE,
             record.originalPageIdx * KUZU_PAGE_SIZE);
         // NOTE: We're not taking lock here, as we assume this is only called with a single thread.
-        context.getMemoryManager()->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
+        MemoryManager::Get(context)->getBufferManager()->updateFrameIfPageIsInFrameWithoutLock(
             record.originalFileIdx, pageBuffer.get(), record.originalPageIdx);
     }
     dataFileInfo->syncFile();
+}
+
+static ku_uuid_t getOldDatabaseID(FileInfo& dataFileInfo) {
+    auto oldHeader = DatabaseHeader::readDatabaseHeader(dataFileInfo);
+    if (!oldHeader.has_value()) {
+        throw InternalException("Found a shadow file for database {} but no valid database header. "
+                                "The database is corrupted, please recreate it.");
+    }
+    return oldHeader->databaseID;
 }
 
 void ShadowFile::replayShadowPageRecords(ClientContext& context) {
@@ -81,21 +93,40 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) {
         throw RuntimeException("Couldn't replay shadow pages under read-only mode. Please re-open "
                                "the database with read-write mode to replay shadow pages.");
     }
-    auto vfs = context.getVFSUnsafe();
+    auto vfs = VirtualFileSystem::GetUnsafe(context);
     auto shadowFilePath = StorageUtils::getShadowFilePath(context.getDatabasePath());
     auto shadowFileInfo = vfs->openFile(shadowFilePath, FileOpenFlags(FileFlags::READ_ONLY));
+
+    std::unique_ptr<FileInfo> dataFileInfo;
+    try {
+        dataFileInfo = vfs->openFile(context.getDatabasePath(),
+            FileOpenFlags{FileFlags::WRITE | FileFlags::READ_ONLY, FileLockType::WRITE_LOCK});
+    } catch (IOException& e) {
+        throw RuntimeException(stringFormat(
+            "Found shadow file {} but no corresponding database file. This file "
+            "may have been left behind from a previous database with the same name. If it is safe "
+            "to do so, please delete this file and restart the database.",
+            shadowFilePath));
+    }
+
     ShadowFileHeader header;
     const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     shadowFileInfo->readFromFile(headerBuffer.get(), KUZU_PAGE_SIZE, 0);
     memcpy(&header, headerBuffer.get(), sizeof(ShadowFileHeader));
+
+    // When replaying the shadow file we haven't read the database ID from the database
+    // header yet
+    // So we need to do it separately here to verify the shadow file matches the database
+    auto oldDatabaseID = getOldDatabaseID(*dataFileInfo);
+    FileDBIDUtils::verifyDatabaseID(*shadowFileInfo, oldDatabaseID, header.databaseID);
+
     std::vector<ShadowPageRecord> shadowPageRecords;
     shadowPageRecords.reserve(header.numShadowPages);
     auto reader = std::make_unique<BufferedFileReader>(*shadowFileInfo);
     reader->resetReadOffset((header.numShadowPages + 1) * KUZU_PAGE_SIZE);
     Deserializer deSer(std::move(reader));
     deSer.deserializeVector(shadowPageRecords);
-    auto dataFileInfo = vfs->openFile(context.getDatabasePath(),
-        FileOpenFlags{FileFlags::WRITE | FileFlags::READ_ONLY, FileLockType::WRITE_LOCK});
+
     const auto pageBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     page_idx_t shadowPageIdx = 1;
     for (const auto& record : shadowPageRecords) {
@@ -107,10 +138,11 @@ void ShadowFile::replayShadowPageRecords(ClientContext& context) {
     }
 }
 
-void ShadowFile::flushAll() const {
+void ShadowFile::flushAll(main::ClientContext& context) const {
     // Write header page to file.
     ShadowFileHeader header;
     header.numShadowPages = shadowPageRecords.size();
+    header.databaseID = StorageManager::Get(context)->getOrInitDatabaseID(context);
     const auto headerBuffer = std::make_unique<uint8_t[]>(KUZU_PAGE_SIZE);
     memcpy(headerBuffer.get(), &header, sizeof(ShadowFileHeader));
     KU_ASSERT(shadowingFH && !shadowingFH->isInMemoryMode());

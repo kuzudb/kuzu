@@ -23,6 +23,7 @@
 #include "printer/json_printer.h"
 #include "printer/printer_factory.h"
 #include "transaction/transaction.h"
+#include "transaction/transaction_context.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
@@ -104,13 +105,13 @@ void EmbeddedShell::updateTableNames() {
     relTableNames.clear();
     auto clientContext = conn->getClientContext();
     bool transactionStarted = false;
-    if (clientContext->getTransaction() == NULL) {
+    if (transaction::Transaction::Get(*clientContext) == NULL) {
         clientContext->getTransactionContext()
             ->beginReadTransaction(); // start transaction to get current table names
         transactionStarted = true;
     }
-    for (auto& tableEntry : database->catalog->getTableEntries(clientContext->getTransaction(),
-             false /*useInternal*/)) {
+    for (auto& tableEntry : database->catalog->getTableEntries(
+             transaction::Transaction::Get(*clientContext), false /*useInternal*/)) {
         if (tableEntry->getType() == catalog::CatalogEntryType::NODE_TABLE_ENTRY) {
             nodeTableNames.push_back(tableEntry->getName());
         } else if (tableEntry->getType() == catalog::CatalogEntryType::REL_GROUP_ENTRY) {
@@ -490,8 +491,8 @@ std::string decodeEscapeSequences(const std::string& input) {
     return result;
 }
 
-void EmbeddedShell::checkConfidentialStatement(const std::string& query,
-    const QueryResult* queryResult, std::string& input) {
+void EmbeddedShell::checkConfidentialStatement(const std::string& query, QueryResult* queryResult,
+    std::string& input) {
     if (queryResult->isSuccess() && !database->getConfig().readOnly &&
         queryResult->getQuerySummary()->getStatementType() ==
             common::StatementType::STANDALONE_CALL) {
@@ -543,10 +544,10 @@ std::vector<std::unique_ptr<QueryResult>> EmbeddedShell::processInput(std::strin
         checkConfidentialStatement(unicodeInput, curr, input);
         while (true) {
             queryResults.push_back(std::move(result));
-            if (!curr->getNextQueryResult()) {
+            if (!curr->hasNextQueryResult()) {
                 break;
             }
-            result = std::move(curr->nextQueryResult);
+            result = curr->moveNextResult();
             curr = result.get();
             checkConfidentialStatement(unicodeInput, curr, input);
         }
@@ -841,7 +842,7 @@ void EmbeddedShell::printHelp() {
 
 std::string EmbeddedShell::printJsonExecutionResult(QueryResult& queryResult) const {
     auto& jsonPrinter = printer->constCast<JsonPrinter>();
-    return jsonPrinter.print(queryResult, *conn->getClientContext()->getMemoryManager());
+    return jsonPrinter.print(queryResult, *storage::MemoryManager::Get(*conn->getClientContext()));
 }
 
 std::string escapeHtmlString(const std::string& str) {

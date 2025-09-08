@@ -8,46 +8,53 @@
 namespace kuzu {
 namespace fts_extension {
 
-struct QueryFTSOptionalParams {
-    std::shared_ptr<binder::Expression> k;
-    std::shared_ptr<binder::Expression> b;
-    std::shared_ptr<binder::Expression> conjunctive;
-    std::shared_ptr<binder::Expression> topK;
+struct QueryFTSOptionalParams : public function::OptionalParams {
+    function::OptionalParam<K> k;
+    function::OptionalParam<B> b;
+    function::OptionalParam<Conjunctive> conjunctive;
+    function::OptionalParam<TopK> topK;
 
-    QueryFTSOptionalParams(main::ClientContext* context,
-        const binder::expression_vector& optionalParams);
+    explicit QueryFTSOptionalParams(const binder::expression_vector& optionalParams);
 
-    QueryFTSConfig getConfig() const;
+    // For copy only.
+    QueryFTSOptionalParams(function::OptionalParam<K> k, function::OptionalParam<B> b,
+        function::OptionalParam<Conjunctive> conjunctive, function::OptionalParam<TopK> topK)
+        : k{std::move(k)}, b{std::move(b)}, conjunctive{std::move(conjunctive)},
+          topK{std::move(topK)} {}
+
+    void evaluateParams(main::ClientContext* context) override;
+
+    std::unique_ptr<function::OptionalParams> copy() override {
+        return std::make_unique<QueryFTSOptionalParams>(k, b, conjunctive, topK);
+    }
 };
 
-struct QueryFTSBindData final : function::GDSBindData {
+struct QueryFTSBindData final : public function::GDSBindData {
     std::shared_ptr<binder::Expression> query;
     const catalog::IndexCatalogEntry& entry;
-    QueryFTSOptionalParams optionalParams;
     common::table_id_t outputTableID;
     common::idx_t numDocs;
     double avgDocLen;
 
     QueryFTSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
-        const catalog::IndexCatalogEntry& entry, QueryFTSOptionalParams optionalParams,
-        common::idx_t numDocs, double avgDocLen)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(docs)},
-          query{std::move(query)}, entry{entry}, optionalParams{std::move(optionalParams)},
-          outputTableID{nodeOutput->constCast<binder::NodeExpression>().getTableIDs()[0]},
+        const catalog::IndexCatalogEntry& entry,
+        std::unique_ptr<QueryFTSOptionalParams> optionalParams, common::idx_t numDocs,
+        double avgDocLen)
+        : GDSBindData{std::move(columns), std::move(graphEntry), binder::expression_vector{docs}},
+          query{std::move(query)}, entry{entry},
+          outputTableID{output[0]->constCast<binder::NodeExpression>().getTableIDs()[0]},
           numDocs{numDocs}, avgDocLen{avgDocLen} {
-        auto& nodeExpr = nodeOutput->constCast<binder::NodeExpression>();
+        auto& nodeExpr = output[0]->constCast<binder::NodeExpression>();
         KU_ASSERT(nodeExpr.getNumEntries() == 1);
         outputTableID = nodeExpr.getEntry(0)->getTableID();
+        this->optionalParams = std::move(optionalParams);
     }
     QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, query{other.query}, entry{other.entry},
-          optionalParams{other.optionalParams}, outputTableID{other.outputTableID},
-          numDocs{other.numDocs}, avgDocLen{other.avgDocLen} {}
+          outputTableID{other.outputTableID}, numDocs{other.numDocs}, avgDocLen{other.avgDocLen} {}
 
-    std::vector<std::string> getTerms(main::ClientContext& context) const;
-
-    QueryFTSConfig getConfig() const { return optionalParams.getConfig(); }
+    std::vector<std::string> getQueryTerms(main::ClientContext& context) const;
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<QueryFTSBindData>(*this);

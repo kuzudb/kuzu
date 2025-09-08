@@ -7,6 +7,7 @@
 #include "function/scalar_function.h"
 #include "httplib.h"
 #include "json.hpp"
+#include "main/client_context.h"
 #include "providers/amazon-bedrock.h"
 #include "providers/google-gemini.h"
 #include "providers/google-vertex.h"
@@ -115,6 +116,7 @@ void validateValAsPositive(int64_t val) {
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::optional<uint64_t> numConfig = std::nullopt;
     std::optional<std::string> stringConfig = std::nullopt;
+    auto clientContext = input.context;
     if (input.arguments[0]->getDataType() != LogicalType::STRING()) {
         static const auto fcnSet = CreateEmbedding::getFunctionSet();
         std::string supportedArgs;
@@ -127,32 +129,32 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     }
     auto providerNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
         input.arguments[1], LogicalType::STRING());
-    auto providerName =
-        ExpressionUtil::evaluateLiteral<std::string>(*providerNameExpr, LogicalType::STRING());
+    auto providerName = ExpressionUtil::evaluateLiteral<std::string>(clientContext,
+        providerNameExpr, LogicalType::STRING());
     auto provider = EmbeddingProviderFactory::getProvider(providerName);
     auto modelNameExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
         input.arguments[2], LogicalType::STRING());
-    auto modelName =
-        ExpressionUtil::evaluateLiteral<std::string>(*modelNameExpr, LogicalType::STRING());
+    auto modelName = ExpressionUtil::evaluateLiteral<std::string>(clientContext, modelNameExpr,
+        LogicalType::STRING());
     if (input.arguments.size() == 5) {
         auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
             input.arguments[3], LogicalType::INT64());
-        numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr, LogicalType::INT64(),
-            validateValAsPositive);
+        numConfig = ExpressionUtil::evaluateLiteral<int64_t>(clientContext, numConfigExpr,
+            LogicalType::INT64(), validateValAsPositive);
         auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
             input.arguments[4], LogicalType::STRING());
-        stringConfig =
-            ExpressionUtil::evaluateLiteral<std::string>(*stringConfigExpr, LogicalType::STRING());
+        stringConfig = ExpressionUtil::evaluateLiteral<std::string>(clientContext, stringConfigExpr,
+            LogicalType::STRING());
     } else if (input.arguments.size() == 4) {
         if (input.arguments[3]->dataType == LogicalType(LogicalTypeID::STRING)) {
             auto stringConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
                 input.arguments[3], LogicalType::STRING());
-            stringConfig = ExpressionUtil::evaluateLiteral<std::string>(*stringConfigExpr,
-                LogicalType::STRING());
+            stringConfig = ExpressionUtil::evaluateLiteral<std::string>(clientContext,
+                stringConfigExpr, LogicalType::STRING());
         } else {
             auto numConfigExpr = ExpressionUtil::applyImplicitCastingIfNecessary(input.context,
                 input.arguments[3], LogicalType::INT64());
-            numConfig = ExpressionUtil::evaluateLiteral<int64_t>(*numConfigExpr,
+            numConfig = ExpressionUtil::evaluateLiteral<int64_t>(clientContext, numConfigExpr,
                 LogicalType::INT64(), validateValAsPositive);
         }
     }

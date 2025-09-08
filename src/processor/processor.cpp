@@ -1,7 +1,9 @@
 #include "processor/processor.h"
 
 #include "common/task_system/progress_bar.h"
+#include "main/client_context.h"
 #include "processor/operator/sink.h"
+#include "processor/physical_plan.h"
 #include "processor/processor_task.h"
 
 using namespace kuzu::common;
@@ -9,6 +11,7 @@ using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
+
 #if defined(__APPLE__)
 QueryProcessor::QueryProcessor(uint64_t numThreads, uint32_t threadQos) {
     taskScheduler = std::make_unique<TaskScheduler>(numThreads, threadQos);
@@ -19,7 +22,7 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 }
 #endif
 
-std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalPlan,
+std::unique_ptr<main::QueryResult> QueryProcessor::execute(PhysicalPlan* physicalPlan,
     ExecutionContext* context) {
     auto lastOperator = physicalPlan->lastOperator.get();
     // The root pipeline(task) consists of operators and its prevOperator only, because we
@@ -32,10 +35,11 @@ std::shared_ptr<FactorizedTable> QueryProcessor::execute(PhysicalPlan* physicalP
         decomposePlanIntoTask(sink->getChild(i), task.get(), context);
     }
     initTask(task.get());
-    context->clientContext->getProgressBar()->startProgress(context->queryID);
+    auto progressBar = context->clientContext->getProgressBar();
+    progressBar->startProgress(context->queryID);
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
-    context->clientContext->getProgressBar()->endProgress(context->queryID);
-    return sink->getResultFTable();
+    progressBar->endProgress(context->queryID);
+    return sink->getQueryResult();
 }
 
 void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,

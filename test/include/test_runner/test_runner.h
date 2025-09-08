@@ -8,20 +8,20 @@ namespace testing {
 
 class TestRunner {
 public:
-    static void runTest(TestStatement* statement, main::Connection& conn,
+    static void runTest(TestStatement& statement, main::Connection& conn,
         const std::string& databasePath);
 
     static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(const std::string& query,
         main::Connection& conn);
 
 private:
-    static void runBatchStatements(TestStatement* statement, main::Connection& conn,
+    static void runBatchStatements(TestStatement& statement, main::Connection& conn,
         const std::string& databasePath);
-    static void testStatement(TestStatement* statement, main::Connection& conn,
+    static void testStatement(TestStatement& statement, main::Connection& conn,
         const std::string& databasePath);
     static void checkLogicalPlan(main::Connection& conn, main::QueryResult* queryResult,
-        TestStatement* statement, size_t resultIdx);
-    static bool checkResultNumeric(main::QueryResult& queryResult, const TestStatement* statement,
+        TestStatement& statement, size_t resultIdx);
+    static bool checkResultNumeric(main::QueryResult& queryResult, const TestStatement& statement,
         size_t resultIdx);
     static std::vector<std::string> convertResultToString(main::QueryResult& queryResult,
         bool checkOutputOrder = false, bool checkColumnNames = false);
@@ -29,11 +29,11 @@ private:
         bool checkColumnNames); // returns hash and number of values hashed
     static std::string convertResultColumnsToString(const main::QueryResult& queryResult);
     static void checkPlanResult(main::Connection& conn, main::QueryResult* result,
-        TestStatement* statement, size_t resultIdx);
-    static void generateOutput(main::QueryResult* result, TestStatement* statement,
+        TestStatement& statement, size_t resultIdx);
+    static void generateOutput(main::QueryResult* result, TestStatement& statement,
         size_t resultIdx);
 
-    static void outputFailedPlan(main::Connection& conn, const TestStatement* statement);
+    static void outputFailedPlan(main::Connection& conn, const TestStatement& statement);
 };
 
 } // namespace testing

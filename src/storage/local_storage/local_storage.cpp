@@ -1,6 +1,5 @@
 #include "storage/local_storage/local_storage.h"
 
-#include "main/client_context.h"
 #include "storage/local_storage/local_node_table.h"
 #include "storage/local_storage/local_rel_table.h"
 #include "storage/local_storage/local_table.h"
@@ -16,9 +15,9 @@ namespace storage {
 
 LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
-    auto catalog = clientContext.getCatalog();
-    auto transaction = clientContext.getTransaction();
-    auto& mm = *clientContext.getMemoryManager();
+    auto catalog = catalog::Catalog::Get(clientContext);
+    auto transaction = transaction::Transaction::Get(clientContext);
+    auto& mm = *MemoryManager::Get(clientContext);
     if (!tables.contains(tableID)) {
         switch (table.getTableType()) {
         case TableType::NODE: {
@@ -46,7 +45,7 @@ LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
 }
 
 PageAllocator* LocalStorage::addOptimisticAllocator() {
-    auto* dataFH = clientContext.getStorageManager()->getDataFH();
+    auto* dataFH = StorageManager::Get(clientContext)->getDataFH();
     if (dataFH->isInMemoryMode()) {
         return dataFH->getPageManager();
     }
@@ -57,9 +56,9 @@ PageAllocator* LocalStorage::addOptimisticAllocator() {
 }
 
 void LocalStorage::commit() {
-    auto catalog = clientContext.getCatalog();
-    auto transaction = clientContext.getTransaction();
-    auto storageManager = clientContext.getStorageManager();
+    auto catalog = catalog::Catalog::Get(clientContext);
+    auto transaction = transaction::Transaction::Get(clientContext);
+    auto storageManager = StorageManager::Get(clientContext);
     for (auto& [tableID, localTable] : tables) {
         if (localTable->getTableType() == TableType::NODE) {
             const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
@@ -81,7 +80,7 @@ void LocalStorage::commit() {
 }
 
 void LocalStorage::rollback() {
-    auto mm = clientContext.getMemoryManager();
+    auto mm = MemoryManager::Get(clientContext);
     for (auto& [_, localTable] : tables) {
         localTable->clear(*mm);
     }
@@ -89,16 +88,7 @@ void LocalStorage::rollback() {
         optimisticAllocator->rollback();
     }
     auto* bufferManager = mm->getBufferManager();
-    clientContext.getStorageManager()->getDataFH()->getPageManager()->clearEvictedBMEntriesIfNeeded(
-        bufferManager);
-}
-
-uint64_t LocalStorage::getEstimatedMemUsage() const {
-    uint64_t totalMemUsage = 0;
-    for (const auto& [_, localTable] : tables) {
-        totalMemUsage += localTable->getEstimatedMemUsage();
-    }
-    return totalMemUsage;
+    PageManager::Get(clientContext)->clearEvictedBMEntriesIfNeeded(bufferManager);
 }
 
 } // namespace storage

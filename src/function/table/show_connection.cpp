@@ -6,7 +6,7 @@
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -63,8 +63,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     columnNames.emplace_back("destination table primary key");
     columnTypes.emplace_back(LogicalType::STRING());
     const auto name = input->getLiteralVal<std::string>(0);
-    const auto catalog = context->getCatalog();
-    const auto transaction = context->getTransaction();
+    const auto catalog = Catalog::Get(*context);
+    auto transaction = transaction::Transaction::Get(*context);
     std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries;
     if (catalog->containsTable(transaction, name)) {
         auto entry = catalog->getTableCatalogEntry(transaction, name);

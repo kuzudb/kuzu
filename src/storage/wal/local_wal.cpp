@@ -3,8 +3,8 @@
 #include "binder/ddl/bound_alter_info.h"
 #include "catalog/catalog_entry/sequence_catalog_entry.h"
 #include "common/serializer/in_mem_file_writer.h"
-#include "common/serializer/serializer.h"
 #include "common/vector/value_vector.h"
+#include "storage/wal/checksum_writer.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -13,10 +13,10 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace storage {
 
-LocalWAL::LocalWAL(MemoryManager& mm) {
-    writer = std::make_shared<InMemFileWriter>(mm);
-    serializer = std::make_unique<Serializer>(writer);
-}
+LocalWAL::LocalWAL(MemoryManager& mm, bool enableChecksums)
+    : inMemWriter(std::make_shared<InMemFileWriter>(mm)),
+      serializer(enableChecksums ? std::make_shared<ChecksumWriter>(inMemWriter, mm) :
+                                   std::static_pointer_cast<Writer>(inMemWriter)) {}
 
 void LocalWAL::logBeginTransaction() {
     BeginTransactionRecord walRecord;
@@ -92,19 +92,21 @@ void LocalWAL::logLoadExtension(std::string path) {
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void LocalWAL::clear() {
     std::unique_lock lck{mtx};
-    writer->clear();
+    serializer.getWriter()->clear();
 }
 
 uint64_t LocalWAL::getSize() {
     std::unique_lock lck{mtx};
-    return writer->getSize();
+    return serializer.getWriter()->getSize();
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): semantically non-const function.
 void LocalWAL::addNewWALRecord(const WALRecord& walRecord) {
     std::unique_lock lck{mtx};
     KU_ASSERT(walRecord.type != WALRecordType::INVALID_RECORD);
-    walRecord.serialize(*serializer);
+    serializer.getWriter()->onObjectBegin();
+    walRecord.serialize(serializer);
+    serializer.getWriter()->onObjectEnd();
 }
 
 } // namespace storage

@@ -2,6 +2,7 @@
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -132,7 +133,7 @@ public:
         KU_ASSERT(densityState == GDSDensityState::SPARSE);
         densityState = GDSDensityState::DENSE;
         for (auto& [tableID, maxOffset] : maxOffsetMap) {
-            denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
+            denseObjects.allocate(tableID, maxOffset, MemoryManager::Get(*context->clientContext));
             auto data = denseObjects.getData(tableID);
             for (auto i = 0u; i < maxOffset; i++) {
                 data[i].store(0);
@@ -301,7 +302,7 @@ private:
         auto clientContext = context->clientContext;
         auto graph = sharedState->graph.get();
         auto multiplicitiesPair = std::make_unique<MultiplicitiesPair>(
-            graph->getMaxOffsetMap(clientContext->getTransaction()));
+            graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)));
         auto frontier = DenseFrontier::getUnvisitedFrontier(context, graph);
         auto frontierPair = std::make_unique<SPFrontierPair>(std::move(frontier));
         auto edgeCompute = std::make_unique<ASPDestinationsEdgeCompute>(frontierPair.get(),

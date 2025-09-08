@@ -1,12 +1,16 @@
 #include "binder/binder.h"
+#include "binder/expression/expression.h"
 #include "common/task_system/progress_bar.h"
 #include "function/algo_function.h"
 #include "function/component_ids.h"
 #include "function/config/connected_components_config.h"
+#include "function/config/max_iterations_config.h"
 #include "function/gds/gds_frontier.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -191,11 +195,12 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto nodeMask = sharedState->getGraphNodeMaskMap();
-    auto mm = clientContext->getMemoryManager();
+    auto mm = MemoryManager::Get(*clientContext);
     auto graph = sharedState->graph.get();
-    auto maxOffsetMap = graph->getMaxOffsetMap(clientContext->getTransaction());
-    auto config = input.bindData->constPtrCast<GDSBindData>()->getConfig()->constCast<CCConfig>();
-
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
+    auto maxIterations = input.bindData->optionalParams->constCast<MaxIterationOptionalParams>()
+                             .maxIterations.getParamVal();
     auto currentFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto nextFrontier = DenseFrontier::getUnvisitedFrontier(input.context, graph);
     auto frontierPair =
@@ -232,7 +237,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         std::move(bwdAuxiliaryState));
 
     auto progressBar = clientContext->getProgressBar();
-    for (auto i = 0u; i < config.maxIterations; i++) {
+    for (auto i = 0u; i < maxIterations; i++) {
         // Init fwd and bwd component IDs to node offsets.
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initFwdComponentIDsVertexCompute);
@@ -246,8 +251,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initFwdColoringVertexCompute);
         GDSUtils::runAlgorithmEdgeCompute(input.context, fwdComputeState, graph,
-            ExtendDirection::FWD, config.maxIterations);
-        double progress = static_cast<double>(i) / config.maxIterations;
+            ExtendDirection::FWD, maxIterations);
+        double progress = static_cast<double>(i) / maxIterations;
         progressBar->updateProgress(input.context->queryID, progress * 0.5);
 
         // Bwd colors.
@@ -257,7 +262,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph,
             initBwdColoringVertexCompute);
         GDSUtils::runAlgorithmEdgeCompute(input.context, bwdComputeState, graph,
-            ExtendDirection::BWD, config.maxIterations);
+            ExtendDirection::BWD, maxIterations);
         progressBar->updateProgress(input.context->queryID, progress);
 
         // Find new SCC IDs and exit if all IDs have been found.
@@ -287,8 +292,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     expression_vector columns;
     columns.push_back(nodeOutput->constCast<NodeExpression>().getInternalID());
     columns.push_back(input->binder->createVariable(GROUP_ID_COLUMN_NAME, LogicalType::INT64()));
-    return std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry), nodeOutput,
-        std::make_unique<CCOptionalParams>(input->optionalParamsLegacy));
+    auto bindData = std::make_unique<GDSBindData>(std::move(columns), std::move(graphEntry),
+        expression_vector{nodeOutput});
+    bindData->optionalParams =
+        std::make_unique<MaxIterationOptionalParams>(input->optionalParamsLegacy);
+    return bindData;
 }
 
 function_set SCCFunction::getFunctionSet() {

@@ -12,7 +12,8 @@ namespace storage {
 class LocalWAL;
 class WAL {
 public:
-    WAL(const std::string& dbPath, bool readOnly, common::VirtualFileSystem* vfs);
+    WAL(const std::string& dbPath, bool readOnly, bool enableChecksums,
+        common::VirtualFileSystem* vfs);
     ~WAL();
 
     void logCommittedWAL(LocalWAL& localWAL, main::ClientContext* context);
@@ -25,20 +26,27 @@ public:
 
     uint64_t getFileSize();
 
+    static WAL* Get(const main::ClientContext& context);
+
 private:
     void initWriter(main::ClientContext* context);
     void addNewWALRecordNoLock(const WALRecord& walRecord);
     void flushAndSyncNoLock();
+    void writeHeader(main::ClientContext& context);
 
 private:
     std::mutex mtx;
     std::string walPath;
     bool inMemory;
-    bool readOnly;
+    [[maybe_unused]] bool readOnly;
     common::VirtualFileSystem* vfs;
     std::unique_ptr<common::FileInfo> fileInfo;
-    std::shared_ptr<common::BufferedFileWriter> writer;
+
+    // Since most writes to the shared WAL will be flushing local WAL (which has its own checksums),
+    // these writes can go through the normal writer. We do still need a checksum writer though for
+    // writing COMMIT/CHECKPOINT records
     std::unique_ptr<common::Serializer> serializer;
+    bool enableChecksums;
 };
 
 } // namespace storage

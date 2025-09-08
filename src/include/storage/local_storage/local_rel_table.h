@@ -40,7 +40,6 @@ public:
     bool update(transaction::Transaction* transaction, TableUpdateState& state) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& state) override;
     bool addColumn(TableAddColumnState& addColumnState) override;
-    uint64_t getEstimatedMemUsage() override;
 
     bool checkIfNodeHasRels(common::ValueVector* srcNodeIDVector,
         common::RelDataDirection direction) const;

@@ -1,10 +1,11 @@
 #include "common/profiler.h"
-#include "main/client_context.h"
 #include "main/plan_printer.h"
 #include "planner/operator/logical_explain.h"
+#include "planner/operator/logical_plan.h"
 #include "processor/operator/profile.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -21,7 +22,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(const LogicalOperator* 
         root = createResultCollector(AccumulateType::REGULAR,
             logicalExplain.getInnerResultColumns(), inSchema, std::move(root));
     }
-    auto memoryManager = clientContext->getMemoryManager();
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     auto messageTable = FactorizedTableUtils::getSingleStringColumnFTable(memoryManager);
     if (logicalExplain.getExplainType() == ExplainType::PROFILE) {
         auto profile = std::make_unique<Profile>(ProfileInfo{}, std::move(messageTable),

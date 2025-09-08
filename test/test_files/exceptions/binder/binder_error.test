@@ -263,9 +263,9 @@ Binder exception: Expression CAST(2019-01-01, TIMESTAMP_MS) has data type TIMEST
 Binder exception: Expression CAST(2019-01-01, TIMESTAMP_SEC) has data type TIMESTAMP_SEC but expected INT64. Implicit cast is not supported.
 
 -LOG CreateNodeDataTypeMisMatch
--STATEMENT CREATE (a:person {age:'hh'})
+-STATEMENT CREATE (a:person {id: 100, age:'hh'})
 ---- error
-Binder exception: Expression hh has data type STRING but expected INT64. Implicit cast is not supported.
+Conversion exception: Cast failed. Could not convert "hh" to INT64.
 
 -LOG CreateRelDataTypeMisMatch
 -STATEMENT CREATE (a:person)-[:knows {date:12}]->(b:person)

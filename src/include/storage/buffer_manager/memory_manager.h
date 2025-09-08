@@ -91,6 +91,8 @@ public:
 
     BufferManager* getBufferManager() const { return bm; }
 
+    static MemoryManager* Get(const main::ClientContext& context);
+
 private:
     void freeBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);
     void updateUsedMemoryForFreedBlock(common::page_idx_t pageIdx, std::span<uint8_t> buffer);

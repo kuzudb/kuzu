@@ -171,10 +171,10 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
 
     std::vector<PropertyInfo> infos;
     CatalogEntryType type = CatalogEntryType::DUMMY_ENTRY;
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     if (name.size() == 1) {
         auto tableName = name[0];
-        auto catalog = context->getCatalog();
+        auto catalog = Catalog::Get(*context);
         if (catalog->containsTable(transaction, tableName)) {
             auto entry = catalog->getTableCatalogEntry(transaction, tableName);
             switch (entry->getType()) {
@@ -199,7 +199,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     } else {
         auto dbName = name[0];
         auto tableName = name[1];
-        auto db = context->getDatabaseManager()->getAttachedDatabase(dbName);
+        auto db = main::DatabaseManager::Get(*context)->getAttachedDatabase(dbName);
         auto entry = db->getCatalog()->getTableCatalogEntry(transaction, tableName);
         infos = getForeignPropertyInfos(entry);
         type = CatalogEntryType::FOREIGN_TABLE_ENTRY;

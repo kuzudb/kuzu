@@ -268,8 +268,8 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
     return isDeleted;
 }
 
-void RelTable::detachDelete(Transaction* transaction, RelDataDirection direction,
-    RelTableDeleteState* deleteState) {
+void RelTable::detachDelete(Transaction* transaction, RelTableDeleteState* deleteState) {
+    auto direction = deleteState->detachDeleteDirection;
     if (std::ranges::count(getStorageDirections(), direction) == 0) {
         throw RuntimeException(
             stringFormat("Cannot delete edges of direction {} from table {} as they do not exist.",
@@ -334,9 +334,20 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
     const auto tempState = deleteState->dstNodeIDVector.state.get();
     while (scan(transaction, *relDataReadState)) {
         const auto numRelsScanned = tempState->getSelVector().getSelSize();
+
+        // rel table data delete_() expects the input to be flat
+        // so we manually flatten the scanned rels here
+        // also if the scanned state is unfiltered we need to copy over the unfiltered values to the
+        // filtered buffer
+        // TODO(Royi/Guodong) remove this once delete_() supports unflat vectors
+        if (tempState->getSelVector().isUnfiltered()) {
+            tempState->getSelVectorUnsafe().setRange(0, numRelsScanned);
+        }
         tempState->getSelVectorUnsafe().setToFiltered(1);
+
         for (auto i = 0u; i < numRelsScanned; i++) {
-            tempState->getSelVectorUnsafe()[0] = i;
+            tempState->getSelVectorUnsafe()[0] = deleteState->relIDVector.state->getSelVector()[i];
+
             const auto relIDPos = deleteState->relIDVector.state->getSelVector()[0];
             const auto relOffset = deleteState->relIDVector.readNodeOffset(relIDPos);
             if (relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
@@ -396,7 +407,7 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
     LocalTable* localTable) {
     auto& localRelTable = localTable->cast<LocalRelTable>();
     if (localRelTable.isEmpty()) {
-        localTable->clear(*context->getMemoryManager());
+        localTable->clear(*MemoryManager::Get(*context));
         return;
     }
     // Update relID in local storage.
@@ -416,7 +427,7 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
         columnIDsToCommit.push_back(columnID);
     }
     // commit rel table data
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     for (auto& relData : directedRelData) {
         const auto direction = relData->getDirection();
         const auto columnToSkip = (direction == RelDataDirection::FWD) ?
@@ -434,7 +445,7 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
         }
     }
 
-    localRelTable.clear(*context->getMemoryManager());
+    localRelTable.clear(*MemoryManager::Get(*context));
 }
 
 void RelTable::reclaimStorage(PageAllocator& pageAllocator) const {

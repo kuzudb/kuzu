@@ -9,7 +9,6 @@
 #include "common/string_format.h"
 #include "expression_evaluator/expression_evaluator_utils.h"
 #include "function/cast/vector_cast_functions.h"
-#include "main/client_context.h"
 #include "parser/expression/parsed_expression_visitor.h"
 #include "parser/expression/parsed_parameter_expression.h"
 
@@ -21,7 +20,7 @@ namespace kuzu {
 namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
-    const parser::ParsedExpression& parsedExpression) {
+    const ParsedExpression& parsedExpression) {
     // Normally u can only reference an existing expression through alias which is a parsed
     // VARIABLE expression.
     // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)
@@ -110,21 +109,14 @@ static std::string unsupportedImplicitCastException(const Expression& expression
         expression.toString(), expression.dataType.toString(), targetTypeStr);
 }
 
-static bool checkUDTCast(const LogicalType& type, const LogicalType& target) {
-    if (type.isInternalType() && target.isInternalType()) {
-        return false;
-    }
-    return type.getLogicalTypeID() == target.getLogicalTypeID();
-}
-
 std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     const std::shared_ptr<Expression>& expression, const LogicalType& targetType) {
     auto& type = expression->dataType;
-    if (checkUDTCast(type, targetType)) {
-        return expression;
-    }
     if (type == targetType || targetType.containsAny()) { // No need to cast.
         return expression;
+    }
+    if (!type.isInternalType() || !targetType.isInternalType()) {
+        return implicitCast(expression, targetType);
     }
     if (ExpressionUtil::canCastStatically(*expression, targetType)) {
         expression->cast(targetType);

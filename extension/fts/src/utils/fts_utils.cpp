@@ -1,6 +1,7 @@
 #include "utils/fts_utils.h"
 
 #include "common/string_utils.h"
+#include "cppjieba/Jieba.hpp"
 #include "function/stem.h"
 #include "libstemmer.h"
 #include "re2.h"
@@ -48,9 +49,18 @@ StopWordsChecker::StopWordsChecker(MemoryManager* mm, NodeTable* stopwordsTable,
     }
 }
 
+bool FTSUtils::hasWildcardPattern(const std::string& term) {
+    for (auto& c : term) {
+        if (c == '*' || c == '?') {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
     const FTSConfig& config, MemoryManager* mm, NodeTable* stopwordsTable, Transaction* tx,
-    bool isConjunctive) {
+    bool isConjunctive, bool isQuery) {
     if (config.stemmer == "none") {
         return terms;
     }
@@ -63,12 +73,30 @@ std::vector<std::string> FTSUtils::stemTerms(std::vector<std::string> terms,
         if (isConjunctive && checker.isStopWord(term)) {
             continue;
         }
+        if (isQuery && hasWildcardPattern(term)) {
+            result.push_back(term);
+            continue;
+        }
         auto stemData = sb_stemmer_stem(sbStemmer, reinterpret_cast<const sb_symbol*>(term.c_str()),
             term.length());
         result.push_back(std::string(reinterpret_cast<const char*>(stemData)));
     }
     sb_stemmer_delete(sbStemmer);
     return result;
+}
+
+std::vector<std::string> FTSUtils::tokenizeString(std::string& str, const FTSConfig& config) {
+    FTSUtils::normalizeQuery(str, config.tokenizer);
+    std::vector<std::string> terms;
+    if (config.tokenizer == "jieba") {
+        cppjieba::Jieba jieba(config.jiebaDictDir + "/jieba.dict.utf8",
+            config.jiebaDictDir + "/hmm_model.utf8", config.jiebaDictDir + "/user.dict.utf8",
+            config.jiebaDictDir + "/idf.utf8", config.jiebaDictDir + "/stop_words.utf8");
+        jieba.CutForSearch(str, terms);
+    } else {
+        terms = StringUtils::split(str, " ", true /* ignoreEmptyStringParts */);
+    }
+    return terms;
 }
 
 } // namespace fts_extension

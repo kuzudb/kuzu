@@ -34,7 +34,7 @@ public:
 
     py::object getAsDF();
 
-    kuzu::pyarrow::Table getAsArrow(std::int64_t chunkSize);
+    kuzu::pyarrow::Table getAsArrow(std::int64_t chunkSize, bool fallbackExtensionTypes);
 
     py::list getColumnDataTypes();
 
@@ -55,10 +55,11 @@ public:
 private:
     static py::dict convertNodeIdToPyDict(const kuzu::common::nodeID_t& nodeId);
 
-    bool getNextArrowChunk(const std::vector<kuzu::common::LogicalType>& types,
-        const std::vector<std::string>& names, py::list& batches, std::int64_t chunk_size);
+    void getNextArrowChunk(const std::vector<kuzu::common::LogicalType>& types,
+        const std::vector<std::string>& names, py::list& batches, std::int64_t chunkSize,
+        bool fallbackExtensionTypes);
     py::object getArrowChunks(const std::vector<kuzu::common::LogicalType>& types,
-        const std::vector<std::string>& names, std::int64_t chunkSize);
+        const std::vector<std::string>& names, std::int64_t chunkSize, bool fallbackExtensionTypes);
 
 private:
     QueryResult* queryResult = nullptr;

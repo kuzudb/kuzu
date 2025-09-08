@@ -40,12 +40,12 @@ class Connection {
     if (this._isClosed) {
       throw new Error("Connection is closed.");
     }
-    if (!this._connection) {
-      const database = await this._database._getDatabase();
-      this._connection = new KuzuNative.NodeConnection(database);
-    }
     if (!this._isInitialized) {
       if (!this._initPromise) {
+        if (!this._connection) {
+          const database = await this._database._getDatabase();
+          this._connection = new KuzuNative.NodeConnection(database);
+        }
         this._initPromise = new Promise((resolve, reject) => {
           this._connection.initAsync((err) => {
             if (err) {

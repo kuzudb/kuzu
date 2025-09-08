@@ -191,7 +191,7 @@ Catalog exception: function DROP_VECTOR_INDEX is not defined. This function exis
 -RELOADDB
 -STATEMENT MATCH (a:embeddings) SET a.vec = [0,1,2,3,4,5,6,7];
 ---- error
-Binder exception: Cannot set property vec in table embeddings because it is used in one or more indexes. Try delete and then insert.
+Binder exception: Cannot set property vec in table embeddings because it is used in one or more indexes which is unloaded.
 -STATEMENT CREATE (:embeddings {id:0, vec:[0,1,2,3,4,5,6,7]});
 ---- error
 Binder exception: Trying to insert into an index on table embeddings but its extension is not loaded.

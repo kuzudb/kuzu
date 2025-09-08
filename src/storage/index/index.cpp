@@ -13,9 +13,16 @@ IndexStorageInfo::~IndexStorageInfo() = default;
 
 Index::InsertState::~InsertState() = default;
 
+Index::UpdateState::~UpdateState() = default;
+
 Index::DeleteState::~DeleteState() = default;
 
 Index::~Index() = default;
+
+bool Index::isBuiltOnColumn(common::column_id_t columnID) const {
+    auto it = std::find(indexInfo.columnIDs.begin(), indexInfo.columnIDs.end(), columnID);
+    return it != indexInfo.columnIDs.end();
+}
 
 void IndexInfo::serialize(common::Serializer& ser) const {
     ser.write<std::string>(name);
@@ -86,7 +93,7 @@ void IndexHolder::load(main::ClientContext* context, StorageManager* storageMana
     }
     KU_ASSERT(!index);
     KU_ASSERT(storageInfoBuffer);
-    auto indexTypeOptional = context->getStorageManager()->getIndexType(indexInfo.indexType);
+    auto indexTypeOptional = StorageManager::Get(*context)->getIndexType(indexInfo.indexType);
     if (!indexTypeOptional.has_value()) {
         throw common::RuntimeException("No index type with name: " + indexInfo.indexType);
     }

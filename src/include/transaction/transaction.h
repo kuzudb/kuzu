@@ -118,7 +118,6 @@ public:
     void commit(storage::WAL* wal);
     void rollback(storage::WAL* wal);
 
-    uint64_t getEstimatedMemUsage() const;
     storage::LocalStorage* getLocalStorage() const { return localStorage.get(); }
     LocalCacheManager& getLocalCacheManager() { return localCacheManager; }
     bool isUnCommitted(common::table_id_t tableID, common::offset_t nodeOffset) const;
@@ -143,6 +142,8 @@ public:
         common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
         storage::VectorUpdateInfo& vectorUpdateInfo) const;
+
+    static Transaction* Get(const main::ClientContext& context);
 
 private:
     common::offset_t getMinUncommittedNodeOffset(common::table_id_t tableID) const;

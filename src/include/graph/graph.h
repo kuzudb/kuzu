@@ -54,7 +54,7 @@ public:
 
     private:
         Chunk(std::span<const common::nodeID_t> nbrNodes, common::SelectionVector& selVector,
-            std::vector<common::ValueVector*> propertyVectors);
+            std::span<const std::shared_ptr<common::ValueVector>> propertyVectors);
 
         Chunk(const Chunk& other) noexcept
             : nbrNodes{other.nbrNodes}, selVector{other.selVector},
@@ -65,7 +65,7 @@ public:
         // this reference can be modified, but the underlying data will be reset the next time next
         // is called
         common::SelectionVector& selVector;
-        std::vector<common::ValueVector*> propertyVectors;
+        std::span<const std::shared_ptr<common::ValueVector>> propertyVectors;
     };
 
     virtual ~NbrScanState() = default;
@@ -76,8 +76,9 @@ public:
 
 protected:
     static Chunk createChunk(std::span<const common::nodeID_t> nbrNodes,
-        common::SelectionVector& selVector, std::vector<common::ValueVector*> propertyVectors) {
-        return Chunk{nbrNodes, selVector, std::move(propertyVectors)};
+        common::SelectionVector& selVector,
+        std::span<const std::shared_ptr<common::ValueVector>> propertyVectors) {
+        return Chunk{nbrNodes, selVector, propertyVectors};
     }
 };
 
@@ -200,7 +201,7 @@ public:
     // Prepares scan on the specified relationship table (works for backwards and forwards scans)
     virtual std::unique_ptr<NbrScanState> prepareRelScan(const catalog::TableCatalogEntry& entry,
         common::oid_t relTableID, common::table_id_t nbrTableID,
-        std::vector<std::string> relProperties) = 0;
+        std::vector<std::string> relProperties, bool randomLookup = true) = 0;
 
     // Get dst nodeIDs for given src nodeID using forward adjList.
     virtual EdgeIterator scanFwd(common::nodeID_t nodeID, NbrScanState& state) = 0;

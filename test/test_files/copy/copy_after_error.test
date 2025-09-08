@@ -3,26 +3,28 @@
 --
 
 -CASE CopyNodeAfterError
+-SKIP
 -STATEMENT CREATE NODE TABLE Comment(ID INT64, creationDate TIMESTAMP, locationIP STRING, browserUsed STRING, content STRING, length INT64, PRIMARY KEY(ID));
 ---- ok
--STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv' (DELIM="|", header=false);
+-STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv' (DELIM="|", header=false);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
--STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv' (DELIM="|", header=true);
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
+-STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv' (DELIM="|", header=true);
 ---- ok
 -STATEMENT MATCH (c:Comment) WHERE c.ID = 1786706395169 RETURN c.locationIP
 ---- 1
 92.39.58.88
 
 -CASE CopyRelAfterNodeCopyError
+-SKIP
 -STATEMENT CREATE NODE TABLE Comment(ID INT64, creationDate TIMESTAMP, locationIP STRING, browserUsed STRING, content STRING, length INT64, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE REL TABLE replyOfComment(FROM Comment TO Comment, MANY_ONE);
 ---- ok
--STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv' (DELIM="|", header=false);
+-STATEMENT COPY Comment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv' (DELIM="|", header=false);
 ---- error
-Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_0_0.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
--STATEMENT COPY replyOfComment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/comment_replyOf_comment_0_0.csv' (DELIM="|", header=true);
+Copy exception: Error in file ${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_0_0.csv on line 1: Conversion exception: Cast failed. Could not convert "id" to INT64. Line/record containing the error: 'id...'
+-STATEMENT COPY replyOfComment FROM '${KUZU_ROOT_DIRECTORY}/dataset/ldbc-1/csv/dynamic/comment_replyOf_comment_0_0.csv' (DELIM="|", header=true);
 ---- error(regex)
 Copy exception: Unable to find primary key value \d+.
 -STATEMENT MATCH (a:Comment)-[r:replyOfComment]->(b:Comment) RETURN COUNT(*);

@@ -10,6 +10,7 @@
 #include "graph_test/base_graph_test.h"
 #include "spdlog/spdlog.h"
 #include "test_helper/test_helper.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 
@@ -200,7 +201,7 @@ void CSVConverter::convertCSVDataset() {
 
 static std::string getColumnAlias(main::ClientContext* context, const std::string& tableName) {
     auto properties =
-        context->getCatalog()
+        catalog::Catalog::Get(*context)
             ->getTableCatalogEntry(&transaction::DUMMY_CHECKPOINT_TRANSACTION, tableName)
             ->getProperties();
     std::string alias;

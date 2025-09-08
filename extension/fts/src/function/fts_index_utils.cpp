@@ -5,6 +5,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "main/client_context.h"
+#include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -12,9 +13,10 @@ namespace fts_extension {
 void FTSIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
     IndexOperation indexOperation) {
+    auto catalog = catalog::Catalog::Get(context);
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(),
+        if (catalog->containsIndex(transaction::Transaction::Get(context), tableEntry->getTableID(),
                 indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Index {} already exists in table {}.", indexName, tableEntry->getName())};
@@ -22,8 +24,8 @@ void FTSIndexUtils::validateIndexExistence(const main::ClientContext& context,
     } break;
     case IndexOperation::DROP:
     case IndexOperation::QUERY: {
-        if (!context.getCatalog()->containsIndex(context.getTransaction(), tableEntry->getTableID(),
-                indexName)) {
+        if (!catalog->containsIndex(transaction::Transaction::Get(context),
+                tableEntry->getTableID(), indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }
@@ -37,8 +39,8 @@ void FTSIndexUtils::validateIndexExistence(const main::ClientContext& context,
 catalog::NodeTableCatalogEntry* FTSIndexUtils::bindNodeTable(const main::ClientContext& context,
     const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
     binder::Binder::validateTableExistence(context, tableName);
-    const auto tableEntry =
-        context.getCatalog()->getTableCatalogEntry(context.getTransaction(), tableName);
+    const auto tableEntry = catalog::Catalog::Get(context)->getTableCatalogEntry(
+        transaction::Transaction::Get(context), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();

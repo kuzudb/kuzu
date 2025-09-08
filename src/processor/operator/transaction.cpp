@@ -1,6 +1,7 @@
 #include "processor/operator/transaction.h"
 
 #include "common/exception/transaction_manager.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction_context.h"
 #include "transaction/transaction_manager.h"
@@ -38,7 +39,7 @@ bool Transaction::getNextTuplesInternal(ExecutionContext* context) {
         clientContext->getTransactionContext()->rollback();
     } break;
     case TransactionAction::CHECKPOINT: {
-        clientContext->getTransactionManagerUnsafe()->checkpoint(*clientContext);
+        TransactionManager::Get(*clientContext)->checkpoint(*clientContext);
     } break;
     default: {
         KU_UNREACHABLE;

@@ -9,6 +9,7 @@
 #include "processor/execution_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -26,8 +27,8 @@ void Alter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* conte
 
 void Alter::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = Transaction::Get(*clientContext);
     if (catalog->containsTable(transaction, info.tableName)) {
         auto entry = catalog->getTableCatalogEntry(transaction, info.tableName);
         alterTable(clientContext, *entry, info);
@@ -125,8 +126,8 @@ static bool checkDropPropertyConflicts(const TableCatalogEntry& tableEntry,
                 propertyName, tableEntry.getName()));
         }
         // Check secondary index constraints
-        auto catalog = context.getCatalog();
-        auto transaction = context.getTransaction();
+        auto catalog = Catalog::Get(context);
+        auto transaction = transaction::Transaction::Get(context);
         if (catalog->containsIndex(transaction, tableEntry.getTableID(), propertyID)) {
             throw BinderException(stringFormat(
                 "Cannot drop property {} in table {} because it is used in one or more indexes. "
@@ -148,8 +149,8 @@ static bool checkRenamePropertyConflicts(const TableCatalogEntry& tableEntry,
 
 static bool checkRenameTableConflicts(const BoundAlterInfo& info, main::ClientContext& context) {
     auto newName = info.extraInfo->constCast<BoundExtraRenameTableInfo>().newName;
-    auto catalog = context.getCatalog();
-    auto transaction = context.getTransaction();
+    auto catalog = Catalog::Get(context);
+    auto transaction = transaction::Transaction::Get(context);
     if (catalog->containsTable(transaction, newName)) {
         throw BinderException("Table " + newName + " already exists.");
     }
@@ -168,8 +169,8 @@ static bool checkAddFromToConflicts(const TableCatalogEntry& tableEntry, const B
     auto& relGroupEntry = tableEntry.constCast<RelGroupCatalogEntry>();
     validate(info.onConflict, [&relGroupEntry, &extraInfo, &context]() {
         if (relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID)) {
-            auto catalog = context.getCatalog();
-            auto transaction = context.getTransaction();
+            auto catalog = Catalog::Get(context);
+            auto transaction = transaction::Transaction::Get(context);
             auto fromTableName =
                 catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
             auto toTableName =
@@ -195,8 +196,8 @@ static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
     auto& relGroupEntry = tableEntry.constCast<RelGroupCatalogEntry>();
     validate(info.onConflict, [&relGroupEntry, &extraInfo, &context]() {
         if (!relGroupEntry.hasRelEntryInfo(extraInfo.fromTableID, extraInfo.toTableID)) {
-            auto catalog = context.getCatalog();
-            auto transaction = context.getTransaction();
+            auto catalog = Catalog::Get(context);
+            auto transaction = transaction::Transaction::Get(context);
             auto fromTableName =
                 catalog->getTableCatalogEntry(transaction, extraInfo.fromTableID)->getName();
             auto toTableName =
@@ -212,9 +213,9 @@ static bool checkDropFromToConflicts(const TableCatalogEntry& tableEntry,
 
 void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEntry& entry,
     const BoundAlterInfo& alterInfo) {
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
-    auto memoryManager = clientContext->getMemoryManager();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = Transaction::Get(*clientContext);
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     auto tableName = entry.getName();
     switch (info.alterType) {
     case AlterType::ADD_PROPERTY: {
@@ -291,7 +292,7 @@ void Alter::alterTable(main::ClientContext* clientContext, const TableCatalogEnt
     }
 
     // Handle storage changes
-    const auto storageManager = clientContext->getStorageManager();
+    const auto storageManager = storage::StorageManager::Get(*clientContext);
     catalog->alterTableEntry(transaction, alterInfo);
     // We don't use an optimistic allocator in this case since rollback of new columns is already
     // handled by checkpoint

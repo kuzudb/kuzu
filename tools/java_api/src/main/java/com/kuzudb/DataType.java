@@ -13,12 +13,12 @@ public class DataType implements AutoCloseable {
      * @param id: the kuzu internal representation of data type IDs.
      */
     public DataType(DataTypeID id) {
-        dt_ref = Native.kuzu_data_type_create(id, null, 0);
+        dt_ref = Native.kuzuDataTypeCreate(id, null, 0);
     }
 
     public DataType
             (DataTypeID id, DataType child_type, long num_elements_in_array) {
-        dt_ref = Native.kuzu_data_type_create(id, child_type, num_elements_in_array);
+        dt_ref = Native.kuzuDataTypeCreate(id, child_type, num_elements_in_array);
     }
 
     /**
@@ -48,7 +48,7 @@ public class DataType implements AutoCloseable {
      */
     private void destroy() {
         checkNotDestroyed();
-        Native.kuzu_data_type_destroy(this);
+        Native.kuzuDataTypeDestroy(this);
         destroyed = true;
     }
 
@@ -61,7 +61,7 @@ public class DataType implements AutoCloseable {
         if (destroyed)
             return null;
         else
-            return Native.kuzu_data_type_clone(this);
+            return Native.kuzuDataTypeClone(this);
     }
 
     /**
@@ -73,7 +73,7 @@ public class DataType implements AutoCloseable {
      */
     public boolean equals(DataType other) {
         checkNotDestroyed();
-        return Native.kuzu_data_type_equals(this, other);
+        return Native.kuzuDataTypeEquals(this, other);
     }
 
     /**
@@ -84,7 +84,7 @@ public class DataType implements AutoCloseable {
      */
     public DataTypeID getID() {
         checkNotDestroyed();
-        return Native.kuzu_data_type_get_id(this);
+        return Native.kuzuDataTypeGetId(this);
     }
 
     /**
@@ -95,7 +95,7 @@ public class DataType implements AutoCloseable {
      */
     public DataType getChildType() {
         checkNotDestroyed();
-        return Native.kuzu_data_type_get_child_type(this);
+        return Native.kuzuDataTypeGetChildType(this);
     }
 
     /**
@@ -106,7 +106,7 @@ public class DataType implements AutoCloseable {
      */
     public long getFixedNumElementsInList() {
         checkNotDestroyed();
-        return Native.kuzu_data_type_get_num_elements_in_array(this);
+        return Native.kuzuDataTypeGetNumElementsInArray(this);
     }
 
 }

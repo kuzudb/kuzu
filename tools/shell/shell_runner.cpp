@@ -70,6 +70,10 @@ int main(int argc, char* argv[]) {
     args::Flag stats(parser, "no_stats", "Disable query stats", {'s', "no_stats", "nostats"});
     args::Flag progress_bar(parser, "no_progress_bar", "Disable query progress bar",
         {'b', "no_progress_bar", "noprogressbar"});
+    args::Flag ignore_wal_replay_errors(parser, "ignore_wal_replay_errors",
+        "By default something goes wrong when replaying the WAL an exception will be thrown. With "
+        "this flag enabled we will instead ignore these errors and stop replaying the WAL.",
+        {'w', "ignore_wal_replay_errors"});
     args::ValueFlag<std::string> init(parser, "", "Path to file with script to run on startup",
         {'i', "init"});
 
@@ -113,6 +117,7 @@ int main(int argc, char* argv[]) {
     }
     SystemConfig systemConfig(bpSizeInBytes);
     uint64_t maxDBSizeInBytes = args::get(maxDBSize);
+    bool ignoreWalErrors = args::get(ignore_wal_replay_errors);
     if (maxDBSizeInBytes != -1u) {
         systemConfig.maxDBSize = maxDBSizeInBytes;
     }
@@ -121,6 +126,9 @@ int main(int argc, char* argv[]) {
     }
     if (readOnlyMode) {
         systemConfig.readOnly = true;
+    }
+    if (ignoreWalErrors) {
+        systemConfig.throwOnWalReplayFailure = false;
     }
 
     const std::string historyFile = "history.txt";

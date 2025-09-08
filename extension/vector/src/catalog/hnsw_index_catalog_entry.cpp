@@ -6,7 +6,7 @@
 #include "common/serializer/buffer_writer.h"
 #include "common/serializer/deserializer.h"
 #include "index/hnsw_config.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 
@@ -32,9 +32,9 @@ std::string HNSWIndexAuxInfo::toCypher(const IndexCatalogEntry& indexEntry,
     auto& indexToCypherInfo = info.constCast<IndexToCypherInfo>();
     auto context = indexToCypherInfo.context;
     std::string cypher;
-    auto catalog = context->getCatalog();
-    auto tableEntry =
-        catalog->getTableCatalogEntry(context->getTransaction(), indexEntry.getTableID());
+    auto catalog = Catalog::Get(*context);
+    auto tableEntry = catalog->getTableCatalogEntry(transaction::Transaction::Get(*context),
+        indexEntry.getTableID());
     auto tableName = tableEntry->getName();
     auto propertyName = tableEntry->getProperty(indexEntry.getPropertyIDs()[0]).getName();
     auto metricName = HNSWIndexConfig::metricToString(config.metric);

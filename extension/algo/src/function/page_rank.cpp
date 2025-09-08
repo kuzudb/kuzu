@@ -1,5 +1,4 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_util.h"
 #include "common/exception/binder.h"
 #include "common/string_utils.h"
 #include "common/task_system/progress_bar.h"
@@ -9,7 +8,10 @@
 #include "function/degrees.h"
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
+#include "function/table/bind_input.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::processor;
 using namespace kuzu::common;
@@ -21,64 +23,58 @@ using namespace kuzu::function;
 namespace kuzu {
 namespace algo_extension {
 
-struct PageRankOptionalParams final : public GDSOptionalParams {
-    std::shared_ptr<Expression> dampingFactor;
-    std::shared_ptr<Expression> maxIteration;
-    std::shared_ptr<Expression> tolerance;
-    std::shared_ptr<Expression> normalize;
+struct PageRankOptionalParams final : public MaxIterationOptionalParams {
+    OptionalParam<DampingFactor> dampingFactor;
+    OptionalParam<Tolerance> tolerance;
+    OptionalParam<NormalizeInitial> normalize;
 
     explicit PageRankOptionalParams(const expression_vector& optionalParams);
 
-    std::unique_ptr<GDSConfig> getConfig() const override;
+    // For copy only
+    PageRankOptionalParams(OptionalParam<MaxIterations> maxIterations,
+        OptionalParam<DampingFactor> dampingFactor, OptionalParam<Tolerance> tolerance,
+        OptionalParam<NormalizeInitial> normalize)
+        : MaxIterationOptionalParams{maxIterations}, dampingFactor{std::move(dampingFactor)},
+          tolerance{std::move(tolerance)}, normalize{std::move(normalize)} {}
 
-    std::unique_ptr<GDSOptionalParams> copy() const override {
-        return std::make_unique<PageRankOptionalParams>(*this);
+    void evaluateParams(main::ClientContext* context) override {
+        MaxIterationOptionalParams::evaluateParams(context);
+        dampingFactor.evaluateParam(context);
+        tolerance.evaluateParam(context);
+        normalize.evaluateParam(context);
+    }
+
+    std::unique_ptr<function::OptionalParams> copy() override {
+        return std::make_unique<PageRankOptionalParams>(maxIterations, dampingFactor, tolerance,
+            normalize);
     }
 };
 
-PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optionalParams) {
+PageRankOptionalParams::PageRankOptionalParams(const expression_vector& optionalParams)
+    : MaxIterationOptionalParams{constructMaxIterationParam(optionalParams)} {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == DampingFactor::NAME) {
-            dampingFactor = optionalParam;
+            dampingFactor = function::OptionalParam<DampingFactor>(optionalParam);
         } else if (paramName == MaxIterations::NAME) {
-            maxIteration = optionalParam;
+            continue;
         } else if (paramName == Tolerance::NAME) {
-            tolerance = optionalParam;
+            tolerance = function::OptionalParam<Tolerance>(optionalParam);
         } else if (paramName == NormalizeInitial::NAME) {
-            normalize = optionalParam;
+            normalize = function::OptionalParam<NormalizeInitial>(optionalParam);
         } else {
             throw BinderException{"Unknown optional parameter: " + optionalParam->getAlias()};
         }
     }
 }
 
-std::unique_ptr<GDSConfig> PageRankOptionalParams::getConfig() const {
-    auto config = std::make_unique<PageRankConfig>();
-    if (dampingFactor != nullptr) {
-        config->dampingFactor = ExpressionUtil::evaluateLiteral<double>(*dampingFactor,
-            LogicalType::DOUBLE(), DampingFactor::validate);
-    }
-    if (maxIteration != nullptr) {
-        config->maxIterations = ExpressionUtil::evaluateLiteral<int64_t>(*maxIteration,
-            LogicalType::INT64(), MaxIterations::validate);
-    }
-    if (tolerance != nullptr) {
-        config->tolerance =
-            ExpressionUtil::evaluateLiteral<double>(*tolerance, LogicalType::DOUBLE());
-    }
-    if (normalize != nullptr) {
-        config->normalize = ExpressionUtil::evaluateLiteral<bool>(*normalize, LogicalType::BOOL());
-    }
-    return config;
-}
-
 struct PageRankBindData final : public GDSBindData {
     PageRankBindData(expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<Expression> nodeOutput,
         std::unique_ptr<PageRankOptionalParams> optionalParams)
-        : GDSBindData{std::move(columns), std::move(graphEntry), std::move(nodeOutput),
-              std::move(optionalParams)} {}
+        : GDSBindData{std::move(columns), std::move(graphEntry), expression_vector{nodeOutput}} {
+        this->optionalParams = std::move(optionalParams);
+    }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<PageRankBindData>(*this);
@@ -271,16 +267,17 @@ private:
 
 static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto clientContext = input.context->clientContext;
-    auto transaction = clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*clientContext);
     auto sharedState = input.sharedState->ptrCast<GDSFuncSharedState>();
     auto graph = sharedState->graph.get();
     auto maxOffsetMap = graph->getMaxOffsetMap(transaction);
     auto numNodes = graph->getNumNodes(transaction);
     auto pageRankBindData = input.bindData->constPtrCast<PageRankBindData>();
-    auto config = pageRankBindData->getConfig()->constCast<PageRankConfig>();
-    auto initialValue = config.normalize ? (double)1 / numNodes : (double)1;
-    auto p1 = PValues(maxOffsetMap, clientContext->getMemoryManager(), initialValue);
-    auto p2 = PValues(maxOffsetMap, clientContext->getMemoryManager(), 0);
+    auto& config = pageRankBindData->optionalParams->constCast<PageRankOptionalParams>();
+    auto initialValue = config.normalize.getParamVal() ? (double)1 / numNodes : (double)1;
+    auto mm = MemoryManager::Get(*clientContext);
+    auto p1 = PValues(maxOffsetMap, mm, initialValue);
+    auto p2 = PValues(maxOffsetMap, mm, 0);
     PValues* pCurrent = &p1;
     PValues* pNext = &p2;
     auto currentIter = 1u;
@@ -288,14 +285,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
         DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
     auto nextFrontier =
         DenseFrontier::getVisitedFrontier(input.context, graph, sharedState->getGraphNodeMaskMap());
-    auto degrees = Degrees(maxOffsetMap, clientContext->getMemoryManager());
+    auto degrees = Degrees(maxOffsetMap, mm);
     DegreesUtils::computeDegree(input.context, graph, sharedState->getGraphNodeMaskMap(), &degrees,
         ExtendDirection::FWD);
     auto frontierPair =
         std::make_unique<DenseFrontierPair>(std::move(currentFrontier), std::move(nextFrontier));
     auto computeState = GDSComputeState(std::move(frontierPair), nullptr, nullptr);
-    auto pNextUpdateConstant = (1 - config.dampingFactor) * initialValue;
-    while (currentIter < config.maxIterations) {
+    auto pNextUpdateConstant = (1 - config.dampingFactor.getParamVal()) * initialValue;
+    while (currentIter < config.maxIterations.getParamVal()) {
         computeState.frontierPair->resetCurrentIter();
         computeState.frontierPair->setActiveNodesForNextIter();
         computeState.edgeCompute =
@@ -304,8 +301,8 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             std::make_unique<PageRankAuxiliaryState>(degrees, *pCurrent, *pNext);
         GDSUtils::runAlgorithmEdgeCompute(input.context, computeState, graph, ExtendDirection::BWD,
             1);
-        auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor, pNextUpdateConstant,
-            *pNext, sharedState->getGraphNodeMaskMap());
+        auto pNextUpdateVC = PNextUpdateVertexCompute(config.dampingFactor.getParamVal(),
+            pNextUpdateConstant, *pNext, sharedState->getGraphNodeMaskMap());
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pNextUpdateVC);
         std::atomic<double> diff;
         diff.store(0);
@@ -313,15 +310,14 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             PDiffVertexCompute(diff, *pCurrent, *pNext, sharedState->getGraphNodeMaskMap());
         GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, pDiffVC);
         std::swap(pCurrent, pNext);
-        if (diff.load() < config.tolerance) { // Converged.
+        if (diff.load() < config.tolerance.getParamVal()) { // Converged.
             break;
         }
         auto progress = static_cast<double>(currentIter) / numNodes;
         clientContext->getProgressBar()->updateProgress(input.context->queryID, progress);
         currentIter++;
     }
-    auto outputVC = std::make_unique<PageRankResultVertexCompute>(clientContext->getMemoryManager(),
-        sharedState, *pCurrent);
+    auto outputVC = std::make_unique<PageRankResultVertexCompute>(mm, sharedState, *pCurrent);
     GDSUtils::runVertexCompute(input.context, GDSDensityState::DENSE, graph, *outputVC);
     sharedState->factorizedTablePool.mergeLocalTables();
     return 0;

@@ -328,7 +328,7 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
 
     auto inMemoryDatabase = std::make_unique<Database>(":memory:", systemConfig);
     auto conn = std::make_unique<Connection>(inMemoryDatabase.get());
-    auto result = conn->query("RETURN 1+1;");
+    auto result = conn->query("RETURN 1+1 AS col;");
     ASSERT_TRUE(result->isSuccess());
     ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2);
     result->resetIterator();
@@ -386,96 +386,94 @@ TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {
                                "the parent database is closed.");
     }
     // All public QueryResult methods that check for closed DB
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_NO_THROW(result->getErrorMessage());
+    ASSERT_NO_THROW(result->getNumColumns());
+    ASSERT_NO_THROW(result->getColumnNames());
+    ASSERT_NO_THROW(result->getColumnDataTypes());
+    ASSERT_NO_THROW(result->getQuerySummary());
     try {
-        result->isSuccess();
-    } catch (Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
-    }
-    try {
-        result->getErrorMessage();
-    } catch (Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
-    }
-    try {
-        result->getNumColumns();
-    } catch (Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
-    }
-    try {
-        result->getColumnNames();
-    } catch (Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
-    }
-    try {
-        result->getColumnDataTypes();
-    } catch (Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
-    }
-    try {
-        result->getNumTuples();
-    } catch (Exception& e) {
-        ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
-                               "the parent database is closed.");
-    }
-    try {
-        result->getQuerySummary();
+        (void)result->getNumTuples();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->resetIterator();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
-        result->hasNext();
+        (void)result->hasNext();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
-        result->hasNextQueryResult();
+        (void)result->hasNextQueryResult();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNextQueryResult();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNext();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
-        result->toString();
+        (void)result->toString();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
-        result->getArrowSchema();
+        (void)result->getArrowSchema();
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
     try {
         result->getNextArrowChunk(1);
+        FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(), "Runtime exception: The current operation is not allowed because "
                                "the parent database is closed.");
     }
+}
+
+TEST_F(ApiTest, CloseDatabaseBeforeQueryResultWithMultipleStatements) {
+    auto systemConfig = SystemConfig();
+    systemConfig.bufferPoolSize = 10 * 1024 * 1024; // 10MB
+    systemConfig.maxNumThreads = 2;
+    systemConfig.maxDBSize = 1 << 30; // 1GB
+
+    auto inMemoryDatabase = std::make_unique<Database>(":memory:", systemConfig);
+    auto conn = std::make_unique<Connection>(inMemoryDatabase.get());
+    auto result = conn->query("RETURN 1+1; RETURN 2+2; RETURN 3+3;");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 2);
+    auto nextResult = result->getNextQueryResult();
+    ASSERT_EQ(nextResult->getNext()->getValue(0)->getValue<int64_t>(), 4);
+    nextResult = result->getNextQueryResult();
+    ASSERT_EQ(nextResult->getNext()->getValue(0)->getValue<int64_t>(), 6);
+    result->resetIterator();
+    inMemoryDatabase.reset();
 }
 
 TEST_F(ApiTest, EmptyDBFile) {

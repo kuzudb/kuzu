@@ -54,18 +54,21 @@ Binder exception: Invalid primary key column type json. Primary keys must be eit
 -STATEMENT CREATE NODE TABLE PERSON (ID INT64, NAME JSON, description STRING, PRIMARY KEY(ID));
 ---- ok
 -STATEMENT CREATE (p:PERSON {ID: 52, NAME: 'KUZU', DESCRIPTION: 'good'});
----- ok
+---- error
+Conversion exception: Cannot convert KUZU to JSON.
+-STATEMENT CREATE (p:PERSON {ID: 52, NAME: '', DESCRIPTION: 'good'});
+---- error
+Conversion exception: Cannot convert  to JSON.
 -STATEMENT CREATE (p:PERSON {ID: 22, NAME: 'neo', DESCRIPTION: 'ok'});
----- ok
+---- error
+Conversion exception: Cannot convert neo to JSON.
 -STATEMENT CALL TABLE_INFO('person') RETURN *;
 ---- 3
 0|ID|INT64|NULL|True
 1|NAME|json|NULL|False
 2|description|STRING|NULL|False
 -STATEMENT MATCH (p:person) RETURN p.*;
----- 2
-22|neo|ok
-52|KUZU|good
+---- 0
 -RELOADDB
 -STATEMENT CALL TABLE_INFO('person') RETURN *;
 ---- 3
@@ -73,6 +76,4 @@ Binder exception: Invalid primary key column type json. Primary keys must be eit
 1|NAME|json|NULL|False
 2|description|STRING|NULL|False
 -STATEMENT MATCH (p:person) RETURN p.*;
----- 2
-22|neo|ok
-52|KUZU|good
+---- 0

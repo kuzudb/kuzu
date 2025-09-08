@@ -73,7 +73,7 @@ e129f5000a4b71ccc3a0e6353a86cc57989106e670793db98efa34b7527aefa5
 ---- 1
 2646437354086420181
 
--DEFINE test_long_string REPEAT 2147 "a"
+-SET test_long_string REPEAT 2147 "a"
 -LOG HashLongString
 -STATEMENT RETURN hash('${test_long_string}')
 ---- 1

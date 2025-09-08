@@ -12,23 +12,18 @@
 #include "common/database_lifecycle_manager.h"
 #include "kuzu_fwd.h"
 #include "main/db_config.h"
+
 namespace kuzu {
 namespace common {
 class FileSystem;
-enum class LogicalTypeID : uint8_t;
 } // namespace common
 
-namespace catalog {
-class CatalogEntry;
-} // namespace catalog
-
-namespace function {
-struct Function;
-} // namespace function
-
 namespace extension {
-struct ExtensionUtils;
 class ExtensionManager;
+class TransformerExtension;
+class BinderExtension;
+class PlannerExtension;
+class MapperExtension;
 } // namespace extension
 
 namespace storage {
@@ -36,9 +31,7 @@ class StorageExtension;
 } // namespace storage
 
 namespace main {
-struct ExtensionOption;
 class DatabaseManager;
-
 /**
  * @brief Stores runtime configuration for creating or opening a Database
  */
@@ -64,11 +57,17 @@ struct KUZU_API SystemConfig {
      * @param checkpointThreshold The threshold of the WAL file size in bytes. When the size of the
      * WAL file exceeds this threshold, the database will checkpoint if autoCheckpoint is true.
      * @param forceCheckpointOnClose If true, the database will force checkpoint when closing.
+     * @param throwOnWalReplayFailure If true, any WAL replaying failure when loading the database
+     * will throw an error. Otherwise, Kuzu will silently ignore the failure and replay up to where
+     * the error occured.
+     * @param enableChecksums If true, the database will use checksums to detect corruption in the
+     * WAL file.
      */
     explicit SystemConfig(uint64_t bufferPoolSize = -1u, uint64_t maxNumThreads = 0,
         bool enableCompression = true, bool readOnly = false, uint64_t maxDBSize = -1u,
         bool autoCheckpoint = true, uint64_t checkpointThreshold = 16777216 /* 16MB */,
-        bool forceCheckpointOnClose = true
+        bool forceCheckpointOnClose = true, bool throwOnWalReplayFailure = true,
+        bool enableChecksums = true
 #if defined(__APPLE__)
         ,
         uint32_t threadQos = QOS_CLASS_DEFAULT
@@ -83,6 +82,8 @@ struct KUZU_API SystemConfig {
     bool autoCheckpoint;
     uint64_t checkpointThreshold;
     bool forceCheckpointOnClose;
+    bool throwOnWalReplayFailure;
+    bool enableChecksums;
 #if defined(__APPLE__)
     uint32_t threadQos;
 #endif
@@ -95,11 +96,7 @@ class Database {
     friend class EmbeddedShell;
     friend class ClientContext;
     friend class Connection;
-    friend class StorageDriver;
     friend class testing::BaseGraphTest;
-    friend class testing::PrivateGraphTest;
-    friend class transaction::TransactionContext;
-    friend struct extension::ExtensionUtils;
 
 public:
     /**
@@ -123,6 +120,25 @@ public:
     KUZU_API void addExtensionOption(std::string name, common::LogicalTypeID type,
         common::Value defaultValue, bool isConfidential = false);
 
+    KUZU_API void addTransformerExtension(
+        std::unique_ptr<extension::TransformerExtension> transformerExtension);
+
+    std::vector<extension::TransformerExtension*> getTransformerExtensions();
+
+    KUZU_API void addBinderExtension(
+        std::unique_ptr<extension::BinderExtension> transformerExtension);
+
+    std::vector<extension::BinderExtension*> getBinderExtensions();
+
+    KUZU_API void addPlannerExtension(
+        std::unique_ptr<extension::PlannerExtension> plannerExtension);
+
+    std::vector<extension::PlannerExtension*> getPlannerExtensions();
+
+    KUZU_API void addMapperExtension(std::unique_ptr<extension::MapperExtension> mapperExtension);
+
+    std::vector<extension::MapperExtension*> getMapperExtensions();
+
     KUZU_API catalog::Catalog* getCatalog() { return catalog.get(); }
 
     const DBConfig& getConfig() const { return dbConfig; }
@@ -130,6 +146,18 @@ public:
     std::vector<storage::StorageExtension*> getStorageExtensions();
 
     uint64_t getNextQueryID();
+
+    storage::StorageManager* getStorageManager() { return storageManager.get(); }
+
+    transaction::TransactionManager* getTransactionManager() { return transactionManager.get(); }
+
+    DatabaseManager* getDatabaseManager() { return databaseManager.get(); }
+
+    storage::MemoryManager* getMemoryManager() { return memoryManager.get(); }
+
+    extension::ExtensionManager* getExtensionManager() { return extensionManager.get(); }
+
+    common::VirtualFileSystem* getVFS() { return vfs.get(); }
 
 private:
     using construct_bm_func_t =
@@ -141,7 +169,7 @@ private:
     };
 
     static std::unique_ptr<storage::BufferManager> initBufferManager(const Database& db);
-    void initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc = initBufferManager);
+    void initMembers(std::string_view dbPath, construct_bm_func_t initBmFunc);
 
     // factory method only to be used for tests
     Database(std::string_view databasePath, SystemConfig systemConfig,
@@ -164,6 +192,10 @@ private:
     std::unique_ptr<extension::ExtensionManager> extensionManager;
     QueryIDGenerator queryIDGenerator;
     std::shared_ptr<common::DatabaseLifeCycleManager> dbLifeCycleManager;
+    std::vector<std::unique_ptr<extension::TransformerExtension>> transformerExtensions;
+    std::vector<std::unique_ptr<extension::BinderExtension>> binderExtensions;
+    std::vector<std::unique_ptr<extension::PlannerExtension>> plannerExtensions;
+    std::vector<std::unique_ptr<extension::MapperExtension>> mapperExtensions;
 };
 
 } // namespace main

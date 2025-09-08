@@ -83,7 +83,7 @@ static std::string getCopyFilePath(const std::string& boundFilePath, const std::
 
 std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement& statement) {
     auto& importDB = statement.constCast<ImportDB>();
-    auto fs = clientContext->getVFSUnsafe();
+    auto fs = VirtualFileSystem::GetUnsafe(*clientContext);
     auto boundFilePath = fs->expandPath(clientContext, importDB.getFilePath());
     if (!fs->fileOrPathExists(boundFilePath, clientContext)) {
         throw BinderException(stringFormat("Directory {} does not exist.", boundFilePath));
@@ -121,7 +121,7 @@ std::unique_ptr<BoundStatement> Binder::bindImportDatabaseClause(const Statement
             if (fileTypeInfo.fileType == FileType::CSV) {
                 auto csvConfig = CSVReaderConfig::construct(parsingOptions);
                 csvConfig.option.autoDetection = false;
-                auto optionsMap = csvConfig.option.toOptionsMap();
+                auto optionsMap = csvConfig.option.toOptionsMap(csvConfig.parallel);
                 if (!copyFromOptions.empty()) {
                     optionsMap.insert(copyFromOptions.begin(), copyFromOptions.end());
                 }

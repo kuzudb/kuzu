@@ -4,6 +4,7 @@
 #include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/types/types.h"
+#include "common/types/value/value.h"
 #include "storage/index/hash_index.h"
 #include "storage/storage_utils.h"
 #include "storage/table/node_table.h"
@@ -107,10 +108,6 @@ bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteS
 bool LocalNodeTable::addColumn(TableAddColumnState& addColumnState) {
     nodeGroups.addColumn(addColumnState);
     return true;
-}
-
-uint64_t LocalNodeTable::getEstimatedMemUsage() {
-    return nodeGroups.getEstimatedMemoryUsage() + hashIndex->getEstimatedMemUsage();
 }
 
 void LocalNodeTable::clear(MemoryManager& mm) {

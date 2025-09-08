@@ -21,12 +21,12 @@ FTSIndex::FTSIndex(IndexInfo indexInfo, std::unique_ptr<IndexStorageInfo> storag
 
 std::unique_ptr<Index> FTSIndex::load(main::ClientContext* context, StorageManager*,
     IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
-    auto catalog = context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context);
     auto reader =
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = FTSStorageInfo::deserialize(std::move(reader));
-    auto indexEntry =
-        catalog->getIndex(context->getTransaction(), indexInfo.tableID, indexInfo.name);
+    auto indexEntry = catalog->getIndex(transaction::Transaction::Get(*context), indexInfo.tableID,
+        indexInfo.name);
     auto ftsConfig = indexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config;
     return std::make_unique<FTSIndex>(std::move(indexInfo), std::move(storageInfo),
         std::move(ftsConfig), context);
@@ -75,10 +75,9 @@ static std::vector<std::string> getTerms(Transaction* transaction, FTSConfig& co
         }
         content = indexVector->getValue<ku_string_t>(pos).getAsString();
         FTSUtils::normalizeQuery(content, regexPattern);
-        auto termsInContent =
-            StringUtils::split(content, " " /* delimiter */, true /* ignoreEmptyStringParts */);
+        auto termsInContent = FTSUtils::tokenizeString(content, config);
         termsInContent = FTSUtils::stemTerms(termsInContent, config, mm, stopWordsTable,
-            transaction, true /* isConjunctive */);
+            transaction, true /* isConjunctive */, false /* isQuery */);
         // TODO(Ziyi): StringUtils::split() has a bug which doesn't ignore empty parts even
         // ignoreEmptyStringParts is set to true.
         for (auto& term : termsInContent) {
@@ -116,6 +115,9 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
         auto pos = nodeIDVector.state->getSelVector()[i];
         DocInfo docInfo{transaction, config, internalTableInfo.stopWordsTable, indexVectors, pos,
             ftsInsertState.updateVectors.mm};
+        if (docInfo.termInfos.size() == 0) {
+            break;
+        }
         auto insertedDocID = insertToDocTable(transaction, ftsInsertState,
             nodeIDVector.getValue<nodeID_t>(pos), docInfo.docLen);
         totalInsertedDocLen += docInfo.docLen;
@@ -131,6 +133,33 @@ void FTSIndex::insert(Transaction* transaction, const ValueVector& nodeIDVector,
     ftsStorageInfo.numDocs += numInsertedDocs;
     ftsStorageInfo.numCheckpointedNodes =
         nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]).offset + 1;
+}
+
+std::unique_ptr<Index::UpdateState> FTSIndex::initUpdateState(main::ClientContext* context,
+    column_id_t columnID, storage::visible_func isVisible) {
+    auto ftsUpdateState =
+        std::make_unique<FTSUpdateState>(context, internalTableInfo, indexInfo.columnIDs, columnID);
+    ftsUpdateState->ftsInsertState = initInsertState(context, isVisible);
+    ftsUpdateState->ftsDeleteState = initDeleteState(transaction::Transaction::Get(*context),
+        MemoryManager::Get(*context), isVisible);
+    return ftsUpdateState;
+}
+
+void FTSIndex::update(Transaction* transaction, const common::ValueVector& nodeIDVector,
+    ValueVector& propertyVector, UpdateState& updateState) {
+    auto& ftsUpdateState = updateState.cast<FTSUpdateState>();
+    auto nodeToUpdate = nodeIDVector.getValue<nodeID_t>(nodeIDVector.state->getSelVector()[0]);
+    delete_(transaction, nodeIDVector, *ftsUpdateState.ftsDeleteState);
+
+    auto& indexTableScanState = ftsUpdateState.indexTableState.scanState;
+    ftsUpdateState.nodeIDVector.setValue(0, nodeToUpdate);
+    internalTableInfo.table->initScanState(transaction, *indexTableScanState, nodeToUpdate.tableID,
+        nodeToUpdate.offset);
+    internalTableInfo.table->lookup(transaction, *indexTableScanState);
+    ftsUpdateState.indexTableState.indexVectors[ftsUpdateState.columnIdxWithUpdate] =
+        &propertyVector;
+    insert(transaction, nodeIDVector, ftsUpdateState.indexTableState.indexVectors,
+        *ftsUpdateState.ftsInsertState);
 }
 
 std::unique_ptr<Index::DeleteState> FTSIndex::initDeleteState(const Transaction* transaction,
@@ -177,10 +206,10 @@ void FTSIndex::finalize(main::ClientContext* context) {
     if (numTotalRows == ftsStorageInfo.numCheckpointedNodes) {
         return;
     }
-    auto transaction = context->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context);
     auto dataChunk = DataChunkState::getSingleValueDataChunkState();
-    ValueVector idVector{LogicalType::INTERNAL_ID(), context->getMemoryManager(), dataChunk};
-    IndexTableState indexTableState{context->getMemoryManager(), transaction, internalTableInfo,
+    ValueVector idVector{LogicalType::INTERNAL_ID(), MemoryManager::Get(*context), dataChunk};
+    IndexTableState indexTableState{MemoryManager::Get(*context), transaction, internalTableInfo,
         indexInfo.columnIDs, idVector, dataChunk};
     internalID_t insertedNodeID = {INVALID_OFFSET, internalTableInfo.table->getTableID()};
     for (auto offset = ftsStorageInfo.numCheckpointedNodes; offset < numTotalRows; offset++) {
@@ -197,7 +226,7 @@ void FTSIndex::finalize(main::ClientContext* context) {
 
 void FTSIndex::checkpoint(main::ClientContext* context, storage::PageAllocator& pageAllocator) {
     KU_ASSERT(!context->isInMemory());
-    auto catalog = context->getCatalog();
+    auto catalog = catalog::Catalog::Get(*context);
     internalTableInfo.docTable->checkpoint(context,
         catalog->getTableCatalogEntry(&DUMMY_CHECKPOINT_TRANSACTION,
             internalTableInfo.docTable->getTableID()),
@@ -314,7 +343,8 @@ void FTSIndex::deleteFromAppearsInTable(Transaction* transaction, FTSDeleteState
     ftsDeleteState.updateVectors.dstIDVector.state = dataChunk;
     ftsDeleteState.updateVectors.idVector.state = dataChunk;
     ftsDeleteState.updateVectors.srcIDVector.setValue(0, docID);
-    internalTableInfo.appearsInfoTable->detachDelete(transaction, RelDataDirection::BWD,
+    ftsDeleteState.appearsInTableDeleteState.detachDeleteDirection = RelDataDirection::BWD;
+    internalTableInfo.appearsInfoTable->detachDelete(transaction,
         &ftsDeleteState.appearsInTableDeleteState);
 }
 

@@ -149,7 +149,18 @@ public:
     void resize(std::size_t size) { vec.resize(size); }
 
     void push_back(const T& value) { vec.push_back(value); }
+
     void push_back(T&& value) { vec.push_back(std::move(value)); }
+
+    bool empty() { return vec.empty(); }
+
+    auto begin() { return vec.begin(); }
+
+    auto end() { return vec.end(); }
+
+    auto begin() const { return vec.begin(); }
+
+    auto end() const { return vec.end(); }
 
     template<typename... Args>
     void emplace_back(Args&&... args) {

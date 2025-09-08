@@ -7,6 +7,7 @@
 #include "common/string_format.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
@@ -171,8 +172,8 @@ void ParquetReader::scan(processor::ParquetReaderScanState& state, DataChunk& re
 }
 
 void ParquetReader::initMetadata() {
-    auto fileInfo =
-        context->getVFSUnsafe()->openFile(filePath, FileOpenFlags(FileFlags::READ_ONLY), context);
+    auto fileInfo = VirtualFileSystem::GetUnsafe(*context)->openFile(filePath,
+        FileOpenFlags(FileFlags::READ_ONLY), context);
     auto proto = createThriftProtocol(fileInfo.get(), false);
     auto& transport = ku_dynamic_cast<ThriftFileTransport&>(*proto->getTransport());
     auto fileSize = transport.GetSize();
@@ -279,7 +280,8 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
                 ListType::getChildType(resultType).copy(), sEle, thisIdx, maxDefine - 1,
                 maxRepeat - 1, std::move(childrenReaders));
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
-                maxDefine, maxRepeat, std::move(structReader), context->getMemoryManager());
+                maxDefine, maxRepeat, std::move(structReader),
+                storage::MemoryManager::Get(*context));
         }
 
         if (structFields.size() > 1 || (!isList && !isMap && !isRepeated)) {
@@ -294,7 +296,7 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
         if (isRepeated) {
             resultType = LogicalType::LIST(resultType.copy());
             return std::make_unique<ListColumnReader>(*this, std::move(resultType), sEle, thisIdx,
-                maxDefine, maxRepeat, std::move(result), context->getMemoryManager());
+                maxDefine, maxRepeat, std::move(result), storage::MemoryManager::Get(*context));
         }
         return result;
     } else {
@@ -310,7 +312,8 @@ std::unique_ptr<ColumnReader> ParquetReader::createReaderRecursive(uint64_t dept
             auto elementReader = ColumnReader::createReader(*this, std::move(derivedType), sEle,
                 nextFileIdx++, maxDefine, maxRepeat);
             return std::make_unique<ListColumnReader>(*this, std::move(listType), sEle, thisIdx,
-                maxDefine, maxRepeat, std::move(elementReader), context->getMemoryManager());
+                maxDefine, maxRepeat, std::move(elementReader),
+                storage::MemoryManager::Get(*context));
         }
         // TODO check return value of derive type or should we only do this on read()
         return ColumnReader::createReader(*this, deriveLogicalType(sEle), sEle, nextFileIdx++,
@@ -602,7 +605,7 @@ static bool parquetSharedStateNext(ParquetScanLocalState& localState,
         if (sharedState.blockIdx < sharedState.readers[sharedState.fileIdx]->getNumRowsGroups()) {
             localState.reader = sharedState.readers[sharedState.fileIdx].get();
             localState.reader->initializeScan(*localState.state, {sharedState.blockIdx},
-                sharedState.context->getVFSUnsafe());
+                VirtualFileSystem::GetUnsafe(*sharedState.context));
             sharedState.blockIdx++;
             return true;
         } else {
@@ -644,7 +647,7 @@ static void bindColumns(const ExtraScanTableFuncBindInput* bindInput, uint32_t f
     main::ClientContext* context) {
     auto reader = ParquetReader(bindInput->fileScanInfo.filePaths[fileIdx], {}, context);
     auto state = std::make_unique<processor::ParquetReaderScanState>();
-    reader.initializeScan(*state, std::vector<uint64_t>{}, context->getVFSUnsafe());
+    reader.initializeScan(*state, std::vector<uint64_t>{}, VirtualFileSystem::GetUnsafe(*context));
     for (auto i = 0u; i < reader.getNumColumns(); ++i) {
         columnNames.push_back(reader.getColumnName(i));
         columnTypes.push_back(reader.getColumnType(i).copy());

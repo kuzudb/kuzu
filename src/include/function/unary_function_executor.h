@@ -43,15 +43,6 @@ struct UnaryStringFunctionWrapper {
     }
 };
 
-struct UnaryStructFunctionWrapper {
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void operation(void* /*inputVector*/, uint64_t /*inputPos*/, void* resultVector,
-        uint64_t resultPos, void* dataPtr) {
-        auto& resultVector_ = *(common::ValueVector*)resultVector;
-        FUNC::operation(resultVector_.getValue<RESULT_TYPE>(resultPos), resultVector_, dataPtr);
-    }
-};
-
 struct UnaryCastStringFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(void* inputVector, uint64_t inputPos, void* resultVector,
@@ -77,6 +68,17 @@ struct UnaryNestedTypeFunctionWrapper {
     }
 };
 
+struct SetSeedFunctionWrapper {
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static inline void operation(void* inputVector, uint64_t inputPos, void* resultVector,
+        uint64_t resultPos, void* dataPtr) {
+        auto& inputVector_ = *(common::ValueVector*)inputVector;
+        auto& resultVector_ = *(common::ValueVector*)resultVector;
+        resultVector_.setNull(resultPos, true /* isNull */);
+        FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos), dataPtr);
+    }
+};
+
 struct UnaryCastFunctionWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
     static void operation(void* inputVector, uint64_t inputPos, void* resultVector,
@@ -94,8 +96,7 @@ struct UnaryCastUnionFunctionWrapper {
         uint64_t resultPos, void* dataPtr) {
         auto& inputVector_ = *(common::ValueVector*)inputVector;
         auto& resultVector_ = *(common::ValueVector*)resultVector;
-        FUNC::operation(inputVector_.getValue<OPERAND_TYPE>(inputPos),
-            resultVector_.getValue<RESULT_TYPE>(resultPos), inputVector_, resultVector_, dataPtr);
+        FUNC::operation(inputVector_, resultVector_, inputPos, resultPos, dataPtr);
     }
 };
 

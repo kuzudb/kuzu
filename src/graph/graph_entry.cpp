@@ -28,6 +28,14 @@ std::vector<table_id_t> NativeGraphEntry::getNodeTableIDs() const {
     return result;
 }
 
+std::vector<TableCatalogEntry*> NativeGraphEntry::getRelEntries() const {
+    std::vector<TableCatalogEntry*> result;
+    for (auto& info : relInfos) {
+        result.push_back(info.entry);
+    }
+    return result;
+}
+
 std::vector<TableCatalogEntry*> NativeGraphEntry::getNodeEntries() const {
     std::vector<TableCatalogEntry*> result;
     for (auto& info : nodeInfos) {

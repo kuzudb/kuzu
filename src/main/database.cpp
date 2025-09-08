@@ -1,6 +1,10 @@
 #include "main/database.h"
 
+#include "extension/binder_extension.h"
 #include "extension/extension_manager.h"
+#include "extension/mapper_extension.h"
+#include "extension/planner_extension.h"
+#include "extension/transformer_extension.h"
 #include "main/client_context.h"
 #include "main/database_manager.h"
 #include "storage/buffer_manager/buffer_manager.h"
@@ -30,7 +34,7 @@ namespace main {
 
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, bool enableCompression,
     bool readOnly, uint64_t maxDBSize, bool autoCheckpoint, uint64_t checkpointThreshold,
-    bool forceCheckpointOnClose
+    bool forceCheckpointOnClose, bool throwOnWalReplayFailure, bool enableChecksums
 #if defined(__APPLE__)
     ,
     uint32_t threadQos
@@ -38,7 +42,8 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
     )
     : maxNumThreads{maxNumThreads}, enableCompression{enableCompression}, readOnly{readOnly},
       autoCheckpoint{autoCheckpoint}, checkpointThreshold{checkpointThreshold},
-      forceCheckpointOnClose{forceCheckpointOnClose} {
+      forceCheckpointOnClose{forceCheckpointOnClose},
+      throwOnWalReplayFailure(throwOnWalReplayFailure), enableChecksums(enableChecksums) {
 #if defined(__APPLE__)
     this->threadQos = threadQos;
 #endif
@@ -79,9 +84,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_, uint64_t maxNumThreads, boo
 }
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig)
-    : dbConfig{systemConfig} {
-    initMembers(databasePath);
-}
+    : Database(databasePath, systemConfig, initBufferManager) {}
 
 Database::Database(std::string_view databasePath, SystemConfig systemConfig,
     construct_bm_func_t constructBMFunc)
@@ -119,7 +122,7 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
 
     catalog = std::make_unique<Catalog>();
     storageManager = std::make_unique<StorageManager>(databasePath, dbConfig.readOnly,
-        *memoryManager, dbConfig.enableCompression, vfs.get());
+        dbConfig.enableChecksums, *memoryManager, dbConfig.enableCompression, vfs.get());
     transactionManager = std::make_unique<TransactionManager>(storageManager->getWAL());
     databaseManager = std::make_unique<DatabaseManager>();
 
@@ -130,7 +133,8 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
         extensionManager->autoLoadLinkedExtensions(&clientContext);
         return;
     }
-    StorageManager::recover(clientContext);
+    StorageManager::recover(clientContext, dbConfig.throwOnWalReplayFailure,
+        dbConfig.enableChecksums);
 }
 
 Database::~Database() {
@@ -159,6 +163,56 @@ void Database::addExtensionOption(std::string name, LogicalTypeID type, Value de
     bool isConfidential) {
     extensionManager->addExtensionOption(std::move(name), type, std::move(defaultValue),
         isConfidential);
+}
+
+void Database::addTransformerExtension(
+    std::unique_ptr<extension::TransformerExtension> transformerExtension) {
+    transformerExtensions.push_back(std::move(transformerExtension));
+}
+
+std::vector<extension::TransformerExtension*> Database::getTransformerExtensions() {
+    std::vector<extension::TransformerExtension*> transformers;
+    for (auto& transformerExtension : transformerExtensions) {
+        transformers.push_back(transformerExtension.get());
+    }
+    return transformers;
+}
+
+void Database::addBinderExtension(
+    std::unique_ptr<extension::BinderExtension> transformerExtension) {
+    binderExtensions.push_back(std::move(transformerExtension));
+}
+
+std::vector<extension::BinderExtension*> Database::getBinderExtensions() {
+    std::vector<extension::BinderExtension*> binders;
+    for (auto& binderExtension : binderExtensions) {
+        binders.push_back(binderExtension.get());
+    }
+    return binders;
+}
+
+void Database::addPlannerExtension(std::unique_ptr<extension::PlannerExtension> plannerExtension) {
+    plannerExtensions.push_back(std::move(plannerExtension));
+}
+
+std::vector<extension::PlannerExtension*> Database::getPlannerExtensions() {
+    std::vector<extension::PlannerExtension*> planners;
+    for (auto& plannerExtension : plannerExtensions) {
+        planners.push_back(plannerExtension.get());
+    }
+    return planners;
+}
+
+void Database::addMapperExtension(std::unique_ptr<extension::MapperExtension> mapperExtension) {
+    mapperExtensions.push_back(std::move(mapperExtension));
+}
+
+std::vector<extension::MapperExtension*> Database::getMapperExtensions() {
+    std::vector<extension::MapperExtension*> mappers;
+    for (auto& mapperExtension : mapperExtensions) {
+        mappers.push_back(mapperExtension.get());
+    }
+    return mappers;
 }
 
 std::vector<StorageExtension*> Database::getStorageExtensions() {

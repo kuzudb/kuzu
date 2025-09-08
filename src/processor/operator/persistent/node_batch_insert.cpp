@@ -4,6 +4,7 @@
 #include "common/cast.h"
 #include "common/finally_wrapper.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
@@ -11,10 +12,12 @@
 #include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/node_table.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace processor {
@@ -33,20 +36,20 @@ void NodeBatchInsertSharedState::initPKIndex(const ExecutionContext* context) {
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(table);
     nodeTable->getPKIndex()->bulkReserve(numRows);
     globalIndexBuilder = IndexBuilder(std::make_shared<IndexBuilderSharedState>(
-        context->clientContext->getTransaction(), nodeTable));
+        Transaction::Get(*context->clientContext), nodeTable));
 }
 
 void NodeBatchInsert::initGlobalStateInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto nodeTableEntry =
-        clientContext->getCatalog()
-            ->getTableCatalogEntry(clientContext->getTransaction(), info->tableName)
-            ->ptrCast<NodeTableCatalogEntry>();
-    auto nodeTable = clientContext->getStorageManager()->getTable(nodeTableEntry->getTableID());
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = Transaction::Get(*clientContext);
+    auto nodeTableEntry = catalog->getTableCatalogEntry(transaction, info->tableName)
+                              ->ptrCast<NodeTableCatalogEntry>();
+    auto nodeTable = StorageManager::Get(*clientContext)->getTable(nodeTableEntry->getTableID());
     const auto& pkDefinition = nodeTableEntry->getPrimaryKeyDefinition();
     auto pkColumnID = nodeTableEntry->getColumnID(pkDefinition.getName());
     // Init info
-    info->compressionEnabled = clientContext->getStorageManager()->compressionEnabled();
+    info->compressionEnabled = StorageManager::Get(*clientContext)->compressionEnabled();
     auto dataColumnIdx = 0u;
     for (auto& property : nodeTableEntry->getProperties()) {
         info->columnTypes.push_back(property.getType().copy());
@@ -77,7 +80,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     nodeLocalState->localIndexBuilder = nodeSharedState->globalIndexBuilder->clone();
     nodeLocalState->errorHandler = createErrorHandler(context);
     nodeLocalState->optimisticAllocator =
-        context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
+        Transaction::Get(*context->clientContext)->getLocalStorage()->addOptimisticAllocator();
 
     nodeLocalState->columnVectors.resize(numColumns);
 
@@ -87,7 +90,7 @@ void NodeBatchInsert::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         nodeLocalState->columnVectors[i] = evaluator->resultVector.get();
     }
     nodeLocalState->chunkedGroup = std::make_unique<ChunkedNodeGroup>(
-        *context->clientContext->getMemoryManager(), nodeInfo->columnTypes,
+        *MemoryManager::Get(*context->clientContext), nodeInfo->columnTypes,
         info->compressionEnabled, StorageConfig::NODE_GROUP_SIZE, 0, ResidencyState::IN_MEMORY);
     KU_ASSERT(resultSet->dataChunks[0]);
     nodeLocalState->columnState = resultSet->dataChunks[0]->state;
@@ -100,19 +103,18 @@ void NodeBatchInsert::executeInternal(ExecutionContext* context) {
     if (nodeLocalState->localIndexBuilder) {
         token = nodeLocalState->localIndexBuilder->getProducerToken();
     }
-
+    auto transaction = Transaction::Get(*clientContext);
     while (children[0]->getNextTuple(context)) {
         const auto originalSelVector = nodeLocalState->columnState->getSelVectorShared();
         // Evaluate expressions if needed.
         const auto numTuples = nodeLocalState->columnState->getSelVector().getSelSize();
         evaluateExpressions(numTuples);
-        copyToNodeGroup(clientContext->getTransaction(), clientContext->getMemoryManager());
-        nodeLocalState->columnState->setSelVector(originalSelVector);
+        copyToNodeGroup(transaction, MemoryManager::Get(*clientContext)),
+            nodeLocalState->columnState->setSelVector(originalSelVector);
     }
     if (nodeLocalState->chunkedGroup->getNumRows() > 0) {
-        appendIncompleteNodeGroup(clientContext->getTransaction(),
-            std::move(nodeLocalState->chunkedGroup), nodeLocalState->localIndexBuilder,
-            context->clientContext->getMemoryManager());
+        appendIncompleteNodeGroup(transaction, std::move(nodeLocalState->chunkedGroup),
+            nodeLocalState->localIndexBuilder, MemoryManager::Get(*context->clientContext));
     }
     if (nodeLocalState->localIndexBuilder) {
         KU_ASSERT(token);
@@ -258,13 +260,13 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     KU_ASSERT(localState == nullptr);
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     auto errorHandler = createErrorHandler(context);
-    auto& pageAllocator =
-        *context->clientContext->getTransaction()->getLocalStorage()->addOptimisticAllocator();
+    auto transaction = Transaction::Get(*context->clientContext);
+    auto& pageAllocator = *transaction->getLocalStorage()->addOptimisticAllocator();
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
-            writeAndResetNodeGroup(context->clientContext->getTransaction(),
-                nodeSharedState->sharedNodeGroup, nodeSharedState->globalIndexBuilder,
-                context->clientContext->getMemoryManager(), errorHandler, pageAllocator);
+            writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup,
+                nodeSharedState->globalIndexBuilder, MemoryManager::Get(*context->clientContext),
+                errorHandler, pageAllocator);
         }
     }
     if (nodeSharedState->globalIndexBuilder) {
@@ -292,7 +294,7 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows() - sharedState->getNumErroredRows(), info->tableName);
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
-        context->clientContext->getMemoryManager());
+        MemoryManager::Get(*context->clientContext));
 
     const auto warningCount =
         context->clientContext->getWarningContextUnsafe().getWarningCount(context->queryID);
@@ -302,7 +304,7 @@ void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
                          "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
                 warningCount, context->queryID);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
-            context->clientContext->getMemoryManager());
+            MemoryManager::Get(*context->clientContext));
     }
 }
 

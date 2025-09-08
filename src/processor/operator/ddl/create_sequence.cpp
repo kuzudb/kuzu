@@ -3,6 +3,8 @@
 #include "catalog/catalog.h"
 #include "common/string_format.h"
 #include "processor/execution_context.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -16,9 +18,9 @@ std::string CreateSequencePrintInfo::toString() const {
 
 void CreateSequence::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
-    auto memoryManager = clientContext->getMemoryManager();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
+    auto memoryManager = storage::MemoryManager::Get(*clientContext);
     if (catalog->containsSequence(transaction, info.sequenceName)) {
         switch (info.onConflict) {
         case ConflictAction::ON_CONFLICT_DO_NOTHING: {

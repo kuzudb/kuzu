@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "processor/execution_context.h"
 #include "storage/local_cached_column.h"
@@ -11,10 +12,6 @@
 #include "storage/table/node_table.h"
 #include "storage/table/table.h"
 #include "transaction/transaction.h"
-
-namespace kuzu::catalog {
-class TableCatalogEntry;
-}
 
 using namespace kuzu::common;
 
@@ -48,8 +45,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto columnName = input->getLiteralVal<std::string>(1);
     binder::Binder::validateTableExistence(*context, tableName);
-    const auto tableEntry =
-        context->getCatalog()->getTableCatalogEntry(context->getTransaction(), tableName);
+    const auto tableEntry = catalog::Catalog::Get(*context)->getTableCatalogEntry(
+        transaction::Transaction::Get(*context), tableName);
     binder::Binder::validateNodeTableType(tableEntry);
     binder::Binder::validateColumnExistence(tableEntry, columnName);
     auto propertyID = tableEntry->getPropertyID(columnName);
@@ -83,7 +80,7 @@ struct CacheArrayColumnSharedState final : public SimpleTableFuncSharedState {
 static std::unique_ptr<TableFuncSharedState> initSharedState(
     const TableFuncInitSharedStateInput& input) {
     const auto bindData = input.bindData->constPtrCast<CacheArrayColumnBindData>();
-    auto& table = input.context->clientContext->getStorageManager()
+    auto& table = storage::StorageManager::Get(*input.context->clientContext)
                       ->getTable(bindData->tableEntry->getTableID())
                       ->cast<storage::NodeTable>();
     return std::make_unique<CacheArrayColumnSharedState>(table, table.getNumCommittedNodeGroups(),
@@ -94,7 +91,8 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
     CacheArrayColumnLocalState(const main::ClientContext& context, table_id_t tableID,
         column_id_t columnID)
         : dataChunk{2, std::make_shared<DataChunkState>()} {
-        auto& table = context.getStorageManager()->getTable(tableID)->cast<storage::NodeTable>();
+        auto& table =
+            storage::StorageManager::Get(context)->getTable(tableID)->cast<storage::NodeTable>();
         dataChunk.insert(0, std::make_shared<ValueVector>(LogicalType::INTERNAL_ID()));
         dataChunk.insert(1,
             std::make_shared<ValueVector>(table.getColumn(columnID).getDataType().copy()));
@@ -104,7 +102,7 @@ struct CacheArrayColumnLocalState final : TableFuncLocalState {
             std::make_unique<storage::NodeTableScanState>(&dataChunk.getValueVectorMutable(0),
                 std::vector{&dataChunk.getValueVectorMutable(1)}, dataChunk.state);
         scanState->source = storage::TableScanSource::COMMITTED;
-        scanState->setToTable(context.getTransaction(), &table, columnIDs, {});
+        scanState->setToTable(transaction::Transaction::Get(context), &table, columnIDs, {});
     }
 
     DataChunk dataChunk;
@@ -155,15 +153,17 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
     auto& scanState = *localState->scanState;
     for (auto i = morsel.startOffset; i < morsel.endOffset; i++) {
         auto numRows = table.getNumTuplesInNodeGroup(i);
-        auto data = storage::ColumnChunkFactory::createColumnChunkData(*context->getMemoryManager(),
-            columnType.copy(), false /*enableCompression*/, numRows,
-            storage::ResidencyState::IN_MEMORY, true /*hasNullData*/, false /*initializeToZero*/);
+        auto data = storage::ColumnChunkFactory::createColumnChunkData(
+            *storage::MemoryManager::Get(*context), columnType.copy(), false /*enableCompression*/,
+            numRows, storage::ResidencyState::IN_MEMORY, true /*hasNullData*/,
+            false /*initializeToZero*/);
         if (columnType.getLogicalTypeID() == LogicalTypeID::ARRAY) {
             auto arrayTypeInfo = columnType.getExtraTypeInfo()->constPtrCast<ArrayTypeInfo>();
             data->cast<storage::ListChunkData>().getDataColumnChunk()->resize(
                 numRows * arrayTypeInfo->getNumElements());
         }
-        scanTableDataToChunk(i, scanState, data.get(), context->getTransaction(), table);
+        scanTableDataToChunk(i, scanState, data.get(), transaction::Transaction::Get(*context),
+            table);
         sharedState->merge(i, std::move(data));
     }
     return morsel.endOffset - morsel.startOffset;
@@ -183,7 +183,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 
 static void finalizeFunc(const processor::ExecutionContext* context,
     TableFuncSharedState* sharedState) {
-    auto transaction = context->clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
     auto cacheColumnSharedState = sharedState->ptrCast<CacheArrayColumnSharedState>();
     auto& localCacheManager = transaction->getLocalCacheManager();
     localCacheManager.put(std::move(cacheColumnSharedState->cachedColumn));

@@ -6,6 +6,7 @@
 #include "parquet_types.h"
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 #include "processor/result/factorized_table.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 namespace kuzu {
 namespace function {
@@ -75,7 +76,7 @@ struct ExportParquetLocalState final : public ExportFuncLocalState {
 
     ExportParquetLocalState(const ExportFuncBindData& bindData, main::ClientContext& context,
         std::vector<bool> isFlatVec)
-        : mm{context.getMemoryManager()} {
+        : mm{storage::MemoryManager::Get(context)} {
         auto tableSchema = FactorizedTableSchema();
         for (auto i = 0u; i < isFlatVec.size(); i++) {
             auto columnSchema =

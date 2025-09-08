@@ -20,7 +20,7 @@ class LocalWAL {
     friend class WAL;
 
 public:
-    explicit LocalWAL(MemoryManager& mm);
+    explicit LocalWAL(MemoryManager& mm, bool enableChecksums);
 
     void logCreateCatalogEntryRecord(catalog::CatalogEntry* catalogEntry, bool isInternal);
     void logDropCatalogEntryRecord(uint64_t tableID, catalog::CatalogEntryType type);
@@ -54,8 +54,8 @@ private:
 
 private:
     std::mutex mtx;
-    std::shared_ptr<common::InMemFileWriter> writer;
-    std::unique_ptr<common::Serializer> serializer;
+    std::shared_ptr<common::InMemFileWriter> inMemWriter;
+    common::Serializer serializer;
 };
 
 } // namespace storage

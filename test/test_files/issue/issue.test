@@ -2,6 +2,32 @@
 
 --
 
+-CASE 5954
+-STATEMENT CREATE NODE TABLE Device(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE Execution(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE NODE TABLE Request(id STRING, PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE REL TABLE REQUESTED_BY(FROM Execution TO Request);
+---- ok
+-STATEMENT CREATE REL TABLE TARGET(FROM Request TO Device);
+---- ok
+-STATEMENT CREATE (:Execution { id: 'E1' })-[:REQUESTED_BY]->(:Request { id: 'R1' })-[:TARGET]->(:Device { id: 'D1' });
+---- ok
+-STATEMENT MATCH (execution:Execution { id: 'E1' }) CREATE (execution)-[:REQUESTED_BY]->(r:Request { id: 'R2' })-[:TARGET]->(d:Device { id: 'D2' }) return execution.id, r.id, d.id;
+---- ok
+-STATEMENT MATCH (request:Request { id: 'R1' }) DETACH DELETE request;
+---- ok
+-STATEMENT MATCH (execution:Execution { id: 'E1' }) DETACH DELETE execution;
+---- ok
+-STATEMENT MATCH ()-[r]->() RETURN COUNT(*)
+---- 1
+1
+-STATEMENT MATCH (a)-[r]->(b) HINT a JOIN (r join b) RETURN a.id, b.id;
+---- 1
+R2|D2
+
 -CASE 4080
 -STATEMENT CREATE NODE TABLE V(id INT, PRIMARY KEY(id));
 ---- ok
@@ -592,3 +618,36 @@ Copy exception: Unable to find primary key value 1.
 -STATEMENT match (a:Test1), (b:Test2) create (a)-[e:Xyz]->(b);
 ---- error
 Binder exception: Cannot find a valid label in e that connects Test1 and Test2.
+
+-CASE 5893
+-STATEMENT create node table Account(id serial primary key, service string, name string);
+---- ok
+-STATEMENT create (a:Account {service: 'A', name: 'alice'});
+---- ok
+-STATEMENT create (a:Account {service: 'A', name: null});
+---- ok
+-STATEMENT create (a:Account {service: 'B', name: null});
+---- ok
+-STATEMENT create (a:Account {service: 'B', name: 'alice'});
+---- ok
+-STATEMENT match (a_account:Account {service: 'A'})
+    match (b_account:Account {service: 'B'})
+    where a_account.name = b_account.name
+    return a_account.name;
+---- 1
+alice
+
+-CASE 5840
+-STATEMENT CREATE NODE TABLE Node (
+                   id SERIAL PRIMARY KEY,
+                   cities STRING[]
+               );
+---- ok
+-STATEMENT UNWIND [{"cities": ["New York", "Los Angeles"]}, {"cities": ["Tokyo", "Osaka"]}] AS data
+        CREATE (n:Node)
+        SET n.cities = list_transform(data.cities, label -> regexp_replace(label, 'New', 'Old'));
+---- ok
+-STATEMENT MATCH (n) RETURN n;
+---- 2
+{_ID: 0:0, _LABEL: Node, id: 0, cities: [Old York,Los Angeles]}
+{_ID: 0:1, _LABEL: Node, id: 1, cities: [Tokyo,Osaka]}

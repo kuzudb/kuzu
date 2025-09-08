@@ -11,7 +11,7 @@
 #include "function/cast/functions/cast_decimal.h"
 #include "function/cast/functions/cast_from_string_functions.h"
 #include "function/cast/functions/cast_functions.h"
-#include "main/client_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -23,8 +23,8 @@ struct CastChildFunctionExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(common::ValueVector& operand, common::SelectionVector*,
         common::ValueVector& result, common::SelectionVector*, void* dataPtr) {
-        auto numOfEntries = reinterpret_cast<CastFunctionBindData*>(dataPtr)->numOfEntries;
-        for (auto i = 0u; i < numOfEntries; i++) {
+        auto& bindData = *reinterpret_cast<CastFunctionBindData*>(dataPtr);
+        for (auto i = 0u; i < bindData.numOfEntries; i++) {
             result.setNull(i, operand.isNull(i));
             if (!result.isNull(i)) {
                 OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>((void*)(&operand),
@@ -33,6 +33,8 @@ struct CastChildFunctionExecutor {
         }
     }
 };
+
+static union_field_idx_t findUnionMinCostTag(const LogicalType&, const LogicalType&);
 
 static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueVector* resultVector,
     uint64_t numOfEntries, CastFunctionBindData* dataPtr) {
@@ -55,8 +57,9 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             resultVector = ListVector::getDataVector(resultVector);
             inputType = &inputVector->dataType;
             resultType = &resultVector->dataType;
-        } else if (inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
-                   resultType->getPhysicalType() == PhysicalTypeID::STRUCT) {
+        } else if ((inputType->getLogicalTypeID() == LogicalTypeID::STRUCT &&
+                       resultType->getLogicalTypeID() == LogicalTypeID::STRUCT) ||
+                   CastArrayHelper::isUnionSpecialCast(*inputType, *resultType)) {
             // Check if struct type can be cast
             auto errorMsg = stringFormat("Unsupported casting function from {} to {}.",
                 inputType->toString(), resultType->toString());
@@ -70,9 +73,10 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
             auto resultTypeNames = StructType::getFieldNames(*resultType);
 
             for (auto i = 0u; i < inputTypeNames.size(); i++) {
-                if (inputTypeNames[i] != resultTypeNames[i]) {
-                    throw ConversionException{errorMsg};
+                if (StringUtils::caseInsensitiveEquals(inputTypeNames[i], resultTypeNames[i])) {
+                    continue;
                 }
+                throw ConversionException{errorMsg};
             }
 
             // copy data and nullmask from input
@@ -87,15 +91,49 @@ static void resolveNestedVector(std::shared_ptr<ValueVector> inputVector, ValueV
                     dataPtr);
             }
             return;
+        } else if (resultType->getLogicalTypeID() == LogicalTypeID::UNION) {
+            if (inputType->getLogicalTypeID() == LogicalTypeID::UNION) {
+                auto numFieldsSrc = UnionType::getNumFields(*inputType);
+                std::vector<union_field_idx_t> tagMap(numFieldsSrc);
+                for (auto i = 0u; i < numFieldsSrc; ++i) {
+                    const auto& fieldName = UnionType::getFieldName(*inputType, i);
+                    if (!UnionType::hasField(*resultType, fieldName)) {
+                        throw ConversionException{stringFormat(
+                            "Cannot cast from {} to {}, target type is missing field '{}'.",
+                            inputType->toString(), resultType->toString(), fieldName)};
+                    }
+                    const auto& fieldTypeSrc = UnionType::getFieldType(*inputType, i);
+                    const auto& fieldTypeDst = UnionType::getFieldType(*resultType, fieldName);
+                    if (!CastFunction::hasImplicitCast(fieldTypeSrc, fieldTypeDst)) {
+                        throw ConversionException{
+                            stringFormat("Unsupported casting function from {} to {}.",
+                                fieldTypeSrc.toString(), fieldTypeDst.toString())};
+                    }
+                    auto dstTag = UnionType::getFieldIdx(*resultType, fieldName);
+                    tagMap[i] = dstTag;
+                    auto srcValVector = UnionVector::getSharedValVector(inputVector.get(), i);
+                    auto resValVector = UnionVector::getValVector(resultVector, dstTag);
+                    resolveNestedVector(srcValVector, resValVector, numOfEntries, dataPtr);
+                }
+                auto srcTagVector = UnionVector::getTagVector(inputVector.get());
+                auto resTagVector = UnionVector::getTagVector(resultVector);
+                for (auto i = 0u; i < numOfEntries; ++i) {
+                    auto srcTag = srcTagVector->getValue<union_field_idx_t>(i);
+                    resTagVector->setValue(i, tagMap[srcTag]);
+                }
+                return;
+            } else {
+                auto minCostTag = findUnionMinCostTag(*inputType, *resultType);
+                auto tagVector = UnionVector::getTagVector(resultVector);
+                for (auto i = 0u; i < numOfEntries; ++i) {
+                    tagVector->setValue(i, minCostTag);
+                }
+                resultVector = UnionVector::getValVector(resultVector, minCostTag);
+                resultType = &UnionType::getFieldType(*resultType, minCostTag);
+            }
         } else {
             break;
         }
-    }
-
-    // TODO(Sami): Remove this restriction after we support casting between nested unions.
-    if (inputType->getLogicalTypeID() == LogicalTypeID::UNION ||
-        resultType->getLogicalTypeID() == LogicalTypeID::UNION) {
-        throw common::BinderException{"Casting from/to nested union type is not supported yet."};
     }
     // non-nested types
     if (inputType->getLogicalTypeID() != resultType->getLogicalTypeID()) {
@@ -132,8 +170,8 @@ static void nestedTypesCastExecFunction(
 
     auto& selVector = *inputVectorSelVector;
     auto bindData = CastFunctionBindData(result.dataType.copy());
-    auto numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-    resolveNestedVector(inputVector, &result, numOfEntries, &bindData);
+    bindData.numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
+    resolveNestedVector(inputVector, &result, bindData.numOfEntries, &bindData);
     if (inputVector->state->isFlat()) {
         resultSelVector->setToFiltered();
         (*resultSelVector)[0] = (*inputVectorSelVector)[0];
@@ -181,10 +219,18 @@ static bool hasImplicitCastStruct(const LogicalType& srcType, const LogicalType&
 }
 
 static bool hasImplicitCastUnion(const LogicalType& srcType, const LogicalType& dstType) {
-    // srcType is either non-nested or a union
     if (srcType.getLogicalTypeID() == LogicalTypeID::UNION) {
-        // todo
-        throw ConversionException{"Casting from UNION to UNION is not supported right now."};
+        auto numFieldsSrc = UnionType::getNumFields(srcType);
+        for (auto i = 0u; i < numFieldsSrc; ++i) {
+            const auto& fieldName = UnionType::getFieldName(srcType, i);
+            const auto& fieldType = UnionType::getFieldType(srcType, i);
+            if (!UnionType::hasField(dstType, fieldName) ||
+                !CastFunction::hasImplicitCast(fieldType,
+                    UnionType::getFieldType(dstType, fieldName))) {
+                return false;
+            }
+        }
+        return true;
     } else {
         auto numFields = UnionType::getNumFields(dstType);
         for (auto i = 0u; i < numFields; ++i) {
@@ -619,14 +665,13 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(const std::stri
         func);
 }
 
-static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string& functionName,
-    const LogicalType& sourceType, const LogicalType& targetType) {
-    // source type is not nested, targetType is a union
+static union_field_idx_t findUnionMinCostTag(const LogicalType& sourceType,
+    const LogicalType& unionType) {
     uint32_t minCastCost = UNDEFINED_CAST_COST;
     union_field_idx_t minCostTag = 0;
-    auto numFields = UnionType::getNumFields(targetType);
+    auto numFields = UnionType::getNumFields(unionType);
     for (auto i = 0u; i < numFields; ++i) {
-        const auto& fieldType = UnionType::getFieldType(targetType, i);
+        const auto& fieldType = UnionType::getFieldType(unionType, i);
         if (CastFunction::hasImplicitCast(sourceType, fieldType)) {
             uint32_t castCost = BuiltInFunctionsUtils::getCastCost(sourceType.getLogicalTypeID(),
                 fieldType.getLogicalTypeID());
@@ -637,46 +682,40 @@ static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string
         }
     }
     if (minCastCost == UNDEFINED_CAST_COST) {
-        throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
-            sourceType.toString(), targetType.toString())};
+        throw ConversionException{
+            stringFormat("Cannot cast from {} to {}, target type has no compatible field.",
+                sourceType.toString(), unionType.toString())};
     }
+    return minCostTag;
+}
+
+static std::unique_ptr<ScalarFunction> bindCastToUnionFunction(const std::string& functionName,
+    const LogicalType& sourceType, const LogicalType& targetType) {
+    auto minCostTag = findUnionMinCostTag(sourceType, targetType);
     const auto& innerType = common::UnionType::getFieldType(targetType, minCostTag);
-    scalar_func_exec_t execFunc;
-    TypeUtils::visit(sourceType, [&execFunc]<typename T>(T) {
-        execFunc = ScalarFunction::UnaryCastUnionExecFunction<T, union_entry_t, CastToUnion>;
-    });
-    std::shared_ptr<ScalarFunction> innerCast;
     CastToUnionBindData::inner_func_t innerFunc;
-    if (sourceType != innerType) {
-        innerCast = CastFunction::bindCastFunction<CastChildFunctionExecutor>("CAST", sourceType,
-            innerType.copy());
-        innerFunc = [innerCast](common::ValueVector& inputVector, common::ValueVector& valVector,
-                        common::SelectionVector& selVector, CastToUnionBindData& bindData) {
-            std::vector<std::shared_ptr<common::ValueVector>> innerParams{
-                std::shared_ptr<common::ValueVector>(&inputVector, [](common::ValueVector*) {})};
-            bindData.innerBindData.numOfEntries = selVector[selVector.getSelSize() - 1] + 1;
-            innerCast->execFunc(innerParams, common::SelectionVector::fromValueVectors(innerParams),
-                valVector, valVector.getSelVectorPtr(), &bindData.innerBindData);
+    if (sourceType == innerType) {
+        innerFunc = [](ValueVector* inputVector, ValueVector& valVector, SelectionVector*,
+                        uint64_t inputPos, uint64_t resultPos) {
+            valVector.copyFromVectorData(inputPos, inputVector, resultPos);
         };
     } else {
-        innerFunc = [](common::ValueVector& inputVector, common::ValueVector& valVector,
-                        common::SelectionVector& selVector, CastToUnionBindData&) {
-            for (auto& pos : selVector.getSelectedPositions()) {
-                valVector.copyFromVectorData(pos, &inputVector, pos);
-            }
+        std::shared_ptr<ScalarFunction> innerCast =
+            CastFunction::bindCastFunction("CAST", sourceType, innerType);
+        innerFunc = [innerCast](ValueVector* inputVector, ValueVector& valVector,
+                        SelectionVector* selVector, uint64_t, uint64_t) {
+            // Can we just use inputPos / resultPos and not the entire sel vector?
+            auto input = std::shared_ptr<ValueVector>(inputVector, [](ValueVector*) {});
+            innerCast->execFunc({input}, {selVector}, valVector, selVector, nullptr /* dataPtr */);
         };
     }
     auto castFunc = std::make_unique<ScalarFunction>(functionName,
         std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()}, targetType.getLogicalTypeID(),
-        execFunc);
-    auto pInnerType = std::make_shared<LogicalType>(innerType.copy());
-    auto pTargetType = std::make_shared<LogicalType>(targetType.copy());
-    scalar_bind_func bindFunc = [minCostTag, innerFunc, pInnerType, pTargetType](
-                                    const ScalarBindFuncInput&) {
-        return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, pInnerType->copy(),
-            pTargetType->copy());
+        ScalarFunction::UnaryCastExecFunction<void, void, CastToUnion, UnaryFunctionExecutor,
+            UnaryCastUnionFunctionWrapper>);
+    castFunc->bindFunc = [minCostTag, innerFunc, &targetType](const ScalarBindFuncInput&) {
+        return std::make_unique<CastToUnionBindData>(minCostTag, innerFunc, targetType.copy());
     };
-    castFunc->bindFunc = std::move(bindFunc);
     return castFunc;
 }
 
@@ -688,11 +727,6 @@ static std::unique_ptr<ScalarFunction> bindCastBetweenNested(const std::string& 
         return std::make_unique<ScalarFunction>(functionName,
             std::vector<LogicalTypeID>{sourceType.getLogicalTypeID()},
             targetType.getLogicalTypeID(), nestedTypesCastExecFunction);
-    }
-    if (targetType.getLogicalTypeID() == LogicalTypeID::UNION) {
-        throw ConversionException{
-            stringFormat("Casting from {} to UNION is not supported right now.",
-                LogicalTypeUtils::toString(sourceType.getLogicalTypeID()))};
     }
     throw ConversionException{stringFormat("Unsupported casting function from {} to {}.",
         LogicalTypeUtils::toString(sourceType.getLogicalTypeID()),
@@ -876,7 +910,8 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
             targetType);
     }
     case LogicalTypeID::UNION: {
-        if (!LogicalTypeUtils::isNested(sourceType.getLogicalTypeID())) {
+        if (sourceType.getLogicalTypeID() != LogicalTypeID::UNION &&
+            !CastArrayHelper::isUnionSpecialCast(sourceType, targetType)) {
             return bindCastToUnionFunction(functionName, sourceType, targetType);
         }
         [[fallthrough]];
@@ -1098,8 +1133,9 @@ static std::unique_ptr<FunctionBindData> castBindFunc(ScalarBindFuncInput input)
         std::vector<LogicalType> typeVec;
         typeVec.push_back(input.arguments[0]->getDataType().copy());
         try {
-            auto entry = input.context->getCatalog()->getFunctionEntry(
-                input.context->getTransaction(), func->name);
+            auto entry =
+                catalog::Catalog::Get(*input.context)
+                    ->getFunctionEntry(transaction::Transaction::Get(*input.context), func->name);
             auto match = BuiltInFunctionsUtils::matchFunction(func->name, typeVec,
                 entry->ptrCast<catalog::FunctionCatalogEntry>());
             func->execFunc = match->constPtrCast<ScalarFunction>()->execFunc;

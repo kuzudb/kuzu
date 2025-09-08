@@ -2,12 +2,12 @@
 #include "binder/copy/bound_copy_to.h"
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "planner/operator/persistent/logical_copy_to.h"
 #include "planner/operator/scan/logical_index_look_up.h"
 #include "planner/planner.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::storage;
@@ -109,8 +109,8 @@ LogicalPlan Planner::planCopyRelFrom(const BoundCopyFromInfo* info) {
     auto& extraInfo = info->extraInfo->constCast<ExtraBoundCopyRelInfo>();
     // If the table entry doesn't exist, assume both directions
     std::vector<RelDataDirection> directions = {RelDataDirection::FWD, RelDataDirection::BWD};
-    auto catalog = clientContext->getCatalog();
-    auto transaction = clientContext->getTransaction();
+    auto catalog = Catalog::Get(*clientContext);
+    auto transaction = transaction::Transaction::Get(*clientContext);
     if (catalog->containsTable(transaction, info->tableName)) {
         const auto& relGroupEntry = catalog->getTableCatalogEntry(transaction, info->tableName)
                                         ->constCast<RelGroupCatalogEntry>();

@@ -1,5 +1,6 @@
 #include "processor/operator/unwind.h"
 
+#include "binder/expression/expression.h" // IWYU pragma: keep
 #include "common/system_config.h"
 #include "processor/execution_context.h"
 

@@ -20,7 +20,7 @@ static offset_t clearCacheTableFunc(const TableFuncInput& input,
 
 static std::unique_ptr<TableFuncBindData> clearCacheBindFunc(const ClientContext* context,
     const TableFuncBindInput* /*input*/) {
-    return std::make_unique<ClearCacheBindData>(context->getDatabaseManager());
+    return std::make_unique<ClearCacheBindData>(DatabaseManager::Get(*context));
 }
 
 function_set ClearCacheFunction::getFunctionSet() {

@@ -2,9 +2,9 @@
 #include "function/gds/auxiliary_state/path_auxiliary_state.h"
 #include "function/gds/gds_function_collection.h"
 #include "function/gds/rec_joins.h"
-#include "main/client_context.h"
+#include "function/gds/weight_utils.h"
 #include "processor/execution_context.h"
-#include "wsp_utils.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -29,7 +29,7 @@ public:
             auto nbrNodeID = neighbors[i];
             auto edgeID = propertyVectors[0]->template getValue<relID_t>(i);
             auto weight = propertyVectors[1]->template getValue<T>(i);
-            checkWeight(weight);
+            WeightUtils::checkWeight(WeightedSPPathsFunction::name, weight);
             if (!block->hasSpace()) {
                 block = bfsGraphManager->getCurrentGraph()->addNewBlock();
             }
@@ -122,15 +122,16 @@ private:
         auto frontierPair = std::make_unique<DenseSparseDynamicFrontierPair>(
             std::move(curDenseFrontier), std::move(nextDenseFrontier));
         auto bfsGraph = std::make_unique<BFSGraphManager>(
-            sharedState->graph->getMaxOffsetMap(clientContext->getTransaction()),
-            clientContext->getMemoryManager());
+            sharedState->graph->getMaxOffsetMap(transaction::Transaction::Get(*clientContext)),
+            MemoryManager::Get(*clientContext));
         std::unique_ptr<GDSComputeState> gdsState;
-        visit(bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
-            auto edgeCompute = std::make_unique<WSPPathsEdgeCompute<T>>(bfsGraph.get());
-            auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
-            gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
-                std::move(edgeCompute), std::move(auxiliaryState));
-        });
+        WeightUtils::visit(WeightedSPPathsFunction::name,
+            bindData.weightPropertyExpr->getDataType(), [&]<typename T>(T) {
+                auto edgeCompute = std::make_unique<WSPPathsEdgeCompute<T>>(bfsGraph.get());
+                auto auxiliaryState = std::make_unique<WSPPathsAuxiliaryState>(std::move(bfsGraph));
+                gdsState = std::make_unique<GDSComputeState>(std::move(frontierPair),
+                    std::move(edgeCompute), std::move(auxiliaryState));
+            });
         return gdsState;
     }
 

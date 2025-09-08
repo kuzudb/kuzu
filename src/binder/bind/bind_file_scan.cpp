@@ -11,6 +11,7 @@
 #include "common/string_utils.h"
 #include "extension/extension_manager.h"
 #include "function/table/bind_input.h"
+#include "main/client_context.h"
 #include "main/database_manager.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/scan_source.h"
@@ -26,7 +27,7 @@ namespace binder {
 
 FileTypeInfo bindSingleFileType(const main::ClientContext* context, const std::string& filePath) {
     std::filesystem::path fileName(filePath);
-    auto extension = context->getVFSUnsafe()->getFileExtension(fileName);
+    auto extension = VirtualFileSystem::GetUnsafe(*context)->getFileExtension(fileName);
     return FileTypeInfo{FileTypeUtils::getFileTypeFromExtension(extension),
         extension.substr(std::min<uint64_t>(1, extension.length()))};
 }
@@ -51,7 +52,8 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
         // When we read delta/iceberg/azure tables from s3/httpfs, we don't have the httpfs
         // extension loaded meaning that we cannot handle remote paths. So we pass the file path to
         // duckdb for validation when we bindFileScanSource.
-        const auto& loadedExtensions = clientContext->getExtensionManager()->getLoadedExtensions();
+        const auto& loadedExtensions =
+            extension::ExtensionManager::Get(*clientContext)->getLoadedExtensions();
         const bool httpfsExtensionLoaded =
             std::any_of(loadedExtensions.begin(), loadedExtensions.end(),
                 [](const auto& extension) { return extension.getExtensionName() == "HTTPFS"; });
@@ -59,7 +61,8 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
             boundFilePaths.push_back(filePath);
             continue;
         }
-        auto globbedFilePaths = clientContext->getVFSUnsafe()->glob(clientContext, filePath);
+        auto globbedFilePaths =
+            VirtualFileSystem::GetUnsafe(*clientContext)->glob(clientContext, filePath);
         if (globbedFilePaths.empty()) {
             throw BinderException{
                 stringFormat("No file found that matches the pattern: {}.", filePath)};
@@ -110,8 +113,9 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindScanSource(const BaseScanSource
 
 bool handleFileViaFunction(main::ClientContext* context, std::vector<std::string> filePaths) {
     bool handleFileViaFunction = false;
-    if (context->getVFSUnsafe()->fileOrPathExists(filePaths[0], context)) {
-        handleFileViaFunction = context->getVFSUnsafe()->handleFileViaFunction(filePaths[0]);
+    if (VirtualFileSystem::GetUnsafe(*context)->fileOrPathExists(filePaths[0], context)) {
+        handleFileViaFunction =
+            VirtualFileSystem::GetUnsafe(*context)->handleFileViaFunction(filePaths[0]);
     }
     return handleFileViaFunction;
 }
@@ -145,7 +149,7 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindFileScanSource(const BaseScanSo
     fileScanInfo->options = std::move(boundOptions);
     TableFunction func;
     if (handleFileViaFunction(clientContext, filePaths)) {
-        func = clientContext->getVFSUnsafe()->getHandleFunction(filePaths[0]);
+        func = VirtualFileSystem::GetUnsafe(*clientContext)->getHandleFunction(filePaths[0]);
     } else {
         func = getScanFunction(fileScanInfo->fileTypeInfo, *fileScanInfo);
     }
@@ -182,11 +186,12 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindQueryScanSource(const BaseScanS
 }
 
 static TableFunction getObjectScanFunc(const std::string& dbName, const std::string& tableName,
-    const main::ClientContext* clientContext) {
+    main::ClientContext* clientContext) {
     // Bind external database table
-    auto attachedDB = clientContext->getDatabaseManager()->getAttachedDatabase(dbName);
+    auto attachedDB = main::DatabaseManager::Get(*clientContext)->getAttachedDatabase(dbName);
     auto attachedCatalog = attachedDB->getCatalog();
-    auto entry = attachedCatalog->getTableCatalogEntry(clientContext->getTransaction(), tableName);
+    auto entry = attachedCatalog->getTableCatalogEntry(
+        transaction::Transaction::Get(*clientContext), tableName);
     return entry->ptrCast<TableCatalogEntry>()->getScanFunction();
 }
 
@@ -262,8 +267,8 @@ std::unique_ptr<BoundBaseScanSource> Binder::bindObjectScanSource(const BaseScan
             replacementData->bindInput.extraInput = std::move(replaceExtraInput);
             replacementData->bindInput.binder = this;
             bindData = func.bindFunc(clientContext, &replacementData->bindInput);
-        } else if (clientContext->getDatabaseManager()->hasDefaultDatabase()) {
-            auto dbName = clientContext->getDatabaseManager()->getDefaultDatabase();
+        } else if (main::DatabaseManager::Get(*clientContext)->hasDefaultDatabase()) {
+            auto dbName = main::DatabaseManager::Get(*clientContext)->getDefaultDatabase();
             func = getObjectScanFunc(dbName, objectSource->objectNames[0], clientContext);
             bindData = func.bindFunc(clientContext, &bindInput);
         } else {

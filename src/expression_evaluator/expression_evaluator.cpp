@@ -1,6 +1,8 @@
 #include "expression_evaluator/expression_evaluator.h"
 
 #include "common/exception/runtime.h"
+#include "main/client_context.h"
+#include "storage/buffer_manager/memory_manager.h"
 
 using namespace kuzu::common;
 
@@ -13,7 +15,7 @@ void ExpressionEvaluator::init(const processor::ResultSet& resultSet,
     for (auto& child : children) {
         child->init(resultSet, clientContext);
     }
-    resolveResultVector(resultSet, clientContext->getMemoryManager());
+    resolveResultVector(resultSet, storage::MemoryManager::Get(*clientContext));
 }
 
 void ExpressionEvaluator::resolveResultStateFromChildren(

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/node_expression.h"
 #include "common/mask.h"
 #include "function/table/bind_data.h"
 #include "graph/graph.h"
@@ -24,36 +25,23 @@ struct KUZU_API GDSConfig {
     }
 };
 
-struct KUZU_API GDSOptionalParams {
-    virtual ~GDSOptionalParams() = default;
-
-    virtual std::unique_ptr<GDSConfig> getConfig() const = 0;
-    virtual std::unique_ptr<GDSOptionalParams> copy() const = 0;
-};
-
 struct KUZU_API GDSBindData : public TableFuncBindData {
     graph::NativeGraphEntry graphEntry;
-    std::shared_ptr<binder::Expression> nodeOutput;
-    std::unique_ptr<GDSOptionalParams> optionalParams;
+    binder::expression_vector output;
 
     GDSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
-        std::shared_ptr<binder::Expression> nodeOutput,
-        std::unique_ptr<GDSOptionalParams> optionalParams = nullptr)
+        binder::expression_vector output)
         : TableFuncBindData{std::move(columns)}, graphEntry{graphEntry.copy()},
-          nodeOutput{std::move(nodeOutput)}, optionalParams{std::move(optionalParams)} {}
+          output{std::move(output)} {}
 
     GDSBindData(const GDSBindData& other)
-        : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()},
-          nodeOutput{other.nodeOutput},
-          optionalParams{other.optionalParams == nullptr ? nullptr : other.optionalParams->copy()},
+        : TableFuncBindData{other}, graphEntry{other.graphEntry.copy()}, output{other.output},
           resultTable{other.resultTable} {}
 
     void setResultFTable(std::shared_ptr<processor::FactorizedTable> table) {
         resultTable = std::move(table);
     }
     std::shared_ptr<processor::FactorizedTable> getResultTable() const { return resultTable; }
-
-    std::unique_ptr<GDSConfig> getConfig() const { return optionalParams->getConfig(); }
 
     std::unique_ptr<TableFuncBindData> copy() const override {
         return std::make_unique<GDSBindData>(*this);
@@ -83,14 +71,23 @@ private:
 // Base class for every graph data science algorithm.
 class KUZU_API GDSFunction {
     static constexpr char NODE_COLUMN_NAME[] = "node";
+    static constexpr char REL_COLUMN_NAME[] = "rel";
 
 public:
     static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
         const std::string& name);
     static graph::NativeGraphEntry bindGraphEntry(main::ClientContext& context,
         const graph::ParsedNativeGraphEntry& parsedGraphEntry);
+    static std::shared_ptr<binder::Expression> bindRelOutput(const TableFuncBindInput& bindInput,
+        const std::vector<catalog::TableCatalogEntry*>& relEntries,
+        std::shared_ptr<binder::NodeExpression> srcNode,
+        std::shared_ptr<binder::NodeExpression> dstNode,
+        const std::optional<std::string>& name = std::nullopt,
+        const std::optional<uint64_t>& yieldVariableIdx = std::nullopt);
     static std::shared_ptr<binder::Expression> bindNodeOutput(const TableFuncBindInput& bindInput,
-        const std::vector<catalog::TableCatalogEntry*>& nodeEntries);
+        const std::vector<catalog::TableCatalogEntry*>& nodeEntries,
+        const std::optional<std::string>& name = std::nullopt,
+        const std::optional<uint64_t>& yieldVariableIdx = std::nullopt);
     static std::string bindColumnName(const parser::YieldVariable& yieldVariable,
         std::string expressionName);
 

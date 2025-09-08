@@ -20,7 +20,6 @@ public:
     bool update(transaction::Transaction* transaction, TableUpdateState& updateState) override;
     bool delete_(transaction::Transaction* transaction, TableDeleteState& deleteState) override;
     bool addColumn(TableAddColumnState& addColumnState) override;
-    uint64_t getEstimatedMemUsage() override;
 
     common::offset_t validateUniquenessConstraint(const transaction::Transaction* transaction,
         const common::ValueVector& pkVector) const;

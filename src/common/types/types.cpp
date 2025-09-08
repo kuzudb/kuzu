@@ -18,8 +18,8 @@
 #include "common/types/ku_string.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/numeric_limits.h"
-#include "main/client_context.h"
 #include "storage/compression/float_compression.h"
+#include "transaction/transaction.h"
 
 using kuzu::function::BuiltInFunctionsUtils;
 
@@ -208,9 +208,24 @@ const LogicalType& UnionType::getFieldType(const LogicalType& type, union_field_
     return StructType::getFieldType(type, getInternalFieldIdx(idx));
 }
 
+const LogicalType& UnionType::getFieldType(const LogicalType& type, const std::string& key) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getFieldType(type, key);
+}
+
 uint64_t UnionType::getNumFields(const LogicalType& type) {
     KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
     return StructType::getNumFields(type) - 1;
+}
+
+bool UnionType::hasField(const LogicalType& type, const std::string& key) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::hasField(type, key);
+}
+
+union_field_idx_t UnionType::getFieldIdx(const LogicalType& type, const std::string& key) {
+    KU_ASSERT(type.getLogicalTypeID() == LogicalTypeID::UNION);
+    return StructType::getFieldIdx(type, key) - 1; // inverse of getInternalFieldIdx
 }
 
 std::string PhysicalTypeUtils::toString(PhysicalTypeID physicalType) {
@@ -717,7 +732,8 @@ LogicalType LogicalType::convertFromString(const std::string& str, main::ClientC
     } else if (tryGetIDFromString(upperDataTypeString, type.typeID)) {
         type.physicalType = LogicalType::getPhysicalType(type.typeID, type.extraTypeInfo);
     } else if (context != nullptr) {
-        type = context->getCatalog()->getType(context->getTransaction(), upperDataTypeString);
+        auto transaction = transaction::Transaction::Get(*context);
+        type = catalog::Catalog::Get(*context)->getType(transaction, upperDataTypeString);
     } else {
         throw common::RuntimeException{"Invalid datatype string: " + str};
     }

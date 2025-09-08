@@ -390,9 +390,9 @@
 ---- ok
 -STATEMENT CALL PROJECT_GRAPH('SCC1', ['Person', 'City'], ['Knows', 'LivesIn']);
 ---- ok
--STATEMENT CALL strongly_connected_components('SCC1', maxIterations:=0.5) RETURN node.id, group_id;
+-STATEMENT CALL strongly_connected_components('SCC1', maxIterations:='abc') RETURN node.id, group_id;
 ---- error
-Runtime exception: Parameter: maxIterations must be a INT64 literal.
+Binder exception: Expression abc has data type STRING but expected INT64. Implicit cast is not supported.
 -STATEMENT CALL strongly_connected_components_kosaraju('SCC1') RETURN node.id, group_id;
 ---- error
 Runtime exception: Kosaraju's SCC only supports operations on one node table.

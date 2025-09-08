@@ -2,6 +2,7 @@
 
 #include "function/gds/gds_utils.h"
 #include "processor/execution_context.h"
+#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::graph;
@@ -102,8 +103,9 @@ private:
 };
 
 void DenseFrontier::init(ExecutionContext* context, Graph* graph, iteration_t val) {
+    auto mm = storage::MemoryManager::Get(*context->clientContext);
     for (const auto& [tableID, maxOffset] : nodeMaxOffsetMap) {
-        denseObjects.allocate(tableID, maxOffset, context->clientContext->getMemoryManager());
+        denseObjects.allocate(tableID, maxOffset, mm);
     }
     resetValue(context, graph, val);
 }
@@ -141,13 +143,13 @@ iteration_t DenseFrontier::getIteration(offset_t offset) const {
 
 std::unique_ptr<DenseFrontier> DenseFrontier::getUninitializedFrontier(ExecutionContext* context,
     Graph* graph) {
-    auto transaction = context->clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
     return std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
 }
 
 std::unique_ptr<DenseFrontier> DenseFrontier::getUnvisitedFrontier(ExecutionContext* context,
     Graph* graph) {
-    auto transaction = context->clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
     auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, FRONTIER_UNVISITED);
     return frontier;
@@ -155,7 +157,7 @@ std::unique_ptr<DenseFrontier> DenseFrontier::getUnvisitedFrontier(ExecutionCont
 
 std::unique_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContext* context,
     Graph* graph) {
-    auto transaction = context->clientContext->getTransaction();
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
     auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, FRONTIER_INITIAL_VISITED);
     return frontier;
@@ -166,10 +168,10 @@ std::unique_ptr<DenseFrontier> DenseFrontier::getVisitedFrontier(ExecutionContex
     if (maskMap == nullptr) {
         return getVisitedFrontier(context, graph);
     }
-    auto tx = context->clientContext->getTransaction();
-    auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(tx));
+    auto transaction = transaction::Transaction::Get(*context->clientContext);
+    auto frontier = std::make_unique<DenseFrontier>(graph->getMaxOffsetMap(transaction));
     frontier->init(context, graph, FRONTIER_INITIAL_VISITED);
-    for (auto [tableID, numNodes] : graph->getMaxOffsetMap(tx)) {
+    for (auto [tableID, numNodes] : graph->getMaxOffsetMap(transaction)) {
         frontier->pinTableID(tableID);
         if (maskMap->containsTableID(tableID)) {
             auto mask = maskMap->getOffsetMask(tableID);

@@ -18,68 +18,47 @@ using namespace kuzu::common;
 using namespace kuzu::binder;
 using namespace kuzu::storage;
 
-static std::shared_ptr<Expression> applyImplicitCastingIfNecessary(main::ClientContext* context,
-    std::shared_ptr<Expression> expr, LogicalType targetType) {
-    if (expr->getDataType() != targetType) {
-        Binder binder{context};
-        expr = binder.getExpressionBinder()->implicitCastIfNecessary(expr, targetType);
-        expr = binder.getExpressionBinder()->foldExpression(expr);
-    }
-    return expr;
-}
-
-QueryFTSOptionalParams::QueryFTSOptionalParams(main::ClientContext* context,
-    const binder::expression_vector& optionalParams) {
+QueryFTSOptionalParams::QueryFTSOptionalParams(const binder::expression_vector& optionalParams) {
     for (auto& optionalParam : optionalParams) {
         auto paramName = StringUtils::getLower(optionalParam->getAlias());
         if (paramName == K::NAME) {
-            k = applyImplicitCastingIfNecessary(context, optionalParam, LogicalType{K::TYPE});
+            k = function::OptionalParam<K>(optionalParam);
         } else if (paramName == B::NAME) {
-            b = applyImplicitCastingIfNecessary(context, optionalParam, LogicalType{B::TYPE});
+            b = function::OptionalParam<B>(optionalParam);
         } else if (paramName == Conjunctive::NAME) {
-            conjunctive = applyImplicitCastingIfNecessary(context, optionalParam,
-                LogicalType{Conjunctive::TYPE});
+            conjunctive = function::OptionalParam<Conjunctive>(optionalParam);
         } else if (paramName == TopK::NAME) {
-            topK = applyImplicitCastingIfNecessary(context, optionalParam, LogicalType{TopK::TYPE});
+            topK = function::OptionalParam<TopK>(optionalParam);
         } else {
             throw common::BinderException{"Unknown optional parameter: " + paramName};
         }
     }
 }
 
-QueryFTSConfig QueryFTSOptionalParams::getConfig() const {
-    QueryFTSConfig config;
-    if (k != nullptr) {
-        config.k = ExpressionUtil::evaluateLiteral<double>(*k, LogicalType::DOUBLE(), K::validate);
-    }
-    if (b != nullptr) {
-        config.b = ExpressionUtil::evaluateLiteral<double>(*b, LogicalType::DOUBLE(), B::validate);
-    }
-    if (conjunctive != nullptr) {
-        config.isConjunctive =
-            ExpressionUtil::evaluateLiteral<bool>(*conjunctive, LogicalType::BOOL());
-    }
-    if (topK != nullptr) {
-        config.topK =
-            ExpressionUtil::evaluateLiteral<uint64_t>(*topK, LogicalType::UINT64(), TopK::validate);
-    }
-    return config;
+void QueryFTSOptionalParams::evaluateParams(main::ClientContext* context) {
+    k.evaluateParam(context);
+    b.evaluateParam(context);
+    conjunctive.evaluateParam(context);
+    topK.evaluateParam(context);
 }
 
-std::vector<std::string> QueryFTSBindData::getTerms(main::ClientContext& context) const {
-    auto queryInStr = ExpressionUtil::evaluateLiteral<std::string>(*query, LogicalType::STRING());
+std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& context) const {
+    auto queryInStr =
+        ExpressionUtil::evaluateLiteral<std::string>(&context, query, LogicalType::STRING());
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
-    FTSUtils::normalizeQuery(queryInStr, config.ignorePattern);
-    auto terms = StringUtils::split(queryInStr, " ");
-    auto stopWordsTable = context.getStorageManager()
-                              ->getTable(context.getCatalog()
-                                             ->getTableCatalogEntry(context.getTransaction(),
-                                                 config.stopWordsTableName)
-                                             ->getTableID())
-                              ->ptrCast<NodeTable>();
+    FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
+    auto terms = FTSUtils::tokenizeString(queryInStr, config);
+    auto stopWordsTable =
+        StorageManager::Get(context)
+            ->getTable(catalog::Catalog::Get(context)
+                           ->getTableCatalogEntry(transaction::Transaction::Get(context),
+                               config.stopWordsTableName)
+                           ->getTableID())
+            ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
-        context.getMemoryManager(), stopWordsTable, context.getTransaction(),
-        getConfig().isConjunctive);
+        MemoryManager::Get(context), stopWordsTable, transaction::Transaction::Get(context),
+        optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal(),
+        true /* isQuery */);
 }
 
 } // namespace fts_extension

@@ -4,6 +4,9 @@ import math
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
+
+import pytest
 
 import ground_truth
 import kuzu
@@ -12,6 +15,7 @@ import pyarrow as pa
 import pytz
 from pandas import Timestamp
 from type_aliases import ConnDB
+from kuzu.constants import ID, LABEL, SRC, DST, NODES
 
 _expected_dtypes = {
     # ------------------------------------------------
@@ -32,7 +36,7 @@ _expected_dtypes = {
     "a.courseScoresPerTerm": {"arrow": pa.list_(pa.list_(pa.int64())), "pl": pl.List(pl.List(pl.Int64))},
     "a.grades": {"arrow": pa.list_(pa.int64(), 4), "pl": pl.Array(pl.Int64, shape=(4,))},
     "a.height": {"arrow": pa.float32(), "pl": pl.Float32},
-    "a.u": {"arrow": pa.string(), "pl": pl.String},
+    "a.u": {"arrow": pa.uuid(), "pl": pl.String},
     # ------------------------------------------------
     # movies
     # ------------------------------------------------
@@ -271,20 +275,22 @@ def test_to_arrow(conn_db_readonly: ConnDB) -> None:
                 [77, 64, 100, 54],
             ],
         )
-
         assert_column_equals(
             data=data,
             col_name="a.u",
             return_type=return_type,
             expected_values=[
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
-                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
+                UUID(u) if return_type != "pl" else u
+                for u in [
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17",
+                    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18",
+                ]
             ],
         )
 
@@ -475,6 +481,14 @@ def test_to_arrow_map(conn_db_readonly: ConnDB) -> None:
         [(1, {"a": 1, "b": 2, "c": "3"}), (2, {"a": 2, "b": 3, "c": "4"}), (3, {"a": 3, "b": 4, "c": "5"})]
     ]
 
+    result = conn.execute("RETURN map(['abc', NULL, 'qwe'], [123, 456, 781527])")
+    error = "Cannot convert map with null key to Arrow: {abc=123, =456, qwe=781527}"
+    with pytest.raises(RuntimeError, match=error):
+        result.get_as_arrow(1)
+
+    result = conn.execute("RETURN map(['abc', 'xyz', 'qwe'], [123, 456, 781527])").get_as_arrow(1)
+    assert result[0].to_pylist(maps_as_pydicts="strict") == [{"abc": 123, "xyz": 456, "qwe": 781527}]
+
 
 def test_to_arrow_array(conn_db_readwrite: ConnDB) -> None:
     conn = conn_db_readwrite[0]
@@ -493,7 +507,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
     def _test_node_helper(srcStruct, dstStruct):
         assert set(srcStruct.keys()) == set(dstStruct.keys())
         for key in srcStruct:
-            if key == "_ID":  # there isn't any guarantee on the value of _ID, so ignore it
+            if key == ID:  # there isn't any guarantee on the value of _ID, so ignore it
                 continue
             if type(srcStruct[key]) is float:
                 assert math.fabs(srcStruct[key] - dstStruct[key]) < 1e-5
@@ -545,28 +559,28 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
             e_col.to_pylist(),
             [
                 {
-                    "_SRC": {"offset": 2, "table": 0},
-                    "_DST": {"offset": 1, "table": 1},
-                    "_ID": {"offset": 0, "table": 5},
-                    "_LABEL": "workAt",
+                    SRC: {"offset": 2, "table": 0},
+                    DST: {"offset": 1, "table": 1},
+                    ID: {"offset": 0, "table": 5},
+                    LABEL: "workAt",
                     "grading": [3.8, 2.5],
                     "rating": 8.2,
                     "year": 2015,
                 },
                 {
-                    "_SRC": {"offset": 3, "table": 0},
-                    "_DST": {"offset": 2, "table": 1},
-                    "_ID": {"offset": 1, "table": 5},
-                    "_LABEL": "workAt",
+                    SRC: {"offset": 3, "table": 0},
+                    DST: {"offset": 2, "table": 1},
+                    ID: {"offset": 1, "table": 5},
+                    LABEL: "workAt",
                     "grading": [2.1, 4.4],
                     "rating": 7.6,
                     "year": 2010,
                 },
                 {
-                    "_SRC": {"offset": 4, "table": 0},
-                    "_DST": {"offset": 2, "table": 1},
-                    "_ID": {"offset": 2, "table": 5},
-                    "_LABEL": "workAt",
+                    SRC: {"offset": 4, "table": 0},
+                    DST: {"offset": 2, "table": 1},
+                    ID: {"offset": 2, "table": 5},
+                    LABEL: "workAt",
                     "grading": [9.2, 3.1],
                     "rating": 9.2,
                     "year": 2015,
@@ -650,7 +664,7 @@ def test_to_arrow_complex(conn_db_readonly: ConnDB) -> None:
         for row, expected in zip(arrow_tbl["path"], expected_nodes):
             cur_ids = []
             rel_ids = []
-            for node in row["_NODES"]:
+            for node in row[NODES]:
                 cur_ids += [node["ID"].as_py()]
             assert expected == cur_ids
 
