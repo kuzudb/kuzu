@@ -27,7 +27,7 @@ void Drop::executeInternal(ExecutionContext* context) {
     } break;
     case DropType::MACRO: {
         dropMacro(clientContext);
-    }
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -118,6 +118,8 @@ void Drop::dropMacro(const main::ClientContext *context) {
             KU_UNREACHABLE;
         }
     }
+    catalog->dropFunction(transaction, dropInfo.name);
+    appendMessage(stringFormat("Macro {} has been dropped.", dropInfo.name), memoryManager);
 }
 
 } // namespace processor

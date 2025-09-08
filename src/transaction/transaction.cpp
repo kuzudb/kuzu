@@ -137,11 +137,11 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
             localWAL->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
+        case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persist function entries.
         } break;
-        case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TYPE_ENTRY:
         default: {
             throw common::RuntimeException(
