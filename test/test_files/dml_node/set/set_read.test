@@ -63,3 +63,21 @@ Alice2021-06-30
 Bob1950-05-14
 Carol2000-01-01
 Dan
+
+-CASE MultipleSetReadTest
+-STATEMENT CREATE NODE TABLE play(ID INT64, name STRING, score INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:play {ID: 0, name: 'AA', score: 8});
+---- ok
+-STATEMENT MATCH (a:organisation:play) SET a.name = 'X', a.score = 42 RETURN a.ID, a.name, a.score;
+---- 4
+0|X|42
+1|X|42
+4|X|42
+6|X|42
+-STATEMENT MATCH (a:organisation:play) RETURN a.ID, a.name, a.score;
+---- 4
+0|X|42
+1|X|42
+4|X|42
+6|X|42
