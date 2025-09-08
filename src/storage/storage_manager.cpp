@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/random_engine.h"
 #include "common/serializer/in_mem_file_writer.h"
 #include "main/attached_database.h"
 #include "main/client_context.h"
@@ -15,7 +16,6 @@
 #include "storage/table/rel_table.h"
 #include "storage/wal/wal_replayer.h"
 #include "transaction/transaction.h"
-#include "common/random_engine.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

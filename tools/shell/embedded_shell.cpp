@@ -107,7 +107,8 @@ void EmbeddedShell::updateTableNames() {
     bool transactionStarted = false;
 
     if (transaction::Transaction::Get(*clientContext) == NULL) {
-        transaction::TransactionContext::Get(*clientContext)->beginReadTransaction(); // start transaction to get current table names
+        transaction::TransactionContext::Get(*clientContext)
+            ->beginReadTransaction(); // start transaction to get current table names
         transactionStarted = true;
     }
     for (auto& tableEntry : database->catalog->getTableEntries(

@@ -75,6 +75,5 @@ ProgressBar* ProgressBar::Get(const main::ClientContext& context) {
     return context.progressBar.get();
 }
 
-
 } // namespace common
 } // namespace kuzu

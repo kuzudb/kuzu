@@ -1,6 +1,7 @@
 #include "common/random_engine.h"
 
 #include <random>
+
 #include "main/client_context.h"
 
 namespace kuzu {
@@ -32,7 +33,6 @@ uint32_t RandomEngine::nextRandomInteger(uint32_t upper) {
 RandomEngine* RandomEngine::Get(const main::ClientContext& context) {
     return context.randomEngine.get();
 }
-
 
 } // namespace common
 } // namespace kuzu

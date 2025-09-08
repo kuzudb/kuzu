@@ -32,8 +32,8 @@ void InMemGDSUtils::runParallelCompute(InMemParallelCompute& vc, common::offset_
     const auto task =
         std::make_shared<InMemParallelComputeTask>(maxThreads, vc, sharedState, tableId);
     sharedState->morselDispatcher.init(maxOffset);
-    common::TaskScheduler::Get(*clientContext)->scheduleTaskAndWaitOrError(task, context,
-        true /* launchNewWorkerThread */);
+    common::TaskScheduler::Get(*clientContext)
+        ->scheduleTaskAndWaitOrError(task, context, true /* launchNewWorkerThread */);
 }
 } // namespace algo_extension
 } // namespace kuzu

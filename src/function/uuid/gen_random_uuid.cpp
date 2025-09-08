@@ -1,7 +1,7 @@
 #include "function/uuid/functions/gen_random_uuid.h"
 
-#include "function/function.h"
 #include "common/random_engine.h"
+#include "function/function.h"
 
 namespace kuzu {
 namespace function {

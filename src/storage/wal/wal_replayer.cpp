@@ -10,6 +10,7 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/serializer/buffered_file.h"
 #include "extension/extension_manager.h"
+#include "main/client_context.h"
 #include "processor/expression_mapper.h"
 #include "storage/file_db_id_utils.h"
 #include "storage/local_storage/local_rel_table.h"
@@ -19,7 +20,6 @@
 #include "storage/wal/checksum_reader.h"
 #include "storage/wal/wal_record.h"
 #include "transaction/transaction_context.h"
-#include "main/client_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;

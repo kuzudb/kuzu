@@ -55,8 +55,8 @@ Napi::Value NodeConnection::InitSync(const Napi::CallbackInfo& info) {
 
 void NodeConnection::InitCppConnection() {
     this->connection = std::make_shared<Connection>(database.get());
-    ProgressBar::Get(*connection->getClientContext())->setDisplay(
-        std::make_shared<NodeProgressBarDisplay>());
+    ProgressBar::Get(*connection->getClientContext())
+        ->setDisplay(std::make_shared<NodeProgressBarDisplay>());
     // After the connection is initialized, we do not need to hold a reference to the database.
     database.reset();
 }

@@ -19,16 +19,21 @@ protected:
         return database.getTransactionManager();
     }
     static transaction::TransactionMode getTransactionMode(const main::Connection& connection) {
-        return transaction::TransactionContext::Get(*connection.clientContext)->getTransactionMode();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->getTransactionMode();
     }
     static transaction::Transaction* getActiveTransaction(const main::Connection& connection) {
-        return transaction::TransactionContext::Get(*connection.clientContext)->getActiveTransaction();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->getActiveTransaction();
     }
     static uint64_t getActiveTransactionID(const main::Connection& connection) {
-        return transaction::TransactionContext::Get(*connection.clientContext)->getActiveTransaction()->getID();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->getActiveTransaction()
+            ->getID();
     }
     static bool hasActiveTransaction(const main::Connection& connection) {
-        return transaction::TransactionContext::Get(*connection.clientContext)->hasActiveTransaction();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->hasActiveTransaction();
     }
 };
 
