@@ -5638,6 +5638,10 @@ tree::TerminalNode* CypherParser::KU_DropContext::SEQUENCE() {
   return getToken(CypherParser::SEQUENCE, 0);
 }
 
+tree::TerminalNode* CypherParser::KU_DropContext::MACRO() {
+  return getToken(CypherParser::MACRO, 0);
+}
+
 CypherParser::KU_IfExistsContext* CypherParser::KU_DropContext::kU_IfExists() {
   return getRuleContext<CypherParser::KU_IfExistsContext>(0);
 }
