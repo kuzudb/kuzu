@@ -294,33 +294,60 @@ ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const SegmentState& state,
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
+static void appendDataCheckpointState(
+    std::vector<SegmentCheckpointState>& listDataChunkCheckpointStates, ColumnChunkData& dataChunk,
+    offset_t inputOffset, offset_t& outputOffset, offset_t numRows) {
+    if (numRows > 0) {
+        listDataChunkCheckpointStates.push_back(
+            SegmentCheckpointState{dataChunk, inputOffset, outputOffset, numRows});
+        outputOffset += numRows;
+    }
+}
+
+static std::vector<SegmentCheckpointState> createListDataChunkCheckpointStates(
+    ListChunkData& persistentListChunk, std::span<SegmentCheckpointState> segmentCheckpointStates) {
+    const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
+    row_idx_t newListDataSize = persistentDataChunk->getNumValues();
+
+    std::vector<SegmentCheckpointState> listDataChunkCheckpointStates;
+    for (const auto& segmentCheckpointState : segmentCheckpointStates) {
+        // We append the data for each list entry as separate segment checkpoint states
+        // List entries with adjacent data are commbined into a single segment checkpoint state
+        const auto& listChunk = segmentCheckpointState.chunkData.cast<ListChunkData>();
+        offset_t currentSegmentStartOffset = INVALID_OFFSET;
+        offset_t currentSegmentNumRows = 0;
+        for (offset_t i = 0; i < segmentCheckpointState.numRows; i++) {
+            const auto currentListStartOffset =
+                listChunk.getListStartOffset(segmentCheckpointState.startRowInData + i);
+            const auto currentListLength =
+                listChunk.getListSize(segmentCheckpointState.startRowInData + i);
+            if (currentSegmentStartOffset + currentSegmentNumRows == currentListStartOffset) {
+                currentSegmentNumRows += currentListLength;
+            } else {
+                appendDataCheckpointState(listDataChunkCheckpointStates,
+                    *listChunk.getDataColumnChunk(), currentSegmentStartOffset, newListDataSize,
+                    currentSegmentNumRows);
+                currentSegmentStartOffset = currentListStartOffset;
+                currentSegmentNumRows = currentListLength;
+            }
+        }
+        appendDataCheckpointState(listDataChunkCheckpointStates, *listChunk.getDataColumnChunk(),
+            currentSegmentStartOffset, newListDataSize, currentSegmentNumRows);
+    }
+
+    return listDataChunkCheckpointStates;
+}
+
 std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
     ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
     bool canSplitSegment) const {
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
+
+    auto listDataChunkCheckpointStates = createListDataChunkCheckpointStates(persistentListChunk,
+        checkpointState.segmentCheckpointStates);
+
     // First, check if we can checkpoint list data chunk in place.
-    const auto persistentListDataSize = persistentDataChunk->getNumValues();
-    row_idx_t newListDataSize = persistentListDataSize;
-
-    std::vector<SegmentCheckpointState> listDataChunkCheckpointStates;
-    for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
-        const auto& listChunk = segmentCheckpointState.chunkData.cast<ListChunkData>();
-        auto startRowInListChunk =
-            listChunk.getListStartOffset(segmentCheckpointState.startRowInData);
-        row_idx_t listDataSizeToAppend = 0;
-        for (offset_t i = 0; i < segmentCheckpointState.numRows; i++) {
-            listDataSizeToAppend +=
-                listChunk.getListSize(segmentCheckpointState.startRowInData + i);
-        }
-        if (listDataSizeToAppend > 0) {
-            listDataChunkCheckpointStates.push_back(SegmentCheckpointState{
-                *segmentCheckpointState.chunkData.cast<ListChunkData>().getDataColumnChunk(),
-                startRowInListChunk, newListDataSize, listDataSizeToAppend});
-            newListDataSize += listDataSizeToAppend;
-        }
-    }
-
     SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     ColumnCheckpointState listDataCheckpointState(*persistentDataChunk,
@@ -334,6 +361,8 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
         return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator,
             canSplitSegment);
     }
+
+    const auto persistentListDataSize = persistentDataChunk->getNumValues();
 
     // In place checkpoint for list data.
     dataColumn->checkpointColumnChunkInPlace(
