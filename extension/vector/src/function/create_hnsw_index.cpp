@@ -50,7 +50,7 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     if (HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
             HNSWIndexUtils::IndexOperation::CREATE, config.conflictAction)) {
         return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
-            std::move(config), true);
+            std::move(config), true); // Placeholders for nodeTableEntry, propertyID, numNodes - WILL NOT BE ACCESSED
     }
     const auto tableID = nodeTableEntry->getTableID();
     HNSWIndexUtils::validateColumnType(*nodeTableEntry, columnName);
