@@ -19,7 +19,7 @@ void validateColumnNamesAreUnique(const std::vector<std::string>& columnNames) {
     for (auto& name : columnNames) {
         if (existColumnNames.contains(name)) {
             throw BinderException(
-                "Multiple result column with the same name " + name + " are not supported.");
+                "Multiple result columns with the same name " + name + " are not supported.");
         }
         existColumnNames.insert(name);
     }
@@ -75,7 +75,6 @@ BoundReturnClause Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
     auto [projectionExprs, aliases] = bindProjectionList(*projectionBody);
     auto columnNames = getColumnNames(projectionExprs, aliases);
-    validateColumnNamesAreUnique(columnNames);
     auto boundProjectionBody = bindProjectionBody(*projectionBody, projectionExprs, aliases);
     auto statementResult = BoundStatementResult();
     KU_ASSERT(columnNames.size() == projectionExprs.size());
