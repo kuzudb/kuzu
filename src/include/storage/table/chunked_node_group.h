@@ -101,8 +101,8 @@ public:
     }
 
     void finalize() const;
-    virtual std::unique_ptr<ChunkedNodeGroup> flush(
-        transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator);
+    virtual std::unique_ptr<ChunkedNodeGroup> flush(transaction::Transaction* transaction,
+        MemoryManager& mm, PageAllocator& pageAllocator);
 
 protected:
     common::row_idx_t startRowIdx;

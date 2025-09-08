@@ -437,8 +437,8 @@ row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_
     return 0;
 }
 
-std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flush(
-    Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
+std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flush(Transaction* transaction,
+    MemoryManager& mm, PageAllocator& pageAllocator) {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         // Finalize is necessary prior to splitting for strings and lists so that pruned values
