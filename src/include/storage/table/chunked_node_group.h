@@ -6,13 +6,13 @@
 #include <mutex>
 
 #include "common/enums/rel_multiplicity.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/buffer_manager/spill_result.h"
 #include "storage/enums/residency_state.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/version_info.h"
-#include "transaction/transaction.h"
 
 namespace kuzu {
 namespace common {
@@ -100,6 +100,7 @@ public:
         return std::move(chunks[columnID]);
     }
 
+    void finalize() const;
     virtual std::unique_ptr<ChunkedNodeGroup> flushAsNewChunkedNodeGroup(
         transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator);
 
@@ -157,7 +158,7 @@ public:
     NodeGroupDataFormat getFormat() const { return format; }
 
     void resetNumRowsFromChunks();
-    void setNumRows(common::offset_t numRows_);
+    void truncate(common::offset_t numRows);
     void setVersionInfo(std::unique_ptr<VersionInfo> versionInfo) {
         this->versionInfo = std::move(versionInfo);
     }
@@ -215,8 +216,6 @@ public:
     common::row_idx_t getNumDeletions(const transaction::Transaction* transaction,
         common::row_idx_t startRow, common::length_t numRowsToCheck) const;
     bool hasVersionInfo() const { return versionInfo != nullptr; }
-
-    void finalize() const;
 
     virtual void flush(PageAllocator& pageAllocator);
 

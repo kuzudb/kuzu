@@ -19,7 +19,7 @@ public:
     static std::unique_ptr<ColumnChunkData> flushChunkData(const ColumnChunkData& chunkData,
         PageAllocator& pageAllocator);
 
-    void writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+    void writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
         common::offset_t dstOffsetInSegment, const ColumnChunkData& data,
         common::offset_t srcOffset, common::length_t numValues) const override;
 

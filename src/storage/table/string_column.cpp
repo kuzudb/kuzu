@@ -76,7 +76,7 @@ void StringColumn::lookupInternal(const SegmentState& state, offset_t nodeOffset
         getChildState(state, ChildStateIndex::INDEX).metadata);
 }
 
-void StringColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+void StringColumn::writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
     offset_t dstOffsetInSegment, const ColumnChunkData& data, offset_t srcOffset,
     length_t numValues) const {
     auto& stringPersistentChunk = persistentChunk.cast<StringChunkData>();

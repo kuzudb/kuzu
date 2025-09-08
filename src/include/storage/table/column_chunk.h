@@ -104,14 +104,19 @@ public:
         }
         return capacity;
     }
-    void setNumValues(const uint64_t numValues) const {
-        // TODO(bmwinger): Not sure how to handle this. Probably rework the caller
-        // Only used for rollbackInsert with an argument of 0. Not sure what the best behaviour
-        // would be there; should we clear all but one and set that to 0? or set them all to 0?
-        KU_ASSERT(numValues == 0);
+    void truncate(uint64_t numValues) {
+        uint64_t seenValues = 0;
+        uint64_t seenSegments = 0;
         for (auto& segment : data) {
-            segment->setNumValues(numValues);
+            seenSegments++;
+            if (seenValues + segment->getNumValues() < numValues) {
+                seenValues += segment->getNumValues();
+            } else {
+                segment->setNumValues(numValues - seenValues);
+                break;
+            }
         }
+        data.resize(seenSegments);
     }
 
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
@@ -197,7 +202,7 @@ public:
             auto startOffsetInSegment =
                 std::max(std::min(segment->getNumValues(), startOffset), uint64_t{0});
             for (size_t i = startOffsetInSegment;
-                 i < segment->getNumValues() && startPos + i < endOffset; i++) {
+                i < segment->getNumValues() && startPos + i < endOffset; i++) {
                 func(segmentData[i], startPos + i);
             }
             startPos += segment->getNumValues();

@@ -19,7 +19,7 @@ public:
         KU_ASSERT(childIdx < childColumns.size());
         return childColumns[childIdx].get();
     }
-    void writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+    void writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
         common::offset_t offsetInSegment, const ColumnChunkData& data, common::offset_t dataOffset,
         common::length_t numValues) const override;
 

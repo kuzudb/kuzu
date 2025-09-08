@@ -275,6 +275,8 @@ public:
     // TODO(Guodong): Alternatively, we can let `getNumValues` read from metadata when ON_DISK.
     virtual void resetNumValuesFromMetadata();
     virtual void setNumValues(uint64_t numValues_);
+    // Just to provide the same interface for handleAppendException
+    inline void truncate(uint64_t numValues_) { setNumValues(numValues_); }
     virtual void syncNumValues() {}
     virtual bool numValuesSanityCheck() const;
 

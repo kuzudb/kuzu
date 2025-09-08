@@ -182,7 +182,6 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, Dat
 static void appendStorageInfoForChunkedGroup(StorageInfoLocalState* localState,
     DataChunk& outputChunk, StorageInfoOutputData& outputData, ChunkedNodeGroup* chunkedGroup) {
     auto numColumns = chunkedGroup->getNumColumns();
-    // TODO(bmwinger): probably should make this aware of how segments work
     outputData.columnIdx = 0;
     for (auto i = 0u; i < numColumns; i++) {
         for (auto* segment : chunkedGroup->getColumnChunk(i).getSegments()) {

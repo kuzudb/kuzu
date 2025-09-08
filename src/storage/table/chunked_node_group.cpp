@@ -29,7 +29,7 @@ static void handleAppendException(std::vector<std::unique_ptr<Chunk>>& chunks, u
     // We reset the state of the chunk so later changes won't corrupt any data
     // Due to the numValues in column chunks not matching the number of rows
     for (const auto& chunk : chunks) {
-        chunk->setNumValues(numRows);
+        chunk->truncate(numRows);
     }
     std::rethrow_exception(std::current_exception());
 }
@@ -131,9 +131,10 @@ void ChunkedNodeGroup::resetVersionAndUpdateInfo() {
     }
 }
 
-void ChunkedNodeGroup::setNumRows(const offset_t numRows_) {
+void ChunkedNodeGroup::truncate(const offset_t numRows_) {
+    KU_ASSERT(numRows >= numRows_);
     for (const auto& chunk : chunks) {
-        chunk->setNumValues(numRows_);
+        chunk->truncate(numRows_);
     }
     numRows = numRows_;
 }
@@ -440,19 +441,22 @@ std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flushAsNewChunkedNodeGr
     Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
+        // Finalize is necessary prior to splitting for strings and lists so that pruned values
+        // don't have an impact on the number/size of segments It should not be necessary after
+        // splitting since the function is used to prune unused values (or duplicated dictionary
+        // entries in the case of strings) and those will never be introduced when splitting.
+        getColumnChunk(i).finalize();
         if (getColumnChunk(i).shouldSplit()) {
             auto splitSegments =
                 getColumnChunk(i).split(true /*new segments are always the max size if possible*/);
             std::vector<std::unique_ptr<ColumnChunkData>> flushedSegments;
             flushedSegments.reserve(splitSegments.size());
             for (auto& segment : splitSegments) {
-                segment->finalize();
                 flushedSegments.push_back(Column::flushChunkData(*segment, pageAllocator));
             }
             flushedChunks[i] = std::make_unique<ColumnChunk>(mm,
                 getColumnChunk(i).isCompressionEnabled(), std::move(flushedSegments));
         } else {
-            getColumnChunk(i).finalize();
             flushedChunks[i] =
                 std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
                     Column::flushChunkData(getColumnChunk(i), pageAllocator));
@@ -503,7 +507,7 @@ void ChunkedNodeGroup::commitInsert(row_idx_t startRow, row_idx_t numRowsToCommi
 
 void ChunkedNodeGroup::rollbackInsert(row_idx_t startRow, row_idx_t numRows_, transaction_t) {
     if (startRow == 0) {
-        setNumRows(0);
+        truncate(0);
         versionInfo.reset();
         return;
     }
@@ -701,6 +705,12 @@ InMemChunkedNodeGroup::InMemChunkedNodeGroup(InMemChunkedNodeGroup& base,
         auto columnID = selectedColumns[i];
         KU_ASSERT(columnID < base.getNumColumns());
         chunks[i] = base.moveColumnChunk(columnID);
+    }
+}
+
+void InMemChunkedNodeGroup::finalize() const {
+    for (auto i = 0u; i < chunks.size(); i++) {
+        chunks[i]->finalize();
     }
 }
 

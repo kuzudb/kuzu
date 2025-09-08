@@ -65,9 +65,6 @@ public:
     // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
     void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
         common::offset_t length, uint8_t* result);
-    // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
-    void scan(const ChunkState& state, common::offset_t startOffsetInGroup, common::offset_t length,
-        uint8_t* result);
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }
@@ -80,7 +77,7 @@ public:
     void write(ColumnChunkData& persistentChunk, ChunkState& state, common::offset_t dstOffset,
         const ColumnChunkData& data, common::offset_t srcOffset, common::length_t numValues) const;
 
-    virtual void writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+    virtual void writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
         common::offset_t dstOffsetInSegment, const ColumnChunkData& data,
         common::offset_t srcOffset, common::length_t numValues) const;
 

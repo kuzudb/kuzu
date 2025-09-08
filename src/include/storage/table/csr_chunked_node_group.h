@@ -116,10 +116,6 @@ struct ChunkedCSRHeader {
     common::length_t getGapSize(common::length_t length) const;
 
     bool sanityCheck() const;
-    void setNumValues(const common::offset_t numValues) const {
-        offset->setNumValues(numValues);
-        length->setNumValues(numValues);
-    }
 
     // Return a vector of CSR offsets for the end of each CSR region.
     common::offset_vec_t populateStartCSROffsetsFromLength(bool leaveGaps) const;

@@ -76,17 +76,17 @@ void StructColumn::lookupInternal(const SegmentState& state, offset_t offsetInSe
     }
 }
 
-void StructColumn::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+void StructColumn::writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
     offset_t offsetInSegment, const ColumnChunkData& data, offset_t dataOffset,
     length_t numValues) const {
     KU_ASSERT(data.getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
-    nullColumn->writeInternal(*persistentChunk.getNullData(), *state.nullState, offsetInSegment,
+    nullColumn->writeSegment(*persistentChunk.getNullData(), *state.nullState, offsetInSegment,
         *data.getNullData(), dataOffset, numValues);
     auto& structData = data.cast<StructChunkData>();
     auto& persistentStructChunk = persistentChunk.cast<StructChunkData>();
     for (auto i = 0u; i < childColumns.size(); i++) {
         const auto& childData = structData.getChild(i);
-        childColumns[i]->writeInternal(*persistentStructChunk.getChild(i), state.childrenStates[i],
+        childColumns[i]->writeSegment(*persistentStructChunk.getChild(i), state.childrenStates[i],
             offsetInSegment, childData, dataOffset, numValues);
     }
 }

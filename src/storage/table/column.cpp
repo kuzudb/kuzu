@@ -282,15 +282,6 @@ void Column::scan(const ChunkState& state, ColumnChunkData* outputChunk, offset_
     KU_ASSERT(outputChunk->getNumValues() == numValuesScanned);
 }
 
-void Column::scan(const ChunkState& state, offset_t startOffsetInGroup, offset_t length,
-    uint8_t* result) {
-    state.rangeSegments(startOffsetInGroup, length,
-        [&](auto& segmentState, auto startOffsetInSegment, auto lengthInSegment, auto dstOffset) {
-            columnReadWriter->readCompressedValuesToPage(segmentState, result, dstOffset,
-                startOffsetInSegment, lengthInSegment, readToPageFunc);
-        });
-}
-
 void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegment, offset_t length,
     uint8_t* result) {
     KU_ASSERT(startOffsetInSegment + length <= state.metadata.numValues);
@@ -343,7 +334,6 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
     // Either both or neither should be provided
     KU_ASSERT((!min && !max) || (min && max));
     if (min && max) {
-        // FIXME(bmwinger): this is causing test failures
         // If new values are outside of the existing min/max, update them
         if (max->gt(metadata.compMeta.max, dataType.getPhysicalType())) {
             metadata.compMeta.max = *max;
@@ -353,28 +343,22 @@ void Column::updateStatistics(ColumnChunkMetadata& metadata, offset_t maxIndex,
     }
 }
 
-// TODO(bmwinger): maybe this should be moved into ColumnChunkData; the only thing it seems to be
-// using from Column is the ColumnReaderWriter And since ColumnChunk needs to call it for multiple
-// segments, it might make more sense for it to be there instead of passing the Column in
-// ColumnChunk::write
 void Column::write(ColumnChunkData& persistentChunk, ChunkState& state, offset_t initialDstOffset,
     const ColumnChunkData& data, offset_t srcOffset, length_t numValues) const {
     state.rangeSegments(srcOffset, numValues,
         [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
-            writeInternal(persistentChunk, segmentState, initialDstOffset + dstOffset, data,
+            writeSegment(persistentChunk, segmentState, initialDstOffset + dstOffset, data,
                 offsetInSegment, lengthInSegment);
         });
 }
 
-void Column::writeInternal(ColumnChunkData& persistentChunk, SegmentState& state,
+void Column::writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
     offset_t dstOffsetInSegment, const ColumnChunkData& data, offset_t srcOffset,
     offset_t numValues) const {
     auto nullMask = data.getNullMask();
     columnReadWriter->writeValuesToPageFromBuffer(state, dstOffsetInSegment, data.getData(),
         nullMask ? &*nullMask : nullptr, srcOffset, numValues, writeFunc);
 
-    // TODO: this needs to be propagated to other WriteInternal functions
-    // Or maybe split this function into writeSegment and writeSegmentInternal
     if (dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
         dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
         auto nullMask = data.getNullMask();
@@ -432,7 +416,7 @@ void Column::checkpointColumnChunkInPlace(SegmentState& state,
     const ColumnCheckpointState& checkpointState, PageAllocator& pageAllocator) const {
     for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
         KU_ASSERT(segmentCheckpointState.numRows > 0);
-        state.column->writeInternal(checkpointState.persistentData, state,
+        state.column->writeSegment(checkpointState.persistentData, state,
             segmentCheckpointState.offsetInSegment, segmentCheckpointState.chunkData,
             segmentCheckpointState.startRowInData, segmentCheckpointState.numRows);
     }
@@ -475,8 +459,10 @@ std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointColumnChunkOutOf
             segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
             segmentCheckpointState.numRows);
     }
-    // Finalize is necessary prior to splitting for strings so that pruned values don't have an
-    // impact on the number/size of segments
+    // Finalize is necessary prior to splitting for strings and lists so that pruned values don't
+    // have an impact on the number/size of segments It should not be necessary after splitting
+    // since the function is used to prune unused values (or duplicated dictionary entries in the
+    // case of strings) and those will never be introduced when splitting.
     checkpointState.persistentData.finalize();
     if (canSplitSegment && checkpointState.persistentData.shouldSplit()) {
         auto newSegments = checkpointState.persistentData.split();
