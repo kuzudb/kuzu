@@ -100,7 +100,7 @@ void Drop::dropTable(const main::ClientContext* context) {
     catalog->dropTableEntryAndIndex(transaction, dropInfo.name);
     appendMessage(stringFormat("Table {} has been dropped.", dropInfo.name), memoryManager);
 }
-void Drop::dropMacro(const main::ClientContext *context) {
+void Drop::dropMacro(const main::ClientContext* context) {
     auto catalog = Catalog::Get(*context);
     auto transaction = transaction::Transaction::Get(*context);
     auto memoryManager = storage::MemoryManager::Get(*context);
