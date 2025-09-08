@@ -167,7 +167,6 @@ public:
 
     void scanCSRHeader(MemoryManager& memoryManager, CSRNodeGroupCheckpointState& csrState) const;
 
-    void flush(PageAllocator& pageAllocator) override;
     void reclaimStorage(PageAllocator& pageAllocator) const override;
 
 private:

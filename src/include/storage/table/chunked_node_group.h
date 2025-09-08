@@ -217,7 +217,9 @@ public:
         common::row_idx_t startRow, common::length_t numRowsToCheck) const;
     bool hasVersionInfo() const { return versionInfo != nullptr; }
 
-    virtual void flush(PageAllocator& pageAllocator);
+    static std::unique_ptr<ChunkedNodeGroup> flushEmpty(MemoryManager& mm,
+        const std::vector<common::LogicalType>& columnTypes, bool enableCompression,
+        uint64_t capacity, common::row_idx_t startRowIdx, PageAllocator& pageAllocator);
 
     void commitInsert(common::row_idx_t startRow, common::row_idx_t numRowsToCommit,
         common::transaction_t commitTS);

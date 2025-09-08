@@ -426,9 +426,8 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
         numRows - firstGroup->getStartRowIdx()) {
         reclaimStorage(state.pageAllocator, lock);
         checkpointedChunkedGroup =
-            std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
-                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, ResidencyState::IN_MEMORY);
-        checkpointedChunkedGroup->flush(state.pageAllocator);
+            ChunkedNodeGroup::flushEmpty(memoryManager, dataTypes, enableCompression,
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, state.pageAllocator);
     } else {
         if (hasPersistentData) {
             checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);

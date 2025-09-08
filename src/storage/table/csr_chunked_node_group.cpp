@@ -226,14 +226,6 @@ std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flushAsNewChunkedNod
     return flushedChunkedGroup;
 }
 
-void ChunkedCSRNodeGroup::flush(PageAllocator& pageAllocator) {
-    csrHeader.offset->flush(pageAllocator);
-    csrHeader.length->flush(pageAllocator);
-    for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).flush(pageAllocator);
-    }
-}
-
 void ChunkedCSRNodeGroup ::reclaimStorage(PageAllocator& pageAllocator) const {
     ChunkedNodeGroup::reclaimStorage(pageAllocator);
     if (csrHeader.offset) {

@@ -470,13 +470,17 @@ std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flushAsNewChunkedNodeGr
     return flushedChunkedGroup;
 }
 
-void ChunkedNodeGroup::flush(PageAllocator& pageAllocator) {
-    for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).flush(pageAllocator);
+std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushEmpty(MemoryManager& mm,
+    const std::vector<common::LogicalType>& columnTypes, bool enableCompression, uint64_t capacity,
+    common::row_idx_t startRowIdx, PageAllocator& pageAllocator) {
+    auto emptyGroup = std::make_unique<ChunkedNodeGroup>(mm, columnTypes, enableCompression,
+        capacity, startRowIdx, ResidencyState::IN_MEMORY);
+    for (auto i = 0u; i < columnTypes.size(); i++) {
+        emptyGroup->getColumnChunk(i).flush(pageAllocator);
     }
     // Reset residencyState and numRows after flushing.
-    residencyState = ResidencyState::ON_DISK;
-    resetNumRowsFromChunks();
+    emptyGroup->residencyState = ResidencyState::ON_DISK;
+    return emptyGroup;
 }
 
 uint64_t ChunkedNodeGroup::getEstimatedMemoryUsage() const {
