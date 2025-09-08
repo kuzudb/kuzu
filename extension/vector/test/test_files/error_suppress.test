@@ -1,0 +1,28 @@
+-DATASET CSV empty
+
+--
+
+-CASE CreateSkipIfExists
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec');
+---- error
+Binder exception: Index e_hnsw_index already exists in table embeddings.
+-STATEMENT CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', skip_if_exists := true);
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *
+---- 1
+embeddings|e_hnsw_index|HNSW|[vec]|True|CALL CREATE_VECTOR_INDEX('embeddings', 'e_hnsw_index', 'vec', mu := 30, ml := 60, pu := 0.050000, metric := 'cosine', alpha := 1.100000, efc := 200);
+
+-CASE DropSkipIfNotExists
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CREATE NODE TABLE embeddings (id int64, vec FLOAT[8], PRIMARY KEY (id));
+---- ok
+-STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index');
+---- error
+Binder exception: Table embeddings doesn't have an index with name e_hnsw_index.
+-STATEMENT CALL DROP_VECTOR_INDEX('embeddings', 'e_hnsw_index', skip_if_not_exists := true);
+---- ok
