@@ -17,6 +17,7 @@ class Transaction;
 
 namespace storage {
 class MemoryManager;
+struct SegmentScanner;
 
 class ColumnChunkData;
 struct VectorUpdateInfo {
@@ -88,7 +89,7 @@ public:
     void lookup(const transaction::Transaction* transaction, common::offset_t rowInChunk,
         common::ValueVector& output, common::sel_t posInOutputVector) const;
 
-    void scanCommitted(const transaction::Transaction* transaction, ColumnChunkData& output,
+    void scanCommitted(const transaction::Transaction* transaction, SegmentScanner& output,
         common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
         common::row_idx_t numRows) const;
 
