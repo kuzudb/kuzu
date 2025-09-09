@@ -2,8 +2,6 @@
 
 #include "common/null_mask.h"
 #include "common/types/types.h"
-#include "storage/table/column_chunk.h"
-#include "storage/table/column_chunk_data.h"
 #include "storage/table/column_reader_writer.h"
 
 namespace kuzu {
@@ -15,6 +13,7 @@ class StructColumn;
 class RelTableData;
 struct ColumnCheckpointState;
 class PageAllocator;
+struct ChunkState;
 
 class ColumnChunk;
 class Column {
@@ -147,8 +146,6 @@ protected:
     static bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
         return val >= start && val < end;
     }
-
-    std::vector<std::unique_ptr<ColumnChunkData>> splitSegment(ColumnChunkData&& segment) const;
 
 protected:
     std::string name;

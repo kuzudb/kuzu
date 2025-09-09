@@ -18,6 +18,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
+#include "storage/enums/residency_state.h"
 #include "storage/stats/column_stats.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_metadata.h"
@@ -43,12 +44,6 @@ void SegmentState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     }
     for (const auto& child : childrenStates) {
         child.reclaimAllocatedPages(pageAllocator);
-    }
-}
-
-void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
-    for (auto& state : segmentStates) {
-        state.reclaimAllocatedPages(pageAllocator);
     }
 }
 
@@ -1015,6 +1010,9 @@ void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {
 }
 
 uint64_t ColumnChunkData::getSizeOnDisk() const {
+    // Probably could just return the actual size from the metadata if it's on-disk, but it's not
+    // currently needed for on-disk segments
+    KU_ASSERT(ResidencyState::IN_MEMORY == residencyState);
     auto metadata = getMetadataToFlush();
     uint64_t nullSize = 0;
     if (nullData) {

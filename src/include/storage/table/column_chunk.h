@@ -198,7 +198,6 @@ public:
         const transaction::Transaction* transaction) const;
 
     // TODO(bmwinger): Segments could probably share a single datatype
-    common::LogicalType& getDataType() { return data.front()->getDataType(); }
     const common::LogicalType& getDataType() const { return data.front()->getDataType(); }
     bool isCompressionEnabled() const { return enableCompression; }
 
@@ -216,19 +215,6 @@ public:
         }
     }
 
-    void loadFromDisk() {
-        for (auto& segment : data) {
-            segment->loadFromDisk();
-        }
-    }
-    SpillResult spillToDisk() {
-        SpillResult spilled;
-        for (auto& segment : data) {
-            spilled += segment->spillToDisk();
-        }
-        return spilled;
-    }
-
     MergedColumnChunkStats getMergedColumnChunkStats(
         const transaction::Transaction* transaction) const;
 
@@ -243,20 +229,13 @@ public:
 
     template<typename T, std::invocable<T&, uint64_t> Func>
     void mapValues(Func func, uint64_t startOffset = 0, uint64_t endOffset = UINT64_MAX) {
-        uint64_t startPos = 0;
-        for (const auto& segment : data) {
-            auto* segmentData = segment->getData<T>();
-            auto startOffsetInSegment =
-                std::max(std::min(segment->getNumValues(), startOffset), uint64_t{0});
-            for (size_t i = startOffsetInSegment;
-                 i < segment->getNumValues() && startPos + i < endOffset; i++) {
-                func(segmentData[i], startPos + i);
-            }
-            startPos += segment->getNumValues();
-            if (startPos >= endOffset) {
-                break;
-            }
-        }
+        rangeSegments(startOffset, endOffset == UINT64_MAX ? UINT64_MAX : endOffset - startOffset,
+            [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+                auto* segmentData = segment->template getData<T>();
+                for (size_t i = offsetInSegment; i < lengthInSegment; i++) {
+                    func(segmentData[i], dstOffset + i - offsetInSegment);
+                }
+            });
     }
 
     template<typename T>

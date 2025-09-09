@@ -485,11 +485,11 @@ bool Column::canCheckpointInPlace(const SegmentState& state,
     }
 
     InPlaceUpdateLocalState localUpdateState{};
-    for (auto& chunkCheckpointState : checkpointState.segmentCheckpointStates) {
-        auto& chunkData = chunkCheckpointState.chunkData;
+    for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        auto& chunkData = segmentCheckpointState.chunkData;
         if (chunkData.getNumValues() != 0 &&
             !state.metadata.compMeta.canUpdateInPlace(chunkData.getData(),
-                chunkCheckpointState.startRowInData, chunkCheckpointState.numRows,
+                segmentCheckpointState.startRowInData, segmentCheckpointState.numRows,
                 dataType.getPhysicalType(), localUpdateState, chunkData.getNullMask())) {
             return false;
         }

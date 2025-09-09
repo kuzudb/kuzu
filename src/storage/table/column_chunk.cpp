@@ -9,7 +9,6 @@
 #include "main/client_context.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/enums/residency_state.h"
-#include "storage/file_handle.h"
 #include "storage/page_allocator.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column.h"
@@ -21,6 +20,12 @@ using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
+
+void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
+    for (auto& state : segmentStates) {
+        state.reclaimAllocatedPages(pageAllocator);
+    }
+}
 
 std::pair<const SegmentState*, common::offset_t> ChunkState::findSegment(
     common::offset_t offsetInChunk) const {
@@ -229,17 +234,6 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
         return;
     }
 
-    // TODO(bmwinger): this doesn't really work. The metadata should be left as-is until the update
-    // is checkpointed. If it's necessary for zone-mapping we should store either separate
-    // ColumnChunkStatistics, or statistics just for the updated values
-    /*
-    auto segment = data.begin();
-    while (offsetInChunk > segment->get()->getNumValues()) {
-        offsetInChunk -= segment->get()->getNumValues();
-        segment++;
-    }
-    segment->get()->updateStats(&values, values.state->getSelVector());
-    */
     if (!updateInfo) {
         updateInfo = std::make_unique<UpdateInfo>();
     }

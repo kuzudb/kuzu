@@ -712,11 +712,5 @@ InMemChunkedNodeGroup::InMemChunkedNodeGroup(InMemChunkedNodeGroup& base,
     }
 }
 
-void InMemChunkedNodeGroup::finalize() const {
-    for (auto i = 0u; i < chunks.size(); i++) {
-        chunks[i]->finalize();
-    }
-}
-
 } // namespace storage
 } // namespace kuzu

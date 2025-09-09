@@ -100,7 +100,6 @@ public:
         return std::move(chunks[columnID]);
     }
 
-    void finalize() const;
     virtual std::unique_ptr<ChunkedNodeGroup> flush(transaction::Transaction* transaction,
         MemoryManager& mm, PageAllocator& pageAllocator);
 
