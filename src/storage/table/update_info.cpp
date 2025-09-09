@@ -178,10 +178,10 @@ void UpdateInfo::rollback(idx_t vectorIdx, transaction_t version) {
     auto current = header->info.get();
     while (current) {
         if (current->version == version) {
+            auto prevVersion = current->movePrev();
             if (current->next) {
                 // Has newer version. Remove this from the version chain.
                 const auto newerVersion = current->next;
-                auto prevVersion = current->movePrev();
                 if (prevVersion) {
                     prevVersion->next = newerVersion;
                 }
@@ -189,7 +189,10 @@ void UpdateInfo::rollback(idx_t vectorIdx, transaction_t version) {
             } else {
                 KU_ASSERT(header->info.get() == current);
                 // This is the beginning of the version chain.
-                header->info = std::move(current->prev);
+                if (prevVersion) {
+                    prevVersion->next = nullptr;
+                }
+                header->info = std::move(prevVersion);
             }
             break;
         }
