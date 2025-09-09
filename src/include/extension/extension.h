@@ -143,6 +143,11 @@ struct KUZU_API ExtensionUtils {
             catalog::CatalogEntryType::SCALAR_FUNCTION_ENTRY);
     }
 
+    template<typename T>
+    static void addExportFunc(main::Database& database) {
+        addFunc<T>(database, T::name, catalog::CatalogEntryType::COPY_FUNCTION_ENTRY);
+    }
+
     static void registerIndexType(main::Database& database, storage::IndexType type);
 };
 

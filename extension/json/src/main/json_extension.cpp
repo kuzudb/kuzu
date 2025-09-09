@@ -46,7 +46,7 @@ void JsonExtension::load(main::ClientContext* context) {
     addJsonCreationFunction(db);
     addJsonExtractFunction(db);
     addJsonScalarFunction(db);
-    ExtensionUtils::addScalarFunc<JsonExportFunction>(db);
+    ExtensionUtils::addExportFunc<JsonExportFunction>(db);
     ExtensionUtils::addTableFunc<JsonScan>(db);
 }
 
