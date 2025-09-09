@@ -496,6 +496,17 @@ ScalarMacroCatalogEntry* Catalog::getScalarMacroCatalogEntry(const Transaction* 
     return result->ptrCast<ScalarMacroCatalogEntry>();
 }
 
+ScalarMacroCatalogEntry* Catalog::getScalarMacroCatalogEntry(const Transaction* transaction,
+    kuzu::common::oid_t macroID) const {
+    auto result = functions->getEntryOfOID(transaction, macroID);
+    if (result == nullptr) {
+        throw RuntimeException(
+            stringFormat("Cannot find macro catalog entry with id {}.", std::to_string(macroID)));
+    }
+
+    return result->ptrCast<ScalarMacroCatalogEntry>();
+}
+
 std::vector<std::string> Catalog::getMacroNames(const Transaction* transaction) const {
     std::vector<std::string> macroNames;
     for (auto& [_, function] : macros->getEntries(transaction)) {
