@@ -144,7 +144,7 @@ static void insertNodes(uint64_t startID, uint64_t num, kuzu::main::Database& da
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertions) {
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertions_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -188,7 +188,7 @@ static void insertNodesWithMixedTypes(uint64_t startID, uint64_t num,
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertionsMixedTypes) {
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeInsertionsMixedTypes_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -234,7 +234,7 @@ static void insertRelationships(uint64_t startID, uint64_t num, kuzu::main::Data
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipInsertions) {
+TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipInsertions_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -294,7 +294,7 @@ static void insertComplexRelationships(uint64_t startID, uint64_t num,
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions) {
+TEST_F(EmptyDBTransactionTest, ConcurrentComplexRelationshipInsertions_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -354,7 +354,7 @@ static void updateNodes(uint64_t startID, uint64_t num, kuzu::main::Database& da
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdates) {
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdates_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -412,7 +412,7 @@ static void updateMixedTypeNodes(uint64_t startID, uint64_t num, kuzu::main::Dat
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentMixedTypeUpdates) {
+TEST_F(EmptyDBTransactionTest, ConcurrentMixedTypeUpdates_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -489,7 +489,7 @@ static void updateRelationships(uint64_t startID, uint64_t num, kuzu::main::Data
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdates) {
+TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdates_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -564,7 +564,7 @@ static void updateNodesWithMixedTransactions(uint64_t startID, uint64_t num, boo
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdatesWithMixedTransactions) {
+TEST_F(EmptyDBTransactionTest, ConcurrentNodeUpdatesWithMixedTransactions_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -636,7 +636,7 @@ static void updateRelationshipsWithMixedTransactions(uint64_t startID, uint64_t 
     }
 }
 
-TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdatesWithMixedTransactions) {
+TEST_F(EmptyDBTransactionTest, ConcurrentRelationshipUpdatesWithMixedTransactions_SLOW) {
     if (systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
