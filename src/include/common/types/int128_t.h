@@ -14,12 +14,10 @@
 namespace kuzu {
 namespace common {
 
-struct KUZU_API int128_t;
-
-struct uint128_t; // forward-declaration, for conversion between signed and unsigned
+struct uint128_t;
 
 // System representation for int128_t.
-struct int128_t {
+struct KUZU_API int128_t {
     uint64_t low;
     int64_t high;
 
@@ -89,13 +87,13 @@ KUZU_API bool operator<=(const int128_t& lhs, const int128_t& rhs);
 
 class Int128_t {
 public:
-    static std::string ToString(int128_t input);
+    static std::string toString(int128_t input);
 
     template<class T>
     static bool tryCast(int128_t input, T& result);
 
     template<class T>
-    static T Cast(int128_t input) {
+    static T cast(int128_t input) {
         T result;
         tryCast(input, result);
         return result;
@@ -148,7 +146,7 @@ public:
     static bool subInPlace(int128_t& lhs, int128_t rhs);
 
     // comparison operators
-    static bool Equals(int128_t lhs, int128_t rhs) {
+    static bool equals(int128_t lhs, int128_t rhs) {
         return lhs.low == rhs.low && lhs.high == rhs.high;
     }
 
@@ -171,7 +169,6 @@ public:
     static bool lessThanOrEquals(int128_t lhs, int128_t rhs) {
         return (lhs.high < rhs.high) || (lhs.high == rhs.high && lhs.low <= rhs.low);
     }
-    static const int128_t powerOf10[40];
 };
 
 template<>

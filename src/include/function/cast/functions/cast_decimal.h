@@ -122,7 +122,7 @@ template<>
 inline void CastDecimalTo::operation(common::int128_t& input, ku_string_t& output,
     const ValueVector& inputVec, ValueVector& resultVector) {
     auto scale = DecimalType::getScale(inputVec.dataType);
-    auto str = DecimalType::insertDecimalPoint(common::Int128_t::ToString(input), scale);
+    auto str = DecimalType::insertDecimalPoint(common::Int128_t::toString(input), scale);
     common::StringVector::addString(&resultVector, output, str);
 }
 

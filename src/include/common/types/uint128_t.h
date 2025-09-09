@@ -10,11 +10,9 @@
 namespace kuzu {
 namespace common {
 
-struct KUZU_API uint128_t;
+struct int128_t;
 
-struct int128_t; // forward-declaration
-
-struct uint128_t {
+struct KUZU_API uint128_t {
     uint64_t low;
     uint64_t high;
 
@@ -82,15 +80,15 @@ KUZU_API bool operator>=(const uint128_t& lhs, const uint128_t& rhs);
 KUZU_API bool operator<(const uint128_t& lhs, const uint128_t& rhs);
 KUZU_API bool operator<=(const uint128_t& lhs, const uint128_t& rhs);
 
-class Uint128_t {
+class UInt128_t {
 public:
-    static std::string ToString(uint128_t input);
+    static std::string toString(uint128_t input);
 
     template<class T>
     static bool tryCast(uint128_t input, T& result);
 
     template<class T>
-    static T Cast(uint128_t input) {
+    static T cast(uint128_t input) {
         T result;
         tryCast(input, result);
         return result;
@@ -129,7 +127,7 @@ public:
     static bool subInPlace(uint128_t& lhs, uint128_t rhs);
 
     // comparison operators
-    static bool Equals(uint128_t lhs, uint128_t rhs) {
+    static bool equals(uint128_t lhs, uint128_t rhs) {
         return lhs.low == rhs.low && lhs.high == rhs.high;
     }
 
@@ -156,54 +154,54 @@ public:
 };
 
 template<>
-bool Uint128_t::tryCast(uint128_t input, int8_t& result);
+bool UInt128_t::tryCast(uint128_t input, int8_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, int16_t& result);
+bool UInt128_t::tryCast(uint128_t input, int16_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, int32_t& result);
+bool UInt128_t::tryCast(uint128_t input, int32_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, int64_t& result);
+bool UInt128_t::tryCast(uint128_t input, int64_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, uint8_t& result);
+bool UInt128_t::tryCast(uint128_t input, uint8_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, uint16_t& result);
+bool UInt128_t::tryCast(uint128_t input, uint16_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, uint32_t& result);
+bool UInt128_t::tryCast(uint128_t input, uint32_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, uint64_t& result);
+bool UInt128_t::tryCast(uint128_t input, uint64_t& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, int128_t& result); // unsigned to signed
+bool UInt128_t::tryCast(uint128_t input, int128_t& result); // unsigned to signed
 template<>
-bool Uint128_t::tryCast(uint128_t input, float& result);
+bool UInt128_t::tryCast(uint128_t input, float& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, double& result);
+bool UInt128_t::tryCast(uint128_t input, double& result);
 template<>
-bool Uint128_t::tryCast(uint128_t input, long double& result);
+bool UInt128_t::tryCast(uint128_t input, long double& result);
 
 template<>
-bool Uint128_t::tryCastTo(int8_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(int8_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(int16_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(int16_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(int32_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(int32_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(int64_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(int64_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(uint8_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(uint8_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(uint16_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(uint16_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(uint32_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(uint32_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(uint64_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(uint64_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(uint128_t value, uint128_t& result);
+bool UInt128_t::tryCastTo(uint128_t value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(float value, uint128_t& result);
+bool UInt128_t::tryCastTo(float value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(double value, uint128_t& result);
+bool UInt128_t::tryCastTo(double value, uint128_t& result);
 template<>
-bool Uint128_t::tryCastTo(long double value, uint128_t& result);
+bool UInt128_t::tryCastTo(long double value, uint128_t& result);
 
 // TODO: const char to int128
 
