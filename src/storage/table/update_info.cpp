@@ -140,6 +140,7 @@ void UpdateInfo::iterateVectorInfo(const Transaction* transaction, idx_t idx,
     }
 }
 
+#if defined(KUZU_RUNTIME_CHECKS) || !defined(NDEBUG)
 // Assert that info is in the updatedNode version chain.
 static bool validateUpdateChain(const UpdateNode& updatedNode, const VectorUpdateInfo* info) {
     auto current = updatedNode.info.get();
@@ -151,6 +152,7 @@ static bool validateUpdateChain(const UpdateNode& updatedNode, const VectorUpdat
     }
     return false;
 }
+#endif
 
 void UpdateInfo::commit(idx_t vectorIdx, VectorUpdateInfo* info, transaction_t commitTS) {
     auto& updateNode = getUpdateNode(vectorIdx);
