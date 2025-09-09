@@ -1,5 +1,4 @@
 #include "common/types/int128_t.h"
-#include "common/types/uint128_t.h"
 
 #include <cmath>
 #include <cstdint>
@@ -8,6 +7,7 @@
 #include "common/exception/runtime.h"
 #include "common/numeric_utils.h"
 #include "common/type_utils.h"
+#include "common/types/uint128_t.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
 

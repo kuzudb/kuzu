@@ -1,11 +1,11 @@
 #include "common/types/uint128_t.h"
-#include "common/types/int128_t.h"
 
 #include <cmath>
 
 #include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
+#include "common/types/int128_t.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
 
@@ -320,18 +320,18 @@ uint128_t UInt128_t::BinaryNot(uint128_t val) {
     return uint128_t{~val.low, ~val.high};
 }
 
-uint128_t UInt128_t::LeftShift(uint128_t lhs, int amount) {
-    return amount >= 64 ? uint128_t(0, lhs.low << (amount - 64)) :
-           amount == 0  ? lhs :
-                          uint128_t{lhs.low << amount,
-                             (lhs.high << amount) |
-                                 (lhs.low >> (64 - amount))};
+uint128_t Uint128_t::LeftShift(uint128_t lhs, int amount) {
+    return amount >= 64 ?
+               uint128_t(0, lhs.low << (amount - 64)) :
+           amount == 0 ?
+               lhs :
+               uint128_t{lhs.low << amount, (lhs.high << amount) | (lhs.low >> (64 - amount))};
 }
 
 uint128_t UInt128_t::RightShift(uint128_t lhs, int amount) {
     return amount >= 64 ?
-               uint128_t(lhs.high >> (amount - 64), 0):
-               amount == 0 ?
+               uint128_t(lhs.high >> (amount - 64), 0) :
+           amount == 0 ?
                lhs :
                uint128_t((lhs.low >> amount) | (lhs.high << (64 - amount)), lhs.high >> amount);
 }
@@ -409,7 +409,7 @@ bool UInt128_t::tryCast(uint128_t input, float& result) {
 template<class REAL_T>
 bool CastUint128ToFloating(uint128_t input, REAL_T& result) {
     result = REAL_T(input.high) * REAL_T(function::NumericLimits<uint64_t>::maximum()) +
-                 REAL_T(input.low);
+             REAL_T(input.low);
     return true;
 }
 
