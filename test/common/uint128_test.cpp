@@ -10,11 +10,42 @@
 
 using namespace kuzu::common;
 
-TEST(Uint128Tests, ImplicitConversionToUint128) {
+TEST(Uint128Tests, Casting) {
     { // conversion from int32_t
         uint128_t value = 42;
         EXPECT_EQ(value.low, 42);
         EXPECT_EQ(value.high, 0);
+    }
+
+    { // conversion to int32_t
+        uint128_t value = {(1ULL << 31) - 2, 0};
+        int32_t int32_value = (int32_t)value;
+        EXPECT_EQ(int32_value, (int32_t)((1ULL << 31) - 2));
+    }
+
+    { // conversion from int32_t (error: negative value)
+        EXPECT_THROW({
+            [[maybe_unused]] uint128_t value = -64;
+        }, OverflowException);
+    }
+
+    { // conversion to int64_t (narrow casting)
+        uint128_t value = {2718, 1};
+        int64_t int64_value = (int64_t)value;
+        EXPECT_EQ(int64_value, 2718);
+    }
+
+    { // conversion to uint16_t (narrow casting)
+        uint128_t value = {UINT16_MAX, UINT16_MAX};
+        uint16_t uint16_value = (uint16_t)value;
+        EXPECT_EQ(uint16_value, UINT16_MAX);
+    }
+
+    { // conversion from int8_t (error: negative value)
+        int8_t int8_value = -64;
+        EXPECT_THROW({
+            [[maybe_unused]] uint128_t value = int8_value;
+        }, OverflowException);
     }
     
     { // conversion from int128_t 2^64 + 1
@@ -42,6 +73,43 @@ TEST(Uint128Tests, ImplicitConversionToUint128) {
         EXPECT_THROW({
             [[maybe_unused]] int128_t value = max_uint128;
         }, OverflowException);
+    }
+
+    { // conversion to float and double
+        uint128_t zero{0, 0};
+        uint128_t value1{17, 1};
+        uint128_t value2{0, (1ULL << 63)}; // 2^127
+        uint128_t max_value{UINT64_MAX, UINT64_MAX}; // 2^128 - 1
+        EXPECT_DOUBLE_EQ((double)zero, 0.0);
+        EXPECT_FLOAT_EQ((float)zero, 0.0f);
+        EXPECT_DOUBLE_EQ((double)value1, 18446744073709551633.0);
+        EXPECT_FLOAT_EQ((float)value1, 18446744073709551633.0f);
+        EXPECT_DOUBLE_EQ((double)value2, 170141183460469231731687303715884105728.0);
+        EXPECT_FLOAT_EQ((float)value2, 170141183460469231731687303715884105728.0f);
+        EXPECT_DOUBLE_EQ((double)max_value, 340282366920938463463374607431768211455.0);
+    }
+
+    { // conversion from float and double
+        uint128_t zero = 0.0;
+        uint128_t value1 = 1701411.188;
+        EXPECT_EQ(zero, uint128_t(0, 0));
+        EXPECT_EQ(value1, uint128_t(1701411, 0));
+        uint128_t value2 = 3.14159265358979323846;
+        EXPECT_EQ(value2, uint128_t(3, 0));
+        uint128_t value3 = 2.71828182845904523536;
+        EXPECT_EQ(value3, uint128_t(3, 0));
+        uint128_t value4 = 20000000000000000000.142857f;
+        uint128_t expected4{1553255926290448384, 1};
+        int error4 = (int)(value4 > expected4 ? value4 - expected4 : expected4 - value4);
+        EXPECT_TRUE(error4 < 500000000);
+        EXPECT_THROW({
+            float negative_value = -17939777519457.96f;
+            [[maybe_unused]] uint128_t value = negative_value;
+        }, std::overflow_error);
+        EXPECT_THROW({
+            double overly_large_value = 1e39;
+            [[maybe_unused]] uint128_t value = overly_large_value;
+        }, std::overflow_error);
     }
 }
 
@@ -314,3 +382,63 @@ TEST(Uint128Tests, BitwiseTest2) {
 //         EXPECT_EQ(uint128_t(0, 0), Uint128_t::RightShift(value1, 300));
 //     }
 // }
+
+TEST(Uint128Tests, InPlaceOperatorsTest) {
+    {
+        uint128_t value1{100, 34};
+        uint128_t value2{0, 30};
+        value1 += 7;
+        EXPECT_EQ(value1, uint128_t(107, 34));
+        value1 += value2;
+        EXPECT_EQ(value1, uint128_t(107, 64));
+        value1 += uint128_t(UINT64_MAX, UINT64_MAX);
+        //EXPECT_THROW({ value1 += uint128_t(UINT64_MAX, UINT64_MAX); }, OverflowException);
+    }
+
+    {
+        uint128_t value1{15, 0};
+        uint128_t value2{0, 2};
+        value1 *= value2;
+        EXPECT_EQ(value1, uint128_t(0, 30));
+        value1 *= 12;
+        EXPECT_EQ(value1, uint128_t(0, 360));
+    }
+}
+
+TEST(Uint128Tests, ComparisonOperatorsTest) {
+    {
+        uint128_t value1{3141, 2};
+        uint128_t value2{0, 1};
+        uint128_t value3{3141, 2};
+        uint128_t value4{0, 0};
+        EXPECT_TRUE(value1 == value3);
+        EXPECT_FALSE(value1 == value2);
+        EXPECT_TRUE(value2 != value3);
+        EXPECT_FALSE(value1 != value3); 
+        EXPECT_TRUE(value2 < value1 && value1 > value2);
+        EXPECT_FALSE(value1 > value3);
+        EXPECT_FALSE(value1 < value3);
+        EXPECT_TRUE(UINT64_MAX < value1);
+        EXPECT_TRUE(value1 > 0 && value2 > 0 && value3 > 0);
+        EXPECT_TRUE(value1 > value4 && value2 > value4 && value3 > value4);
+        EXPECT_TRUE(value4 == 0);
+        EXPECT_TRUE(value1 <= value3 && value1 >= value3);        
+        EXPECT_TRUE(value1 >= value2);
+        EXPECT_FALSE(value2 >= value1);
+    }
+}
+
+TEST(Uint128Tests, ToStringTest) {
+    {
+        uint128_t zero{0, 0};
+        EXPECT_EQ("0", Uint128_t::ToString(zero));
+        uint128_t value1{0, 1}; // 2^64
+        EXPECT_EQ("18446744073709551616", Uint128_t::ToString(value1));
+        uint128_t value2{0, (1ULL << 63)}; // 2^127
+        EXPECT_EQ("170141183460469231731687303715884105728", Uint128_t::ToString(value2));
+        uint128_t value3{3141592653589793238ULL, 11082775389274182659ULL};
+        EXPECT_EQ("204441121232347597927193748133362420182", Uint128_t::ToString(value3));
+        uint128_t max_value{UINT64_MAX, UINT64_MAX}; // 2^128 - 1
+        EXPECT_EQ("340282366920938463463374607431768211455", Uint128_t::ToString(max_value));
+    }
+}
