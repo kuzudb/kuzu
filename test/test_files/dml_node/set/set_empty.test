@@ -142,3 +142,20 @@ Charlienew
 -STATEMENT MATCH (p:person) WHERE p.id % 2 = 0 AND p.prop>=1000000 RETURN COUNT(*)
 ---- 1
 100000
+
+-CASE RandUpdateInt
+-STATEMENT CREATE NODE TABLE test(id INT64, prop INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT UNWIND range(0, 200000) AS i CREATE (:test {id: i, prop: i})
+---- ok
+-SET seed current_timestamp()
+-LOG seed: ${seed}
+-SET _ random.set_seed(${seed})
+-LOOP i 1 1000
+-SET val random.randInt32(200000)
+-STATEMENT MATCH (t:test) WHERE t.id=${val} SET t.prop = t.prop + 200001
+---- ok
+-ENDLOOP
+-STATEMENT MATCH (t:test) WHERE t.prop<200000 RETURN COUNT(*);
+---- 1
+199000

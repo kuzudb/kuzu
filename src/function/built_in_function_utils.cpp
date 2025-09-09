@@ -6,6 +6,7 @@
 #include "common/exception/binder.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
+#include "function/scalar_function.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
@@ -29,7 +30,7 @@ Function* BuiltInFunctionsUtils::matchFunction(const std::string& name,
     uint32_t minCost = UINT32_MAX;
     for (auto& function : functionSet) {
         auto func = function.get();
-        auto cost = getFunctionCost(inputTypes, func);
+        auto cost = getFunctionCost(inputTypes, func, functionEntry->getType());
         if (cost == UINT32_MAX) {
             continue;
         }
@@ -413,8 +414,11 @@ Function* BuiltInFunctionsUtils::getBestMatch(std::vector<Function*>& functionsT
 }
 
 uint32_t BuiltInFunctionsUtils::getFunctionCost(const std::vector<LogicalType>& inputTypes,
-    Function* function) {
-    if (function->isVarLength) {
+    Function* function, CatalogEntryType type) {
+    bool isVarLength = (type == CatalogEntryType::SCALAR_FUNCTION_ENTRY ?
+                            function->constPtrCast<ScalarFunction>()->isVarLength :
+                            false);
+    if (isVarLength) {
         KU_ASSERT(function->parameterTypeIDs.size() == 1);
         return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0]);
     }

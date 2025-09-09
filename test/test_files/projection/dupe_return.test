@@ -1,0 +1,21 @@
+-DATASET CSV empty
+
+--
+
+-CASE ReturnDupeColumnNames
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num: 1});
+---- ok
+-STATEMENT MATCH (a) RETURN a.num, a.num;
+---- 1
+1|1
+
+-CASE ReturnDupeAliases
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, num1 INT64, num2 INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (:A {num1: 1, num2: 2});
+---- ok
+-STATEMENT MATCH (a) RETURN a.num1 AS number, a.num2 AS number;
+---- 1
+1|2

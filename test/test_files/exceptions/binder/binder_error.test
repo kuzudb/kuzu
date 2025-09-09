@@ -19,11 +19,6 @@ Binder exception: Cannot resolve any node or relationship to create.
 ---- error
 Binder exception: Bind relationship e1 to relationship with same name is not supported.
 
--LOG RepeatedReturnColumnName
--STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1
----- error
-Binder exception: Multiple result column with the same name e1 are not supported.
-
 -LOG WITHExpressionAliased
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *
 ---- error

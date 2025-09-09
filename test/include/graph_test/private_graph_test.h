@@ -45,7 +45,7 @@ class EmptyDBTest : public PrivateGraphTest {
 // ConcurrentTestExecutor is not thread safe
 class ConcurrentTestExecutor {
 public:
-    ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection,
+    ConcurrentTestExecutor(std::atomic<bool>& connectionsPaused, main::Connection& connection,
         std::string databasePath)
         : connectionPaused{connectionsPaused}, connection{connection},
           databasePath{std::move(databasePath)} {}
@@ -62,7 +62,7 @@ public:
 private:
     void runStatements() const;
 
-    bool& connectionPaused;
+    std::atomic<bool>& connectionPaused;
     main::Connection& connection;
     std::string databasePath;
     std::thread connThread;
@@ -86,7 +86,7 @@ public:
 
 protected:
     bool isConcurrent = false;
-    bool connectionsPaused = false;
+    std::atomic<bool> connectionsPaused = false;
     std::unordered_map<std::string, ConcurrentTestExecutor> concurrentTests;
 };
 

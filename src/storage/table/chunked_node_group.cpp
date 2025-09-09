@@ -236,8 +236,8 @@ void ChunkedNodeGroup::write(const ChunkedNodeGroup& data, column_id_t offsetCol
     }
 }
 
-static ZoneMapCheckResult getZoneMapResult(const Transaction* transaction,
-    const TableScanState& scanState, const std::vector<std::unique_ptr<ColumnChunk>>& chunks) {
+static ZoneMapCheckResult getZoneMapResult(const TableScanState& scanState,
+    const std::vector<std::unique_ptr<ColumnChunk>>& chunks) {
     if (!scanState.columnPredicateSets.empty()) {
         for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
             const auto columnID = scanState.columnIDs[i];
@@ -246,8 +246,13 @@ static ZoneMapCheckResult getZoneMapResult(const Transaction* transaction,
             }
 
             KU_ASSERT(i < scanState.columnPredicateSets.size());
+            if (chunks[columnID]->hasUpdates()) {
+                // With updates, we need to merge with update data for the correct stats, which can
+                // be slow if there are lots of updates. We defer this for now.
+                return ZoneMapCheckResult::ALWAYS_SCAN;
+            }
             const auto columnZoneMapResult = scanState.columnPredicateSets[i].checkZoneMap(
-                chunks[columnID]->getMergedColumnChunkStats(transaction));
+                chunks[columnID]->getMergedColumnChunkStats());
             if (columnZoneMapResult == ZoneMapCheckResult::SKIP_SCAN) {
                 return ZoneMapCheckResult::SKIP_SCAN;
             }
@@ -261,7 +266,7 @@ void ChunkedNodeGroup::scan(const Transaction* transaction, const TableScanState
     length_t numRowsToScan) const {
     KU_ASSERT(rowIdxInGroup + numRowsToScan <= numRows);
     auto& anchorSelVector = scanState.outState->getSelVectorUnsafe();
-    if (getZoneMapResult(transaction, scanState, chunks) == ZoneMapCheckResult::SKIP_SCAN) {
+    if (getZoneMapResult(scanState, chunks) == ZoneMapCheckResult::SKIP_SCAN) {
         anchorSelVector.setToFiltered(0);
         return;
     }
@@ -319,11 +324,6 @@ bool ChunkedNodeGroup::hasDeletions(const Transaction* transaction) const {
 row_idx_t ChunkedNodeGroup::getNumUpdatedRows(const Transaction* transaction,
     column_id_t columnID) {
     return getColumnChunk(columnID).getNumUpdatedRows(transaction);
-}
-
-std::pair<std::unique_ptr<ColumnChunk>, std::unique_ptr<ColumnChunk>> ChunkedNodeGroup::scanUpdates(
-    const Transaction* transaction, column_id_t columnID) {
-    return getColumnChunk(columnID).scanUpdates(transaction);
 }
 
 bool ChunkedNodeGroup::lookup(const Transaction* transaction, const TableScanState& state,
@@ -416,12 +416,11 @@ void ChunkedNodeGroup::finalize() const {
 }
 
 std::unique_ptr<ChunkedNodeGroup> ChunkedNodeGroup::flushAsNewChunkedNodeGroup(
-    Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) const {
+    Transaction* transaction, PageAllocator& pageAllocator) const {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        flushedChunks[i] =
-            std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
-                Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
+        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+            Column::flushChunkData(getColumnChunk(i).getData(), pageAllocator));
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);
