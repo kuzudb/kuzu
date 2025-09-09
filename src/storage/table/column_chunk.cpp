@@ -113,7 +113,8 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const auto rowIdxInVector = offsetInChunk % DEFAULT_VECTOR_CAPACITY;
     auto& vectorUpdateInfo =
         updateInfo.update(data->getMemoryManager(), transaction, vectorIdx, rowIdxInVector, values);
-    transaction->pushVectorUpdateInfo(updateInfo, vectorIdx, vectorUpdateInfo);
+    transaction->pushVectorUpdateInfo(updateInfo, vectorIdx, vectorUpdateInfo,
+        transaction->getID());
 }
 
 MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats() const {

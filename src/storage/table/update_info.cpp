@@ -161,7 +161,7 @@ void UpdateInfo::commit(idx_t vectorIdx, VectorUpdateInfo* info, transaction_t c
     info->version = commitTS;
 }
 
-void UpdateInfo::rollback(idx_t vectorIdx, VectorUpdateInfo* info) {
+void UpdateInfo::rollback(idx_t vectorIdx, transaction_t version) {
     UpdateNode* header = nullptr;
     // Note that we lock the entire UpdateInfo structure here because we might modify the
     // head of the version chain. This is just a simplification and should be optimized later.
@@ -177,24 +177,23 @@ void UpdateInfo::rollback(idx_t vectorIdx, VectorUpdateInfo* info) {
     // TODO(Guodong): This will be optimized by moving VectorUpdateInfo into UndoBuffer.
     auto current = header->info.get();
     while (current) {
-        if (current != info) {
-            current = current->getPrev();
-            continue;
-        }
-        if (info->next) {
-            // Has newer version. Remove this from the version chain.
-            const auto newerVersion = info->next;
-            auto prevVersion = info->movePrev();
-            if (prevVersion) {
-                prevVersion->next = newerVersion;
+        if (current->version == version) {
+            if (current->next) {
+                // Has newer version. Remove this from the version chain.
+                const auto newerVersion = current->next;
+                auto prevVersion = current->movePrev();
+                if (prevVersion) {
+                    prevVersion->next = newerVersion;
+                }
+                newerVersion->setPrev(std::move(prevVersion));
+            } else {
+                KU_ASSERT(header->info.get() == current);
+                // This is the beginning of the version chain.
+                header->info = std::move(current->prev);
             }
-            newerVersion->setPrev(std::move(prevVersion));
-        } else {
-            KU_ASSERT(header->info.get() == info);
-            // This is the beginning of the version chain.
-            header->info = std::move(info->prev);
+            break;
         }
-        break;
+        current = current->getPrev();
     }
 }
 

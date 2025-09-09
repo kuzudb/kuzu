@@ -95,7 +95,7 @@ public:
         const std::function<void(const VectorUpdateInfo&)>& func) const;
 
     void commit(common::idx_t vectorIdx, VectorUpdateInfo* info, common::transaction_t commitTS);
-    void rollback(common::idx_t vectorIdx, VectorUpdateInfo* info);
+    void rollback(common::idx_t vectorIdx, common::transaction_t version);
 
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
 
