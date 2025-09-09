@@ -5649,6 +5649,10 @@ tree::TerminalNode* CypherParser::KU_DropContext::SEQUENCE() {
   return getToken(CypherParser::SEQUENCE, 0);
 }
 
+tree::TerminalNode* CypherParser::KU_DropContext::MACRO() {
+  return getToken(CypherParser::MACRO, 0);
+}
+
 CypherParser::KU_IfExistsContext* CypherParser::KU_DropContext::kU_IfExists() {
   return getRuleContext<CypherParser::KU_IfExistsContext>(0);
 }
@@ -5679,9 +5683,8 @@ CypherParser::KU_DropContext* CypherParser::kU_Drop() {
     match(CypherParser::SP);
     setState(1046);
     _la = _input->LA(1);
-    if (!(_la == CypherParser::SEQUENCE
-
-    || _la == CypherParser::TABLE)) {
+    if (!(((((_la - 106) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 106)) & 2181038081) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {

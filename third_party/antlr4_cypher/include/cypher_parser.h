@@ -945,6 +945,7 @@ public:
     OC_SchemaNameContext *oC_SchemaName();
     antlr4::tree::TerminalNode *TABLE();
     antlr4::tree::TerminalNode *SEQUENCE();
+    antlr4::tree::TerminalNode *MACRO();
     KU_IfExistsContext *kU_IfExists();
 
    

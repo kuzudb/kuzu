@@ -131,6 +131,7 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         }
         switch (catalogEntry.getType()) {
         case CatalogEntryType::INDEX_ENTRY:
+        case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
@@ -141,7 +142,6 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persist function entries.
         } break;
-        case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TYPE_ENTRY:
         default: {
             throw common::RuntimeException(
