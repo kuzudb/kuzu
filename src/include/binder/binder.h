@@ -75,15 +75,6 @@ public:
 
     KUZU_API std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
-    void setInputParameters(
-        std::unordered_map<std::string, std::shared_ptr<common::Value>> parameters) {
-        expressionBinder.parameterMap = std::move(parameters);
-    }
-
-    std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
-        return expressionBinder.parameterMap;
-    }
-
     KUZU_API std::shared_ptr<Expression> createVariable(const std::string& name,
         const common::LogicalType& dataType);
     KUZU_API std::shared_ptr<Expression> createInvisibleVariable(const std::string& name,
@@ -311,7 +302,6 @@ public:
     KUZU_API static void validateColumnExistence(const catalog::TableCatalogEntry* entry,
         const std::string& columnName);
 
-    void validateAllInputParametersParsed() const;
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 

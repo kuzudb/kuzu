@@ -203,8 +203,7 @@ private:
 
     PrepareResult prepareNoLock(std::shared_ptr<parser::Statement> parsedStatement,
         bool shouldCommitNewTransaction,
-        std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
-            std::nullopt);
+        std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParams = {});
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,

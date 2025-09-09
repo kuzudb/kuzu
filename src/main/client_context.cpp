@@ -307,17 +307,19 @@ std::unique_ptr<PreparedStatement> ClientContext::prepareWithParams(std::string_
 
 static void bindParametersNoLock(PreparedStatement& preparedStatement,
     const std::unordered_map<std::string, std::unique_ptr<Value>>& inputParams) {
-    auto& parameterMap = preparedStatement.getParameterMapUnsafe();
-    for (auto& [name, value] : inputParams) {
-        if (!parameterMap.contains(name)) {
-            throw Exception("Parameter " + name + " not found.");
+    for (auto& key : preparedStatement.getKnownParameters()) {
+        if (inputParams.contains(key)) {
+            // Found input. Update parameter map.
+            preparedStatement.updateParameter(key, inputParams.at(key).get());
         }
-        preparedStatement.validateExecuteParam(name, value.get());
-        // The much more natural `parameterMap.at(name) = std::move(v)` fails.
-        // The reason is that other parts of the code rely on the existing Value object to be
-        // modified in-place, not replaced in this map.
-        *parameterMap.at(name) = std::move(*value);
     }
+    for (auto& key : preparedStatement.getUnknownParameters()) {
+        if (!inputParams.contains(key)) {
+            throw Exception("Parameter " + key + " not found.");
+        }
+        preparedStatement.addParameter(key, inputParams.at(key).get());
+    }
+
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,
@@ -453,7 +455,7 @@ void ClientContext::validateTransaction(bool readOnly, bool requireTransaction) 
 
 ClientContext::PrepareResult ClientContext::prepareNoLock(
     std::shared_ptr<Statement> parsedStatement, bool shouldCommitNewTransaction,
-    std::optional<std::unordered_map<std::string, std::shared_ptr<Value>>> inputParams) {
+    std::unordered_map<std::string, std::shared_ptr<Value>> inputParams) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     auto cachedStatement = std::make_unique<CachedPreparedStatement>();
     cachedStatement->parsedStatement = parsedStatement;
@@ -473,12 +475,13 @@ ClientContext::PrepareResult ClientContext::prepareNoLock(
             *transactionContext,
             [&]() -> void {
                 auto binder = Binder(this, localDatabase->getBinderExtensions());
-                if (inputParams) {
-                    binder.setInputParameters(*inputParams);
+                auto expressionBinder = binder.getExpressionBinder();
+                for (auto& [name, value] : inputParams) {
+                    expressionBinder->addParameter(name, value);
                 }
                 const auto boundStatement = binder.bind(*parsedStatement);
-                binder.validateAllInputParametersParsed();
-                preparedStatement->parameterMap = binder.getParameterMap();
+                preparedStatement->unknownParameters = expressionBinder->getUnknownParameters();
+                preparedStatement->parameterMap = expressionBinder->getKnownParameters();
                 cachedStatement->columns = boundStatement->getStatementResult()->getColumns();
                 auto planner = Planner(this);
                 auto bestPlan = planner.planStatement(*boundStatement);
