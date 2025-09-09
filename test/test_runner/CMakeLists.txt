@@ -6,6 +6,7 @@ add_library(
         multi_copy_split.cpp
         test_parser.cpp
         test_runner.cpp
+        fsm_leak_checker.cpp
 )
 
 target_include_directories(
