@@ -62,7 +62,7 @@ page_idx_t FileHandle::addNewPage() {
 page_idx_t FileHandle::addNewPages(page_idx_t numNewPages) {
     std::unique_lock lck{fhSharedMutex, std::defer_lock_t{}};
     while (!lck.try_lock()) {}
-    const auto numPagesBeforeChange = numPages;
+    const auto numPagesBeforeChange = numPages.load();
     for (auto i = 0u; i < numNewPages; i++) {
         addNewPageWithoutLock();
     }
@@ -161,8 +161,7 @@ void FileHandle::flushPageIfDirtyWithoutLock(page_idx_t pageIdx) {
     }
 }
 
-void FileHandle::writePagesToFile(const uint8_t* buffer, uint64_t size,
-    common::page_idx_t startPageIdx) {
+void FileHandle::writePagesToFile(const uint8_t* buffer, uint64_t size, page_idx_t startPageIdx) {
     if (isInMemoryMode()) {
         auto pageSize = getPageSize();
         for (uint64_t i = 0; i < size; i += pageSize) {

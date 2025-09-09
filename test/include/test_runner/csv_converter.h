@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "main/kuzu.h"
@@ -15,8 +16,9 @@ class CSVConverter {
 public:
     explicit CSVConverter(std::string csvDatasetPath, std::string outputDatasetPath,
         std::optional<uint64_t> bufferPoolSize, std::string outputFileExtension)
-        : csvDatasetPath{csvDatasetPath}, outputDatasetPath{outputDatasetPath},
-          bufferPoolSize{bufferPoolSize}, fileExtension{outputFileExtension} {}
+        : csvDatasetPath{std::move(csvDatasetPath)},
+          outputDatasetPath{std::move(outputDatasetPath)}, bufferPoolSize{bufferPoolSize},
+          fileExtension{std::move(outputFileExtension)} {}
 
     void convertCSVDataset();
 
@@ -34,15 +36,16 @@ private:
         std::string outputFilePath;
         // get cypher query to convert csv file to output file
         virtual std::string getConverterQuery(main::ClientContext* context) const = 0;
+        virtual ~TableInfo() = default;
     };
 
-    struct NodeTableInfo final : public TableInfo {
+    struct NodeTableInfo final : TableInfo {
         std::string primaryKey;
         // get converter query for node table
         std::string getConverterQuery(main::ClientContext* context) const override;
     };
 
-    struct RelTableInfo final : public TableInfo {
+    struct RelTableInfo final : TableInfo {
         std::shared_ptr<NodeTableInfo> fromTable;
         std::shared_ptr<NodeTableInfo> toTable;
         // get converter query for rel table

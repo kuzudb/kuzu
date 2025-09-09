@@ -37,7 +37,7 @@ public:
      */
     KUZU_API virtual ~QueryResult() = 0;
     /**
-     * @return query is executed successfully or not.
+     * @return if the query is executed successfully or not.
      */
     KUZU_API bool isSuccess() const;
     /**
@@ -49,11 +49,11 @@ public:
      */
     KUZU_API size_t getNumColumns() const;
     /**
-     * @return name of each column in query result.
+     * @return name of each column in the query result.
      */
     KUZU_API std::vector<std::string> getColumnNames() const;
     /**
-     * @return dataType of each column in query result.
+     * @return dataType of each column in the query result.
      */
     KUZU_API std::vector<common::LogicalType> getColumnDataTypes() const;
     /**
@@ -67,7 +67,7 @@ public:
      */
     KUZU_API bool hasNextQueryResult() const;
     /**
-     * @return get next query result to read (for multiple query statements).
+     * @return get the next query result to read (for multiple query statements).
      */
     KUZU_API QueryResult* getNextQueryResult();
     /**

@@ -196,6 +196,8 @@ void CSVConverter::convertCSVDataset() {
     tempConn = std::make_unique<main::Connection>(tempDb.get());
 
     convertCSVFiles();
+    tempConn.reset();
+    tempDb.reset();
     removeParentDirectoryOfDBPath(tempDatabasePath);
 }
 
