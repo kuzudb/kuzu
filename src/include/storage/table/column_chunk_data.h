@@ -91,6 +91,7 @@ struct SegmentState {
     // Used by rangeSegments in column_chunk.h to provide the same interface as the segments stored
     // in ColumnChunk inside unique_ptr
     SegmentState& operator*() { return *this; }
+    const SegmentState& operator*() const { return *this; }
     uint64_t getNumValues() const { return metadata.numValues; }
 };
 

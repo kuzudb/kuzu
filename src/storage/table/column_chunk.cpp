@@ -22,6 +22,15 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+std::pair<const SegmentState*, common::offset_t> ChunkState::findSegment(
+    common::offset_t offsetInChunk) const {
+    auto [iter, offsetInSegment] = genericFindSegment(std::span(segmentStates), offsetInChunk);
+    if (iter == std::span(segmentStates).end()) {
+        return std::make_pair(nullptr, 0);
+    }
+    return std::make_pair(&*iter, offsetInSegment);
+}
+
 ColumnChunk::ColumnChunk(MemoryManager& mm, LogicalType&& dataType, uint64_t capacity,
     bool enableCompression, ResidencyState residencyState, bool initializeToZero)
     : mm{mm}, enableCompression{enableCompression} {

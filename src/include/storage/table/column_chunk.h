@@ -34,6 +34,21 @@ struct SegmentCheckpointState {
     common::row_idx_t numRows;
 };
 
+template<class SegmentView>
+std::pair<typename std::span<SegmentView>::iterator, common::offset_t> genericFindSegment(
+    std::span<SegmentView> segments, common::offset_t offsetInChunk) {
+    auto offsetInSegment = offsetInChunk;
+    auto segment = segments.begin();
+    while (segment != segments.end()) {
+        if (offsetInSegment < (**segment).getNumValues()) {
+            return std::make_pair(segment, offsetInSegment);
+        }
+        offsetInSegment -= (**segment).getNumValues();
+        segment++;
+    }
+    return std::make_pair(segments.end(), 0);
+}
+
 // dstOffset starts from 0 and is the offset in the output data for a given segment
 //  (it increases by lengthInSegment for each segment)
 // Returns the total number of values scanned (input length can be longer than the available
@@ -46,26 +61,18 @@ common::offset_t genericRangeSegments(std::span<SegmentView> segments,
     common::offset_t offsetInChunk, common::length_t length, Func func) {
     // TODO(bmwinger): try binary search (might only make a difference for a very large number
     // of segments)
-    auto segment = segments.begin();
-    auto offsetInSegment = offsetInChunk;
-    while ((**segment).getNumValues() <= offsetInSegment) {
-        offsetInSegment -= (**segment).getNumValues();
-        KU_ASSERT(segment < segments.end() - 1);
-        segment++;
-    }
+    auto [segment, offsetInSegment] = genericFindSegment(segments, offsetInChunk);
     common::offset_t lengthScanned = 0;
-    common::offset_t dstOffset = 0;
     while (lengthScanned < length && segment != segments.end()) {
         KU_ASSERT((**segment).getNumValues() > offsetInSegment);
         auto lengthInSegment =
             std::min(length - lengthScanned, (**segment).getNumValues() - offsetInSegment);
-        func(*segment, offsetInSegment, lengthInSegment, dstOffset);
+        func(*segment, offsetInSegment, lengthInSegment, lengthScanned);
         lengthScanned += lengthInSegment;
         segment++;
-        dstOffset += lengthInSegment;
         offsetInSegment = 0;
     }
-    return dstOffset;
+    return lengthScanned;
 }
 
 class ColumnChunk;
@@ -94,17 +101,8 @@ struct ChunkState {
 
     void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
 
-    const SegmentState* findSegment(common::offset_t offsetInChunk,
-        common::offset_t& offsetInSegment) const {
-        offsetInSegment = offsetInChunk;
-        for (const auto& segmentState : segmentStates) {
-            if (offsetInSegment < segmentState.metadata.numValues) {
-                return &segmentState;
-            }
-            offsetInSegment -= segmentState.metadata.numValues;
-        }
-        return nullptr;
-    }
+    std::pair<const SegmentState*, common::offset_t> findSegment(
+        common::offset_t offsetInChunk) const;
 
     // dstOffset starts from 0 and is the offset in the output data for a given segment
     //  (it increases by lengthInSegment for each segment)
