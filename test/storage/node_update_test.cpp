@@ -27,7 +27,7 @@ TEST_F(NodeUpdateTest, UpdateSameRow) {
     ASSERT_EQ(res->getNext()->getValue(0)->val.int64Val, 300);
 }
 
-TEST_F(NodeUpdateTest, UpdateSameRowRedundantly) {
+TEST_F(NodeUpdateTest, UpdateSameRowRedundantly_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }

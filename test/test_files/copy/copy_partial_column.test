@@ -5,7 +5,7 @@
 
 --
 
--CASE RelPartialColumnsTest
+-CASE RelPartialColumnsTest_SLOW
 
 -STATEMENT CREATE NODE TABLE person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN,
                                 age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP,
@@ -88,7 +88,7 @@ Binder exception: Table knows3 does not contain column dummy.
 ---- 1
 21|15
 
--CASE NodePartialColumnsTest
+-CASE NodePartialColumnsTest_SLOW
 -LOG AllPartialColumns
 -STATEMENT CREATE NODE TABLE tableOfTypes2 (id INT64, int64Column INT64, doubleColumn DOUBLE, booleanColumn BOOLEAN,
                                             dateColumn DATE, timestampColumn TIMESTAMP, stringColumn STRING,
