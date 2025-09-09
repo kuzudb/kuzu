@@ -423,9 +423,11 @@ bool Uint128_t::tryCast(uint128_t input, long double& result) {
     return CastUint128ToFloating<long double>(input, result);
 }
 
-// currently casting negative numbers to uint128_t is allowed
 template<class DST>
 uint128_t tryCastToTemplate(DST value) {
+    if (value < 0) {
+        throw common::OverflowException("Cannot cast negative value to UINT128.");
+    }
     uint128_t result{};
     result.low = (uint64_t)value;
     result.high = 0;
@@ -723,7 +725,7 @@ uint128_t::operator int128_t() const {
     int128_t result{};
     if (!Uint128_t::tryCast(*this, result)) { // LCOV_EXCL_START
         throw common::OverflowException("UINT128 value is out of INT128 range");
-    }
+    } // LCOV_EXCL_STOP
     return result;
 }
 

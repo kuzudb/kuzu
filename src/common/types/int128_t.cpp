@@ -835,7 +835,7 @@ int128_t::operator uint128_t() const {
     uint128_t result{};
     if (!Int128_t::tryCast(*this, result)) { // LCOV_EXCL_START
         throw common::OverflowException("Cannot cast negative INT128 to UINT128");
-    }
+    } // LCOV_EXCL_STOP
     return result;
 }
 
