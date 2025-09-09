@@ -2,7 +2,6 @@
 
 #include "common/types/types.h"
 #include "storage/buffer_manager/memory_manager.h"
-#include "storage/table/column_chunk_data.h"
 #include "storage/table/dictionary_column.h"
 
 namespace kuzu {

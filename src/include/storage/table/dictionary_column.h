@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/types/types.h"
-#include "common/vector/value_vector.h"
 #include "dictionary_chunk.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_data.h"

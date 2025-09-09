@@ -501,6 +501,9 @@ bool Column::canCheckpointInPlace(const SegmentState& state,
 std::vector<std::unique_ptr<ColumnChunkData>> Column::checkpointSegment(
     ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
     bool canSplitSegment) const {
+    if (checkpointState.segmentCheckpointStates.empty()) {
+        return {};
+    }
     SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     if (canCheckpointInPlace(chunkState, checkpointState)) {

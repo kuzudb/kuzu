@@ -3,12 +3,12 @@
 #include <algorithm>
 
 #include "storage/enums/residency_state.h"
-#include "storage/page_allocator.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/column_chunk.h"
 
 namespace kuzu {
 namespace storage {
+class PageAllocator;
 class MemoryManager;
 
 struct CSRRegion {

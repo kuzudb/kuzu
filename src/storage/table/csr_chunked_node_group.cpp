@@ -134,11 +134,12 @@ offset_vec_t ChunkedCSRHeader::populateStartCSROffsetsFromLength(bool leaveGaps)
         length_t numRelsInRegion = 0;
         const auto rightNodeOffset = std::min(region.rightNodeOffset, numNodes - 1);
         // Populate start csr offset for each node in the region.
-        offset->mapValues<offset_t>(region.leftNodeOffset, rightNodeOffset,
+        offset->mapValues<offset_t>(
             [&](auto& value, auto nodeOffset) {
                 value = leftCSROffset + numRelsInRegion;
                 numRelsInRegion += getCSRLength(nodeOffset);
-            });
+            },
+            region.leftNodeOffset, rightNodeOffset);
         // Update lastLeftCSROffset for next region.
         leftCSROffset += numRelsInRegion;
         if (leaveGaps) {

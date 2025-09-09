@@ -7,12 +7,12 @@
 #include "common/cast.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/spill_result.h"
-#include "storage/page_allocator.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/update_info.h"
 
 namespace kuzu {
 namespace storage {
+class PageAllocator;
 class MemoryManager;
 class Column;
 
@@ -243,34 +243,8 @@ public:
     void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend);
 
-    template<typename T, class Func>
-    void mapValues(Func func) {
-        uint64_t startPos = 0;
-        for (const auto& segment : data) {
-            auto* segmentData = segment->getData<T>();
-            for (size_t i = 0; i < segment->getNumValues(); i++) {
-                func(segmentData[i], startPos + i);
-            }
-            startPos += segment->getNumValues();
-        }
-    }
-
-    template<typename T, class Func>
-    void mapValues(uint64_t startOffset, Func func) {
-        uint64_t startPos = 0;
-        for (const auto& segment : data) {
-            auto* segmentData = segment->getData<T>();
-            auto startOffsetInSegment =
-                std::max(std::min(segment->getNumValues(), startOffset), uint64_t{0});
-            for (size_t i = startOffsetInSegment; i < segment->getNumValues(); i++) {
-                func(segmentData[i], startPos + i);
-            }
-            startPos += segment->getNumValues();
-        }
-    }
-
     template<typename T, std::invocable<T&, uint64_t> Func>
-    void mapValues(uint64_t startOffset, uint64_t endOffset, Func func) {
+    void mapValues(Func func, uint64_t startOffset = 0, uint64_t endOffset = UINT64_MAX) {
         uint64_t startPos = 0;
         for (const auto& segment : data) {
             auto* segmentData = segment->getData<T>();

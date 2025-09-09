@@ -341,6 +341,9 @@ static std::vector<SegmentCheckpointState> createListDataChunkCheckpointStates(
 std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
     ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
     bool canSplitSegment) const {
+    if (checkpointState.segmentCheckpointStates.empty()) {
+        return {};
+    }
     auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
     const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
 
