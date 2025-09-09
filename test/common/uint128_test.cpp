@@ -119,7 +119,7 @@ TEST(Uint128Tests, AdditionTest) {
         uint128_t value2{0, 2};
         uint128_t expected_value{0, 3};
         EXPECT_EQ(expected_value, value1 + value2);
-        EXPECT_EQ(expected_value, Uint128_t::Add(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Add(value1, value2));
     }
 
     { // adding with overflow from lower to upper bits: (2^64 - 1) + 1 = (1 << 64)
@@ -127,7 +127,7 @@ TEST(Uint128Tests, AdditionTest) {
         uint128_t value2{1, 0};
         uint128_t expected_value{0, 1};
         EXPECT_EQ(expected_value, value1 + value2);
-        EXPECT_EQ(expected_value, Uint128_t::Add(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Add(value1, value2));
     }
 
     { // (2^127 - 1) + 1 = 2^128
@@ -135,7 +135,7 @@ TEST(Uint128Tests, AdditionTest) {
         uint128_t value2{1, 0};
         uint128_t expected_value{0, (1ULL << 63)};
         EXPECT_EQ(expected_value, value1 + value2);
-        EXPECT_EQ(expected_value, Uint128_t::Add(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Add(value1, value2));
     }
 
     { // overflow
@@ -151,7 +151,7 @@ TEST(Uint128Tests, SubtractionTest) {
         uint128_t value2{0, 2};
         uint128_t expected_value{0, 1};
         EXPECT_EQ(expected_value, value1 - value2);
-        EXPECT_EQ(expected_value, Uint128_t::Sub(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Sub(value1, value2));
     }
 
     { // subtracting with underflow from upper to lower bits: (1 << 64) - 1 = (2^64 - 1)
@@ -159,7 +159,7 @@ TEST(Uint128Tests, SubtractionTest) {
         uint128_t value2{1, 0};
         uint128_t expected_value{UINT64_MAX, 0};
         EXPECT_EQ(expected_value, value1 - value2);
-        EXPECT_EQ(expected_value, Uint128_t::Sub(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Sub(value1, value2));
     }
 
     { // (2^127) - 1 = (2^127 - 1)
@@ -167,7 +167,7 @@ TEST(Uint128Tests, SubtractionTest) {
         uint128_t value2{1, 0};
         uint128_t expected_value{UINT64_MAX, INT64_MAX}; // 01111111...111
         EXPECT_EQ(expected_value, value1 - value2);
-        EXPECT_EQ(expected_value, Uint128_t::Sub(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Sub(value1, value2));
     }
 
     { // underflow
@@ -189,7 +189,7 @@ TEST(Uint128Tests, MultiplicationTest) {
         uint128_t value2{5, 0};
         uint128_t expected_value{15, 0};
         EXPECT_EQ(expected_value, value1 * value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mul(value1, value2));
     }
 
     { // multiplying in upper bits: (1 << 64) * 3 = (3 << 64)
@@ -197,7 +197,7 @@ TEST(Uint128Tests, MultiplicationTest) {
         uint128_t value2{3, 0};
         uint128_t expected_value{0, 3};
         EXPECT_EQ(expected_value, value1 * value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mul(value1, value2));
     }
 
     { // multiplying with overflow from lower to upper bits: (2^64 - 1) * 2 = (2^65 - 2)
@@ -205,7 +205,7 @@ TEST(Uint128Tests, MultiplicationTest) {
         uint128_t value2{2, 0};
         uint128_t expected_value{UINT64_MAX - 1, 1};
         EXPECT_EQ(expected_value, value1 * value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mul(value1, value2));
     }
 
     { // (2^64) * (2^63) = (2^127)
@@ -213,7 +213,7 @@ TEST(Uint128Tests, MultiplicationTest) {
         uint128_t value2{(1ULL << 63), 0};
         uint128_t expected_value{0, (1ULL << 63)};
         EXPECT_EQ(expected_value, value1 * value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mul(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mul(value1, value2));
     }
 
     { // overflow
@@ -235,7 +235,7 @@ TEST(Uint128Tests, DivisionTest) {
         uint128_t value2{3, 0};
         uint128_t expected_value{379, 0};
         EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, Uint128_t::Div(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
     }
 
     { // integer division (truncating)
@@ -243,7 +243,7 @@ TEST(Uint128Tests, DivisionTest) {
         uint128_t value2{3, 0};
         uint128_t expected_value{379, 0};
         EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, Uint128_t::Div(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
     }
 
     { // division in upper bits
@@ -251,7 +251,7 @@ TEST(Uint128Tests, DivisionTest) {
         uint128_t value2{0, (1ULL << 62)}; // 010...000
         uint128_t expected_value{2, 0};
         EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, Uint128_t::Div(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
     }
 
     { // division in upper bits with truncation
@@ -259,7 +259,7 @@ TEST(Uint128Tests, DivisionTest) {
         uint128_t value2{0, (1ULL << 62)}; // 010...000
         uint128_t expected_value{2, 0};
         EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, Uint128_t::Div(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
     }
 
     {
@@ -267,7 +267,7 @@ TEST(Uint128Tests, DivisionTest) {
         uint128_t value2{UINT64_MAX, UINT64_MAX};
         uint128_t expected_value{1, 0};
         EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, Uint128_t::Div(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
     }
 
     {
@@ -275,7 +275,7 @@ TEST(Uint128Tests, DivisionTest) {
         uint128_t value2{0, (1ULL << 63)}; // 100...000
         uint128_t expected_value{0, 0};
         EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, Uint128_t::Div(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
     }
 
     { // division by 0
@@ -291,7 +291,7 @@ TEST(Uint128Tests, ModuloTest) {
         uint128_t value2{3, 0};
         uint128_t expected_value{2, 0};
         EXPECT_EQ(expected_value, value1 % value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mod(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mod(value1, value2));
     }
 
     {
@@ -299,7 +299,7 @@ TEST(Uint128Tests, ModuloTest) {
         uint128_t value2{3, 0};
         uint128_t expected_value{0, 0};
         EXPECT_EQ(expected_value, value1 % value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mod(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mod(value1, value2));
     }
 
     {
@@ -307,7 +307,7 @@ TEST(Uint128Tests, ModuloTest) {
         uint128_t value2{0, (1ULL << 63)}; // 100...000
         uint128_t expected_value{UINT64_MAX, INT64_MAX};
         EXPECT_EQ(expected_value, value1 % value2);
-        EXPECT_EQ(expected_value, Uint128_t::Mod(value1, value2));
+        EXPECT_EQ(expected_value, UInt128_t::Mod(value1, value2));
     }
 
     { // modulo by 0
@@ -318,57 +318,85 @@ TEST(Uint128Tests, ModuloTest) {
 }
 
 TEST(Uint128Tests, BitwiseTest1) {
-    { // small numbers
-        uint128_t value1{0b10100000, 0b01111001};
-        uint128_t value2{0b11000110, 0b10101011};
+    // small numbers
+    uint128_t value1{0b10100000, 0b01111001};
+    uint128_t value2{0b11000110, 0b10101011};
+
+    {
         uint128_t expected_and{0b10000000, 0b00101001};
+        EXPECT_EQ(expected_and, value1 & value2);
+        EXPECT_EQ(expected_and, UInt128_t::BinaryAnd(value1, value2));
+    }
+
+    {
         uint128_t expected_or{0b11100110, 0b11111011};
+        EXPECT_EQ(expected_or, value1 | value2);
+        EXPECT_EQ(expected_or, UInt128_t::BinaryOr(value1, value2));
+    }
+
+    {
         uint128_t expected_xor{0b01100110, 0b11010010};
+        EXPECT_EQ(expected_xor, value1 ^ value2);
+        EXPECT_EQ(expected_xor, UInt128_t::Xor(value1, value2));
+    }
+
+    {
         uint128_t expected_not1{0xffffffffffffff00 + 0b01011111, 0xffffffffffffff00 + 0b10000110};
         uint128_t expected_not2{0xffffffffffffff00 + 0b00111001, 0xffffffffffffff00 + 0b01010100};
+        EXPECT_EQ(expected_not1, ~value1);
+        EXPECT_EQ(expected_not1, UInt128_t::BinaryNot(value1));
+        EXPECT_EQ(expected_not2, ~value2);
+        EXPECT_EQ(expected_not2, UInt128_t::BinaryNot(value2));
+    }
+
+    {
+        EXPECT_EQ(value1, value1 << 0); // left shift by 0
         uint128_t expected_left_shift1{(uint64_t)(0b10100000) << 55, (uint64_t)(0b01111001) << 55};
         uint128_t expected_left_shift2{0, (1ULL << 63)};
-        EXPECT_EQ(expected_and, value1 & value2);
-        EXPECT_EQ(expected_and, Uint128_t::BinaryAnd(value1, value2));
-        EXPECT_EQ(expected_or, value1 | value2);
-        EXPECT_EQ(expected_or, Uint128_t::BinaryOr(value1, value2));
-        EXPECT_EQ(expected_xor, value1 ^ value2);
-        EXPECT_EQ(expected_xor, Uint128_t::Xor(value1, value2));
-        EXPECT_EQ(expected_not1, ~value1);
-        EXPECT_EQ(expected_not1, Uint128_t::BinaryNot(value1));
-        EXPECT_EQ(expected_not2, ~value2);
-        EXPECT_EQ(expected_not2, Uint128_t::BinaryNot(value2));
-        EXPECT_EQ(value1, value1 << 0); // left shift by 0
         EXPECT_EQ(expected_left_shift1, value1 << 55);
-        EXPECT_EQ(expected_left_shift1, Uint128_t::LeftShift(value1, 55));
+        EXPECT_EQ(expected_left_shift1, UInt128_t::LeftShift(value1, 55));
         EXPECT_EQ(expected_left_shift2, value2 << 126);
-        EXPECT_EQ(expected_left_shift2, Uint128_t::LeftShift(value2, 126));
+        EXPECT_EQ(expected_left_shift2, UInt128_t::LeftShift(value2, 126));
     }
 }
 
 TEST(Uint128Tests, BitwiseTest2) {
-    { // large numbers (with most significant bit set)
-        uint128_t value1{0, (1ULL << 63) + (1ULL << 62)}; // 11000...000
-        uint128_t value2{2, (1ULL << 62) + (1ULL << 60)}; // 01010...010
+    // large numbers (with most significant bit set)
+    uint128_t value1{0, (1ULL << 63) + (1ULL << 62)}; // 11000...000
+    uint128_t value2{2, (1ULL << 62) + (1ULL << 60)}; // 01010...010
+
+    { 
         uint128_t expected_and{0, (1ULL << 62)}; // 01000...000
+        EXPECT_EQ(expected_and, value1 & value2);
+        EXPECT_EQ(expected_and, UInt128_t::BinaryAnd(value1, value2));
+    }
+
+    {
         uint128_t expected_or{2, (1ULL << 63) + (1ULL << 62) + (1ULL << 60)}; // 11010...010
+        EXPECT_EQ(expected_or, value1 | value2);
+        EXPECT_EQ(expected_or, UInt128_t::BinaryOr(value1, value2));
+    }
+
+    {
         uint128_t expected_xor{2, (1ULL << 63) + (1ULL << 60)}; // 10010...010
+        EXPECT_EQ(expected_xor, value1 ^ value2);
+        EXPECT_EQ(expected_xor, UInt128_t::Xor(value1, value2));
+    }
+    
+    {
         uint128_t expected_not1{UINT64_MAX, (1ULL << 62) - 1}; // 00111...111
+        EXPECT_EQ(expected_not1, ~value1);
+        EXPECT_EQ(expected_not1, UInt128_t::BinaryNot(value1));
+    }
+
+    {
+        EXPECT_EQ(value1, value1 >> 0); // right shift by 0
         uint128_t expected_right_shift1{3, 0}; // 000...011
         uint128_t expected_right_shift2{(1ULL << 62), 1}; // 000...1 010... 0 (shift by 62)
-        EXPECT_EQ(expected_and, value1 & value2);
-        EXPECT_EQ(expected_and, Uint128_t::BinaryAnd(value1, value2));
-        EXPECT_EQ(expected_or, value1 | value2);
-        EXPECT_EQ(expected_or, Uint128_t::BinaryOr(value1, value2));
-        EXPECT_EQ(expected_xor, value1 ^ value2);
-        EXPECT_EQ(expected_xor, Uint128_t::Xor(value1, value2));
-        EXPECT_EQ(expected_not1, ~value1);
-        EXPECT_EQ(expected_not1, Uint128_t::BinaryNot(value1));
-        EXPECT_EQ(value1, value1 >> 0); // right shift by 0
         EXPECT_EQ(expected_right_shift1, value1 >> 126);
-        EXPECT_EQ(expected_right_shift1, Uint128_t::RightShift(value1, 126));
+        EXPECT_EQ(expected_right_shift1, UInt128_t::RightShift(value1, 126));
         EXPECT_EQ(expected_right_shift2, value2 >> 62);
-        EXPECT_EQ(expected_right_shift2, Uint128_t::RightShift(value2, 62));
+        EXPECT_EQ(expected_right_shift2, UInt128_t::RightShift(value2, 62));
     }
 }
 
@@ -377,9 +405,9 @@ TEST(Uint128Tests, BitwiseTest2) {
 //     {
 //         uint128_t value1{35, 165};
 //         EXPECT_EQ(uint128_t(0, 0), value1 << 277);
-//         EXPECT_EQ(uint128_t(0, 0), Uint128_t::LeftShift(value1, 277));
+//         EXPECT_EQ(uint128_t(0, 0), UInt128_t::LeftShift(value1, 277));
 //         EXPECT_EQ(uint128_t(0, 0), value1 >> 300);
-//         EXPECT_EQ(uint128_t(0, 0), Uint128_t::RightShift(value1, 300));
+//         EXPECT_EQ(uint128_t(0, 0), UInt128_t::RightShift(value1, 300));
 //     }
 // }
 
@@ -431,14 +459,14 @@ TEST(Uint128Tests, ComparisonOperatorsTest) {
 TEST(Uint128Tests, ToStringTest) {
     {
         uint128_t zero{0, 0};
-        EXPECT_EQ("0", Uint128_t::ToString(zero));
+        EXPECT_EQ("0", UInt128_t::toString(zero));
         uint128_t value1{0, 1}; // 2^64
-        EXPECT_EQ("18446744073709551616", Uint128_t::ToString(value1));
+        EXPECT_EQ("18446744073709551616", UInt128_t::toString(value1));
         uint128_t value2{0, (1ULL << 63)}; // 2^127
-        EXPECT_EQ("170141183460469231731687303715884105728", Uint128_t::ToString(value2));
+        EXPECT_EQ("170141183460469231731687303715884105728", UInt128_t::toString(value2));
         uint128_t value3{3141592653589793238ULL, 11082775389274182659ULL};
-        EXPECT_EQ("204441121232347597927193748133362420182", Uint128_t::ToString(value3));
+        EXPECT_EQ("204441121232347597927193748133362420182", UInt128_t::toString(value3));
         uint128_t max_value{UINT64_MAX, UINT64_MAX}; // 2^128 - 1
-        EXPECT_EQ("340282366920938463463374607431768211455", Uint128_t::ToString(max_value));
+        EXPECT_EQ("340282366920938463463374607431768211455", UInt128_t::toString(max_value));
     }
 }

@@ -19,8 +19,8 @@ struct AvgState : public AggregateStateWithNull {
         requires common::IntegerTypes<T>
     {
         if (!isNull) {
-            avg = common::Int128_t::Cast<long double>(sum) /
-                  common::Int128_t::Cast<long double>(count);
+            avg = common::Int128_t::cast<long double>(sum) /
+                  common::Int128_t::cast<long double>(count);
         }
     }
 

@@ -25,7 +25,7 @@ using namespace kuzu::common;
 struct ParquetInt128Operator {
     template<class SRC, class TGT>
     static inline TGT Operation(SRC input) {
-        return Int128_t::Cast<double>(input);
+        return Int128_t::cast<double>(input);
     }
 
     template<class /*SRC*/, class /*TGT*/>
