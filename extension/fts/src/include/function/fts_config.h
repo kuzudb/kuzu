@@ -4,6 +4,7 @@
 
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
+#include "function/table/optional_params.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -14,6 +15,12 @@ struct Stemmer {
     static constexpr const char* DEFAULT_VALUE = "english";
 
     static void validate(const std::string& stemmer);
+};
+
+struct AdvancedWildCardPattern {
+    static constexpr const char* NAME = "advanced_wild_card_pattern";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = false;
 };
 
 enum class StopWordsSource : uint8_t {
@@ -78,6 +85,7 @@ struct CreateFTSConfig {
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
     std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
     TokenizerInfo tokenizerInfo;
+    bool advancedWildCardPattern = AdvancedWildCardPattern::DEFAULT_VALUE;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,

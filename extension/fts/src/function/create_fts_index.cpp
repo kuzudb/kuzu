@@ -174,8 +174,9 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     // Create the terms_in_doc table which servers as a temporary table to store the
     // relationship between terms and docs.
     auto appearsInfoTableName = FTSUtils::getAppearsInfoTableName(tableID, indexName);
-    query += stringFormat("CREATE NODE TABLE `{}` (ID SERIAL, term string, docID INT64, primary "
-                          "key(ID));",
+    query += stringFormat(
+        "CREATE NODE TABLE `{}` (ID SERIAL, term string, term_origin string, docID INT64, primary "
+        "key(ID));",
         appearsInfoTableName);
     auto tableName = ftsBindData->tableName;
     auto tableEntry = catalog::Catalog::Get(context)->getTableCatalogEntry(
@@ -189,7 +190,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                               "WITH t AS t1, id AS id1 "
                               "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND "
                               "NOT EXISTS {MATCH (s:`{}` {sw: t1})} "
-                              "RETURN STEM(t1, '{}'), id1);",
+                              "RETURN STEM(t1, '{}'), t1, id1);",
             appearsInfoTableName, tableName, FTSUtils::getTokenizeMacroName(tableID, indexName),
             propertyName, ftsBindData->createFTSConfig.stopWordsTableInfo.tableName,
             ftsBindData->createFTSConfig.stemmer);
@@ -206,7 +207,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
 
     auto termsTableName = FTSUtils::getTermsTableName(tableID, indexName);
     // Create the dic table which records all distinct terms and their document frequency.
-    query += stringFormat("CREATE NODE TABLE `{}` (term STRING, df UINT64, PRIMARY KEY(term));",
+    query += stringFormat(
+        "CREATE NODE TABLE `{}` (term STRING, term_origin STRING, df UINT64, PRIMARY KEY(term));",
         termsTableName);
     query += stringFormat("COPY `{}` FROM "
                           "(MATCH (t:`{}`) "

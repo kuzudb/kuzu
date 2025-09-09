@@ -149,14 +149,17 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
             common::StringUtils::replaceAll(ignorePatternQuery, "?", "");
             IgnorePattern::validate(ignorePattern);
             IgnorePattern::validate(ignorePatternQuery);
-        } else if (lowerCaseName == "tokenizer") {
-            value.validateType(common::LogicalTypeID::STRING);
+        } else if (Tokenizer::NAME == lowerCaseName) {
+            value.validateType(Tokenizer::TYPE);
             tokenizerInfo.tokenizer = common::StringUtils::getLower(value.getValue<std::string>());
             Tokenizer::validate(tokenizerInfo.tokenizer);
         } else if (lowerCaseName == "jieba_dict_dir") {
             value.validateType(common::LogicalTypeID::STRING);
             tokenizerInfo.jiebaDictDir =
                 common::StringUtils::getLower(value.getValue<std::string>());
+        } else if (AdvancedWildCardPattern::NAME == lowerCaseName) {
+            value.validateType(AdvancedWildCardPattern::TYPE);
+            advancedWildCardPattern = value.getValue<bool>();
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
