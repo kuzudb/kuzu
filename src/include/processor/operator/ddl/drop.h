@@ -40,6 +40,7 @@ private:
     void dropSequence(const main::ClientContext* context);
     void dropTable(const main::ClientContext* context);
     void dropMacro(const main::ClientContext* context);
+    void handleMacroExistence(const main::ClientContext* context);
     void dropRelGroup(const main::ClientContext* context);
 
 private:

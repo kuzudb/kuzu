@@ -131,13 +131,13 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
         }
         switch (catalogEntry.getType()) {
         case CatalogEntryType::INDEX_ENTRY:
+        case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::NODE_TABLE_ENTRY:
         case CatalogEntryType::REL_GROUP_ENTRY:
         case CatalogEntryType::SEQUENCE_ENTRY: {
             localWAL->logDropCatalogEntryRecord(catalogEntry.getOID(), catalogEntry.getType());
         } break;
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
-        case CatalogEntryType::SCALAR_MACRO_ENTRY:
         case CatalogEntryType::TABLE_FUNCTION_ENTRY:
         case CatalogEntryType::STANDALONE_TABLE_FUNCTION_ENTRY: {
             // DO NOTHING. We don't persist function entries.
