@@ -245,3 +245,27 @@ Catalog exception: function ADDWITHDEFAULT does not exist.
 -STATEMENT return addWithDefault(4,7);
 ---- 1
 11
+
+-CASE DropNonExistedMacro
+-STATEMENT drop macro add2
+---- error
+Binder exception: Macro add2 does not exist.
+
+-CASE DropMacros
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT call show_macros() return *
+---- 2
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+-STATEMENT drop macro case_macro
+---- ok
+-STATEMENT call show_macros() return *
+---- 1
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+-STATEMENT drop macro case_macro2
+---- ok
+-STATEMENT call show_macros() return *
+---- 0

@@ -9,6 +9,7 @@ namespace common {
 enum class DropType : uint8_t {
     TABLE = 0,
     SEQUENCE = 1,
+    MACRO = 2,
 };
 
 struct DropTypeUtils {
