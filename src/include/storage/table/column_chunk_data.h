@@ -87,68 +87,11 @@ struct SegmentState {
     }
 
     void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
-};
 
-struct ChunkState {
-    const Column* column;
-    std::vector<SegmentState> segmentStates;
-
-    void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
-
-    const SegmentState* findSegment(common::offset_t offsetInChunk,
-        common::offset_t& offsetInSegment) const {
-        offsetInSegment = offsetInChunk;
-        for (const auto& segmentState : segmentStates) {
-            if (offsetInSegment < segmentState.metadata.numValues) {
-                return &segmentState;
-            }
-            offsetInSegment -= segmentState.metadata.numValues;
-        }
-        return nullptr;
-    }
-
-    // dstOffset starts from 0 and is the offset in the output data for a given segment
-    //  (it increases by lengthInSegment for each segment)
-    // Returns the total number of values scanned (input length can be longer than the available
-    // values)
-    template<std::invocable<SegmentState&, common::offset_t /*offsetInSegment*/,
-        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
-            Func>
-    common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
-        Func func) {
-        // TODO(bmwinger): try binary search (might only make a difference for a very large number
-        // of segments)
-        auto segment = segmentStates.begin();
-        auto offsetInSegment = offsetInChunk;
-        while (segment->metadata.numValues <= offsetInSegment) {
-            offsetInSegment -= segment->metadata.numValues;
-            KU_ASSERT(segment < segmentStates.end() - 1);
-            segment++;
-        }
-        common::offset_t lengthScanned = 0;
-        common::offset_t dstOffset = 0;
-        while (lengthScanned < length && segment != segmentStates.end()) {
-            KU_ASSERT(segment->metadata.numValues > offsetInSegment);
-            auto lengthInSegment =
-                std::min(length - lengthScanned, segment->metadata.numValues - offsetInSegment);
-            func(*segment, offsetInSegment, lengthInSegment, dstOffset);
-            lengthScanned += lengthInSegment;
-            segment++;
-            dstOffset += lengthInSegment;
-            offsetInSegment = 0;
-        }
-        return dstOffset;
-    }
-
-    // TODO(bmwinger): the above function should be const and only isn't because of ALP exception
-    // chunk modifications. The SegmentState& should also be const for the same reason
-    template<std::invocable<SegmentState&, common::offset_t /*offsetInSegment*/,
-        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
-            Func>
-    common::offset_t rangeSegments(common::offset_t offsetInChunk, common::length_t length,
-        Func func) const {
-        return const_cast<ChunkState*>(this)->rangeSegments(offsetInChunk, length, func);
-    }
+    // Used by rangeSegments in column_chunk.h to provide the same interface as the segments stored
+    // in ColumnChunk inside unique_ptr
+    SegmentState& operator*() { return *this; }
+    uint64_t getNumValues() const { return metadata.numValues; }
 };
 
 class Spiller;

@@ -61,7 +61,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     case ResidencyState::IN_MEMORY: {
         rangeSegments(offsetInChunk, length,
             [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
-                segment.scan(output, offsetInSegment, lengthInSegment, dstOffset);
+                segment->scan(output, offsetInSegment, lengthInSegment, dstOffset);
             });
     } break;
     case ResidencyState::ON_DISK: {
@@ -123,7 +123,7 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
         if (SCAN_RESIDENCY_STATE == residencyState) {
             rangeSegments(startRow, numRows,
                 [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
-                    output.append(&segment, startRow, lengthInSegment);
+                    output.append(segment.get(), startRow, lengthInSegment);
                     scanCommittedUpdates(transaction, output, numValuesBeforeScan + dstOffset,
                         offsetInSegment, lengthInSegment);
                 });
@@ -189,7 +189,7 @@ void ColumnChunk::lookup(const Transaction* transaction, const ChunkState& state
     switch (getResidencyState()) {
     case ResidencyState::IN_MEMORY: {
         rangeSegments(rowInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
-            segment.lookup(offsetInSegment, output, posInOutputVector);
+            segment->lookup(offsetInSegment, output, posInOutputVector);
         });
     } break;
     case ResidencyState::ON_DISK: {
@@ -214,7 +214,7 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const ValueVector& values) {
     if (transaction->getType() == TransactionType::DUMMY) {
         rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
-            segment.write(&values, values.state->getSelVector().getSelectedPositions()[0],
+            segment->write(&values, values.state->getSelVector().getSelectedPositions()[0],
                 offsetInSegment);
         });
         return;
