@@ -444,10 +444,9 @@ CatalogEntry* Catalog::getFunctionEntry(const Transaction* transaction, const st
 std::vector<ScalarMacroCatalogEntry*> Catalog::getMacroEntries(
     const Transaction* transaction) const {
     std::vector<ScalarMacroCatalogEntry*> result;
-    for (auto& [_, entry] : functions->getEntries(transaction)) {
-        if (entry->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY) {
-            result.push_back(entry->ptrCast<ScalarMacroCatalogEntry>());
-        }
+    for (auto& [_, entry] : macros->getEntries(transaction)) {
+        KU_ASSERT(entry->getType() == CatalogEntryType::SCALAR_MACRO_ENTRY);
+        result.push_back(entry->ptrCast<ScalarMacroCatalogEntry>());
     }
     return result;
 }
