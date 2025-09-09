@@ -307,6 +307,9 @@ void WALReplayer::replayDropCatalogEntryRecord(const WALRecord& walRecord) const
     case CatalogEntryType::INDEX_ENTRY: {
         catalog->dropIndex(transaction, entryID);
     } break;
+    case CatalogEntryType::SCALAR_MACRO_ENTRY: {
+        catalog->dropMacroEntry(transaction, entryID);
+    } break;
     default: {
         KU_UNREACHABLE;
     }
