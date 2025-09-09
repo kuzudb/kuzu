@@ -36,7 +36,7 @@ pub(crate) mod ffi {
         type StringView<'a> = crate::ffi::StringView<'a>;
 
         #[namespace = "kuzu_rs"]
-        fn string_view_from_str(s: &str) -> StringView;
+        fn string_view_from_str(s: &str) -> StringView<'_>;
     }
 
     // From types.h
@@ -174,9 +174,7 @@ pub(crate) mod ffi {
         type Connection<'db>;
 
         #[namespace = "kuzu_rs"]
-        fn database_connect<'a>(
-            database: Pin<&'a mut Database>,
-        ) -> Result<UniquePtr<Connection<'a>>>;
+        fn database_connect(database: Pin<&mut Database>) -> Result<UniquePtr<Connection<'_>>>;
 
         fn prepare(
             self: Pin<&mut Connection>,
