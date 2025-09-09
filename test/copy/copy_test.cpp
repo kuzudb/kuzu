@@ -216,7 +216,7 @@ void CopyTest::BMExceptionRecoveryTest(BMExceptionRecoveryTestConfig cfg) {
     }
 }
 
-TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
+TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection_SLOW) {
     if (inMemMode) {
         GTEST_SKIP();
     }
@@ -242,7 +242,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnection) {
     BMExceptionRecoveryTest(cfg);
 }
 
-TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnectionStringKey) {
+TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnectionStringKey_SLOW) {
     if (inMemMode) {
         GTEST_SKIP();
     }
@@ -268,7 +268,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionRecoverySameConnectionStringKey) {
     BMExceptionRecoveryTest(cfg);
 }
 
-TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
+TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection_SLOW) {
     if (inMemMode ||
         common::StorageConfig::NODE_GROUP_SIZE_LOG2 != TestParser::STANDARD_NODE_GROUP_SIZE_LOG_2) {
         GTEST_SKIP();
@@ -312,7 +312,7 @@ TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
     BMExceptionRecoveryTest(cfg);
 }
 
-TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
+TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery_SLOW) {
     static constexpr uint64_t numValues = 200000;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
         .canFailDuringCheckpoint = false,
@@ -335,7 +335,7 @@ TEST_F(CopyTest, NodeInsertBMExceptionDuringCommitRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
-TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
+TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery_SLOW) {
     static constexpr auto numNodes = 10000;
     BMExceptionRecoveryTestConfig cfg{.canFailDuringExecute = false,
         .canFailDuringCheckpoint = false,
@@ -365,7 +365,7 @@ TEST_F(CopyTest, RelInsertBMExceptionDuringCommitRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
-TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
+TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery_SLOW) {
     if (inMemMode || systemConfig->forceCheckpointOnClose == false) {
         GTEST_SKIP();
     }
@@ -397,7 +397,7 @@ TEST_F(CopyTest, NodeCopyBMExceptionDuringCheckpointRecovery) {
     BMExceptionRecoveryTest(cfg);
 }
 
-TEST_F(CopyTest, RelCopyCheckpointBMExceptionRecovery) {
+TEST_F(CopyTest, RelCopyCheckpointBMExceptionRecovery_SLOW) {
     if (inMemMode || systemConfig->forceCheckpointOnClose == false) {
         GTEST_SKIP();
     }

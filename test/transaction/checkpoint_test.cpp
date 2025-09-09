@@ -62,7 +62,7 @@ public:
     bool checkpointStorage() override { throw RuntimeException("checkpoint failed."); }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointStorageFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointStorageFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -83,7 +83,7 @@ public:
     }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointSerializeFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointSerializeFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -104,7 +104,7 @@ public:
     }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointWriteHeaderFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointWriteHeaderFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -126,7 +126,7 @@ public:
     }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointFlushingShadowFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointFlushingShadowFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -152,7 +152,7 @@ public:
     }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointLoggingCheckpointFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointLoggingCheckpointFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -185,7 +185,7 @@ public:
     }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointApplyingShadowFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointApplyingShadowFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -219,7 +219,7 @@ public:
     }
 };
 
-TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointClearingFilesFailure) {
+TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointClearingFilesFailure_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -232,7 +232,7 @@ TEST_F(FlakyCheckpointerTest, RecoverFromCheckpointClearingFilesFailure) {
 
 // Simulates a situation where a database attempts to replay a shadow file from an older database
 // with the same path
-TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchExistingDB) {
+TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchExistingDB_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -270,7 +270,7 @@ TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchExistingDB) {
     EXPECT_THROW(createDBAndConn(), RuntimeException);
 }
 
-TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchNewDB) {
+TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchNewDB_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
@@ -286,7 +286,7 @@ TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchNewDB) {
     EXPECT_THROW(createDBAndConn(), RuntimeException);
 }
 
-TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchCorruptedDB) {
+TEST_F(FlakyCheckpointerTest, ShadowFileDatabaseIDMismatchCorruptedDB_SLOW) {
     if (inMemMode || systemConfig->checkpointThreshold == 0) {
         GTEST_SKIP();
     }
