@@ -64,6 +64,34 @@ Runtime exception: Write-write conflict of updating the same row.
 ---- 1
 21
 
+-CASE NodeUpdateOverlappedRowsWithRollback
+-STATEMENT CALL debug_enable_multi_writes=true;
+---- ok
+-CREATE_CONNECTION conn2
+-STATEMENT CREATE NODE TABLE test(id INT64, val INT64, PRIMARY KEY(id));
+---- ok
+-STATEMENT COPY test FROM (UNWIND RANGE(0, 1000) AS id RETURN id, id + 1 AS val);
+---- ok
+-STATEMENT BEGIN TRANSACTION;
+---- ok
+-LOOP i 1 100
+-STATEMENT MATCH (p:test) WHERE p.ID=${i} SET p.val=p.val+1000;
+---- ok
+-ENDLOOP
+-STATEMENT [conn2] BEGIN TRANSACTION;
+---- ok
+-LOOP i 101 200
+-STATEMENT [conn2] MATCH (p:test) WHERE p.ID=${i} SET p.val=p.val+2000;
+---- ok
+-ENDLOOP
+-STATEMENT [conn2] ROLLBACK;
+---- ok
+-STATEMENT ROLLBACK;
+---- ok
+-STATEMENT MATCH (p:test) WHERE p.ID>1000 RETURN COUNT(*);
+---- 1
+0
+
 -CASE WWConflictNodeCopyDelete
 -STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
