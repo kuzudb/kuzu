@@ -174,9 +174,7 @@ pub(crate) mod ffi {
         type Connection<'db>;
 
         #[namespace = "kuzu_rs"]
-        fn database_connect(
-            database: Pin<&mut Database>,
-        ) -> Result<UniquePtr<Connection<'_>>>;
+        fn database_connect(database: Pin<&mut Database>) -> Result<UniquePtr<Connection<'_>>>;
 
         fn prepare(
             self: Pin<&mut Connection>,
