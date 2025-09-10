@@ -88,7 +88,7 @@ public:
     void createDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, const VersionRecordHandler* versionRecordHandler);
     void createVectorUpdateInfo(UpdateInfo* updateInfo, common::idx_t vectorIdx,
-        VectorUpdateInfo* vectorUpdateInfo);
+        VectorUpdateInfo* vectorUpdateInfo, common::transaction_t version);
 
     void commit(common::transaction_t commitTS) const;
     void rollback(main::ClientContext* context) const;

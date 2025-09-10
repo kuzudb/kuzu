@@ -194,8 +194,9 @@ void Transaction::pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::
 }
 
 void Transaction::pushVectorUpdateInfo(storage::UpdateInfo& updateInfo,
-    const common::idx_t vectorIdx, storage::VectorUpdateInfo& vectorUpdateInfo) const {
-    undoBuffer->createVectorUpdateInfo(&updateInfo, vectorIdx, &vectorUpdateInfo);
+    const common::idx_t vectorIdx, storage::VectorUpdateInfo& vectorUpdateInfo,
+    common::transaction_t version) const {
+    undoBuffer->createVectorUpdateInfo(&updateInfo, vectorIdx, &vectorUpdateInfo, version);
 }
 
 Transaction::~Transaction() = default;

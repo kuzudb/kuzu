@@ -49,6 +49,7 @@ struct VectorUpdateRecord {
     UpdateInfo* updateInfo;
     idx_t vectorIdx;
     VectorUpdateInfo* vectorUpdateInfo;
+    transaction_t version; // This is used during roll back.
 };
 
 template<typename F>
@@ -135,12 +136,12 @@ void UndoBuffer::createVersionInfo(const UndoRecordType recordType, row_idx_t st
 }
 
 void UndoBuffer::createVectorUpdateInfo(UpdateInfo* updateInfo, const idx_t vectorIdx,
-    VectorUpdateInfo* vectorUpdateInfo) {
+    VectorUpdateInfo* vectorUpdateInfo, transaction_t version) {
     auto buffer = createUndoRecord(sizeof(UndoRecordHeader) + sizeof(VectorUpdateRecord));
     const UndoRecordHeader recordHeader{UndoRecordType::UPDATE_INFO, sizeof(VectorUpdateRecord)};
     *reinterpret_cast<UndoRecordHeader*>(buffer) = recordHeader;
     buffer += sizeof(UndoRecordHeader);
-    const VectorUpdateRecord vectorUpdateRecord{updateInfo, vectorIdx, vectorUpdateInfo};
+    const VectorUpdateRecord vectorUpdateRecord{updateInfo, vectorIdx, vectorUpdateInfo, version};
     *reinterpret_cast<VectorUpdateRecord*>(buffer) = vectorUpdateRecord;
 }
 
@@ -301,7 +302,7 @@ void UndoBuffer::rollbackVersionInfo(ClientContext* context, UndoRecordType reco
 void UndoBuffer::rollbackVectorUpdateInfo(const uint8_t* record) {
     auto& undoRecord = *reinterpret_cast<VectorUpdateRecord const*>(record);
     KU_ASSERT(undoRecord.updateInfo);
-    undoRecord.updateInfo->rollback(undoRecord.vectorIdx, undoRecord.vectorUpdateInfo);
+    undoRecord.updateInfo->rollback(undoRecord.vectorIdx, undoRecord.version);
 }
 
 } // namespace storage

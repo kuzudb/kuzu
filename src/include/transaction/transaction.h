@@ -141,7 +141,7 @@ public:
     void pushDeleteInfo(common::node_group_idx_t nodeGroupIdx, common::row_idx_t startRow,
         common::row_idx_t numRows, const storage::VersionRecordHandler* versionRecordHandler) const;
     void pushVectorUpdateInfo(storage::UpdateInfo& updateInfo, common::idx_t vectorIdx,
-        storage::VectorUpdateInfo& vectorUpdateInfo) const;
+        storage::VectorUpdateInfo& vectorUpdateInfo, common::transaction_t version) const;
 
     static Transaction* Get(const main::ClientContext& context);
 
