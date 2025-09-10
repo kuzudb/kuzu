@@ -27,6 +27,13 @@
 
 {age: 20, name: Bobdjiweknfwhuwiehfuw}
 {age: 30, name: Delta}
+-STATEMENT MATCH (t:test) WHERE t.id=2 SET t = { prop: NULL }
+---- ok
+-STATEMENT MATCH (t:test) RETURN t.prop
+---- 3
+
+
+{age: 30, name: Delta}
 
 -CASE UpdatingSerialPrimaryKey
 -STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
@@ -36,6 +43,9 @@
 -STATEMENT MATCH (a:A) WHERE a.ID = 0 SET a.ID = 1 RETURN a.ID;
 ---- error
 Binder exception: Cannot set property ID in table A because it is used as primary key. Try delete and then insert.
+-STATEMENT MATCH (a:A) WHERE a.ID = 0 SET a = { ID: 1 } RETURN a.ID;
+---- error
+Binder exception: Cannot set property ID in table A because it is used as primary key. Try delete and then insert.
 
 -CASE SetNodeInt64PropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50
@@ -43,6 +53,11 @@ Binder exception: Cannot set property ID in table A because it is used as primar
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
 ---- 1
 70
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = { age: 20 + 49 }
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
+---- 1
+69
 
 -CASE SetNodeInt64MultipleTestManualCheckpoint
 -STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 SET a.age=20 + a.ID
@@ -54,6 +69,15 @@ Binder exception: Cannot set property ID in table A because it is used as primar
 23
 25
 27
+-STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 SET a = {age:30 + a.ID}
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID >= 3 AND a.ID <= 7 RETURN a.age
+---- 3
+33
+35
+37
 
 -CASE SetNodeInt32PropTest
 -STATEMENT MATCH (a:movies) WHERE a.name='Roma' SET a.length=2.2
@@ -61,6 +85,11 @@ Binder exception: Cannot set property ID in table A because it is used as primar
 -STATEMENT MATCH (a:movies) WHERE a.name='Roma' RETURN a.length
 ---- 1
 2
+-STATEMENT MATCH (a:movies) WHERE a.name='Roma' SET a = {length:3.2}
+---- ok
+-STATEMENT MATCH (a:movies) WHERE a.name='Roma' RETURN a.length
+---- 1
+3
 
 -CASE SetNodeDoublePropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.eyeSight=1.0
@@ -68,6 +97,11 @@ Binder exception: Cannot set property ID in table A because it is used as primar
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.eyeSight
 ---- 1
 1.000000
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {eyeSight:2.0}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.eyeSight
+---- 1
+2.000000
 
 -CASE SetNodeFloatPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.height=12
@@ -75,6 +109,11 @@ Binder exception: Cannot set property ID in table A because it is used as primar
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.height
 ---- 1
 12.000000
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {height:13}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.height
+---- 1
+13.000000
 
 -CASE SetNodeBoolPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.isStudent=false
@@ -82,6 +121,11 @@ Binder exception: Cannot set property ID in table A because it is used as primar
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.isStudent
 ---- 1
 False
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {isStudent:true}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.isStudent
+---- 1
+True
 
 -CASE SetNodeDatePropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.birthdate=date('2200-10-10')
@@ -89,6 +133,11 @@ False
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.birthdate
 ---- 1
 2200-10-10
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {birthdate:date('2201-11-11')}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.birthdate
+---- 1
+2201-11-11
 
 -CASE SetNodeTimestampPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.registerTime=timestamp('2200-10-10 12:01:01')
@@ -96,6 +145,11 @@ False
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.registerTime
 ---- 1
 2200-10-10 12:01:01
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {registerTime:timestamp('2201-11-11 12:01:01')}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.registerTime
+---- 1
+2201-11-11 12:01:01
 
 -CASE SetNodeEmptyStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName=''
@@ -105,12 +159,25 @@ False
 
 # end of SetNodeEmptyStringPropTest
 
+-CASE SetByDictNodeEmptyStringPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {fName:''}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+
+# end of SetByDictNodeEmptyStringPropTest
+
 -CASE SetNodeShortStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName=string(22)
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
 ---- 1
 22
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {fName:string(23)}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+23
 
 -CASE SetNodeLongStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'
@@ -118,7 +185,11 @@ False
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
 ---- 1
 abcdefghijklmnopqrstuvwxyz
-
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {fName:'mnopqrstuvwxyzabcdefghijkl'}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+mnopqrstuvwxyzabcdefghijkl
 
 -CASE SetLongListTest
 -SET STRING_EXCEEDS_PAGE ARANGE 0 5990
@@ -132,6 +203,17 @@ ${STRING_EXCEEDS_PAGE}
 -STATEMENT COMMIT
 ---- ok
 
+-CASE SetByDictLongListTest
+-SET STRING_EXCEEDS_PAGE ARANGE 0 5990
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {fName:"${STRING_EXCEEDS_PAGE}"}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
+---- 1
+${STRING_EXCEEDS_PAGE}
+-STATEMENT COMMIT
+---- ok
 
 -CASE SetVeryLongStringTest
 -SET STRING_EXCEEDS_MEMORY_MANAGER_LIMIT ARANGE 0 50000
@@ -145,10 +227,29 @@ ${STRING_EXCEEDS_MEMORY_MANAGER_LIMIT}
 -STATEMENT COMMIT
 ---- ok
 
+-CASE SetByDictVeryLongStringTest
+-SET STRING_EXCEEDS_MEMORY_MANAGER_LIMIT ARANGE 0 50000
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {fName:"${STRING_EXCEEDS_MEMORY_MANAGER_LIMIT}"}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName;
+---- 1
+${STRING_EXCEEDS_MEMORY_MANAGER_LIMIT}
+-STATEMENT COMMIT
+---- ok
 
 -CASE SetLongStringOver256KB
 -SET test_long_string REPEAT 262146 "a"
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='${test_long_string}';
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+${test_long_string}
+
+-CASE SetByDictLongStringOver256KB
+-SET test_long_string REPEAT 262146 "a"
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {fName:'${test_long_string}'};
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
 ---- 1
@@ -161,6 +262,11 @@ ${test_long_string}
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.lastJobDuration
 ---- 1
 1 year 1 day
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {lastJobDuration:interval('1 years 2 days')}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.lastJobDuration
+---- 1
+1 year 2 days
 
 
 -CASE SetNodePropNullTest
@@ -178,6 +284,21 @@ ${test_long_string}
 
 # end of SetNodePropNullTest. Empty lines represent the expected null values
 
+-CASE SetByDictNodePropNullTest
+-STATEMENT MATCH (a:person) SET a = {age:null}
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.age
+---- 8
+
+
+
+
+
+
+
+
+# end of SetByDictNodePropNullTest. Empty lines represent the expected null values
+
 -CASE SetBothUnflatTest
 -STATEMENT MATCH (a:person) SET a.age=a.ID
 ---- ok
@@ -187,6 +308,14 @@ ${test_long_string}
 2|2
 3|3
 
+-CASE SetByDictBothUnflatTest
+-STATEMENT MATCH (a:person) SET a = {age:a.ID}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
+---- 3
+0|0
+2|2
+3|3
 
 -CASE SetFlatUnFlatTest
 # The output of this test depends on which rel was processed last which can be affected by node group size
@@ -199,6 +328,16 @@ ${test_long_string}
 2|30
 3|45
 
+-CASE SetByDictFlatUnFlatTest
+# The output of this test depends on which rel was processed last which can be affected by node group size
+-SKIP_NODE_GROUP_SIZE_TESTS
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 SET a = {age:b.age}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
+---- 3
+0|20
+2|30
+3|45
 
 -CASE SetUnFlatFlatTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 AND a.ID = 0 SET b.age=a.age
@@ -209,6 +348,14 @@ ${test_long_string}
 2|35
 3|45
 
+-CASE SetByDictUnFlatFlatTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 AND a.ID = 0 SET b = {age:a.age}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
+---- 3
+0|35
+2|35
+3|45
 
 -CASE SetTwoHopTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 AND c.fName = 'Bob' SET a.age=c.age
@@ -220,6 +367,15 @@ ${test_long_string}
 3|30
 5|30
 
+-CASE SetByDictTwoHopTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 AND c.fName = 'Bob' SET a = {age:c.age}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID < 6 RETURN a.ID, a.age
+---- 4
+0|35
+2|30
+3|30
+5|30
 
 -CASE SetTwoHopNullTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) SET a.age=null
@@ -235,6 +391,19 @@ ${test_long_string}
 8|25
 9|40
 
+-CASE SetByDictTwoHopNullTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) SET a = {age:null}
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.ID, a.age
+---- 8
+0|
+10|83
+2|
+3|
+5|
+7|20
+8|25
+9|40
 
 -CASE SetIndexNestedLoopJoinTest
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = b.ID SET a.age=b.gender
@@ -250,6 +419,19 @@ ${test_long_string}
 8|2
 9|2
 
+-CASE SetByDictIndexNestedLoopJoinTest
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = b.ID SET a = {age:b.gender}
+---- ok
+-STATEMENT MATCH (a:person) RETURN a.ID, a.age
+---- 8
+0|1
+10|2
+2|2
+3|1
+5|2
+7|1
+8|2
+9|2
 
 -CASE SetRelInt16PropTest
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99
@@ -259,7 +441,13 @@ ${test_long_string}
 22
 55
 99
-
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e = {length:98}
+---- ok
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.length
+---- 3
+22
+55
+98
 
 -CASE SetNodeListOfIntPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.workedHours=[10,20]
@@ -267,7 +455,11 @@ ${test_long_string}
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.workedHours
 ---- 1
 [10,20]
-
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {workedHours:[11,21]}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.workedHours
+---- 1
+[11,21]
 
 -CASE SetNodeListOfShortStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['intel','microsoft']
@@ -275,7 +467,11 @@ ${test_long_string}
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames
 ---- 1
 [intel,microsoft]
-
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {usedNames:['snapdragon','samsung']}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames
+---- 1
+[snapdragon,samsung]
 
 -CASE SetNodeListOfLongStringPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.usedNames=['abcndwjbwesdsd','microsofthbbjuwgedsd']
@@ -283,7 +479,11 @@ ${test_long_string}
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames
 ---- 1
 [abcndwjbwesdsd,microsofthbbjuwgedsd]
-
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {usedNames:['defndwjbwesdsd','samsunghbbjuwgedsd']}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.usedNames
+---- 1
+[defndwjbwesdsd,samsunghbbjuwgedsd]
 
 -CASE SetNodeListofListPropTest
 -STATEMENT MATCH (a:person) WHERE a.ID=8 SET a.courseScoresPerTerm=[[10,20],[0,0,0]]
@@ -291,9 +491,13 @@ ${test_long_string}
 -STATEMENT MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm
 ---- 1
 [[10,20],[0,0,0]]
+-STATEMENT MATCH (a:person) WHERE a.ID=8 SET a = {courseScoresPerTerm:[[11,21],[1,1,1]]}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=8 RETURN a.courseScoresPerTerm
+---- 1
+[[11,21],[1,1,1]]
 
-
--CASE SETMultiLabelNodePropTest
+-CASE SetMultiLabelNodePropTest
 -STATEMENT MATCH (a) WHERE a.ID < 2 SET a.age = 1;
 ---- ok
 -STATEMENT MATCH (a) WHERE a.ID < 2 RETURN a.ID, a.age;
@@ -317,8 +521,31 @@ ${test_long_string}
 0|0
 1|10
 
+-CASE SetByDictMultiLabelNodePropTest
+-STATEMENT MATCH (a) WHERE a.ID < 2 SET a = {age: 1};
+---- ok
+-STATEMENT MATCH (a) WHERE a.ID < 2 RETURN a.ID, a.age;
+---- 2
+0|1
+1|
+-STATEMENT CREATE NODE TABLE play(ID INT64, name STRING, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE (a:play {ID: 0, name: 'AA'});
+---- ok
+-STATEMENT MATCH (a:organisation:play) RETURN a.ID, a.name;
+---- 4
+0|AA
+1|ABFsUni
+4|CsWork
+6|DEsWork
+-STATEMENT MATCH (a:organisation:play) WHERE a.ID < 2 SET a = {name: string(a.ID * 10)};
+---- ok
+-STATEMENT MATCH (a:organisation:play) WHERE a.ID < 2 RETURN a.ID, a.name;
+---- 2
+0|0
+1|10
 
--CASE SETMultiLabelWithPruning
+-CASE SetMultiLabelWithPruning
 -STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b.orgCode = 123, b.fName = "XX" RETURN b.name, b.fName;
 ---- 3
 |XX
@@ -352,6 +579,39 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 |2023-11-11
 |2023-11-11
 
+-CASE SetByDictMultiLabelWithPruning
+-STATEMENT MATCH (a:person)-[:knows]->(b) WHERE a.ID=0 SET b= {orgCode: 123, fName: "XX"} RETURN b.name, b.fName;
+---- 3
+|XX
+|XX
+|XX
+-STATEMENT MATCH (b) RETURN b.name, b.fName
+---- 14
+ABFsUni|
+CsWork|
+DEsWork|
+Roma|
+Sóló cón tu párejâ|
+The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
+|Alice
+|Elizabeth
+|Farooq
+|Greg
+|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+|XX
+|XX
+|XX
+-STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person) WHERE a.ID=0 SET e = {year: 2023, date: date("2023-11-11")} RETURN e.year, e.date;
+---- 3
+|2023-11-11
+|2023-11-11
+|2023-11-11
+-STATEMENT MATCH (a:person)-[e:knows|:studyAt]->(b:person:organisation) WHERE a.ID=0 RETURN e.year, e.date;
+---- 4
+2021|
+|2023-11-11
+|2023-11-11
+|2023-11-11
 
 -CASE SetNonNullValueWithWriteTransaction
 -STATEMENT BEGIN TRANSACTION
@@ -366,7 +626,18 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 70
 -STATEMENT COMMIT
 ---- ok
-
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
+---- 1
+70
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {age:35}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
+---- 1
+35
+-STATEMENT COMMIT
+---- ok
 
 -CASE SetNullValueWithWriteTransaction
 -STATEMENT BEGIN TRANSACTION
@@ -382,6 +653,19 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 -STATEMENT COMMIT
 ---- ok
 
+-CASE SetByDictNullValueWithWriteTransaction
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
+---- 1
+35
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a = {age:NULL}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.age
+---- 1
+
+-STATEMENT COMMIT
+---- ok
 
 -CASE MultipleSetListValue
 -STATEMENT BEGIN TRANSACTION
@@ -403,8 +687,27 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 ---- 1
 [abcndwjbwesdsd,microsofthbbjuwgedsd]
 
+-CASE MultipleSetByDictListValue
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=10 SET a = {usedNames:['abcndwjbwesdsd','microsofthbbjuwgedsd']}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=5 SET a = {usedNames:['abcndwjbwesdsd','microsofthbbjuwgedsd']}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=2 SET a = {usedNames:['abcndwjbwesdsd','microsofthbbjuwgedsd']}
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=3 SET a = {usedNames:['abcndwjbwesdsd','microsofthbbjuwgedsd']}
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID=10 RETURN a.usedNames
+---- 1
+[abcndwjbwesdsd,microsofthbbjuwgedsd]
+-STATEMENT MATCH (a:person) WHERE a.ID=5 RETURN a.usedNames
+---- 1
+[abcndwjbwesdsd,microsofthbbjuwgedsd]
 
--CASE OptionalSET
+-CASE OptionalSet
 -STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 SET a.fName = 'a' RETURN a.fName;
 ---- 1
 
@@ -413,6 +716,23 @@ The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie|
 Alice
 Bob
 -STATEMENT OPTIONAL MATCH (a) WHERE a.ID > 100 SET a.name, a.fName;
+----1
+
+-STATEMENT MATCH (a)  WHERE a.ID < 3 RETURN a.name, a.fName;
+---- 3
+ABFsUni|
+|Alice
+|Bob
+
+-CASE OptionalSetByDict
+-STATEMENT OPTIONAL MATCH (a:person) WHERE a.ID > 100 SET a = {fName: 'a'} RETURN a.fName;
+---- 1
+
+-STATEMENT MATCH (a:person) WHERE a.ID < 3 RETURN a.fName;
+---- 2
+Alice
+Bob
+-STATEMENT OPTIONAL MATCH (a) WHERE a.ID > 100 SET a = {name, fName};
 ----1
 
 -STATEMENT MATCH (a)  WHERE a.ID < 3 RETURN a.name, a.fName;
@@ -430,3 +750,15 @@ ABFsUni|
 
 
 
+# end of SetNulls. Empty lines represent the expected null values
+
+-CASE SetByDictNulls
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 SET p = {age: null}
+---- ok
+-STATEMENT MATCH (p:person) WHERE p.ID % 2 = 0 RETURN p.age
+---- 4
+
+
+
+
+# end of SetByDictNulls. Empty lines represent the expected null values
