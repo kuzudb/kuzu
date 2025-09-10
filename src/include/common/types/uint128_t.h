@@ -36,6 +36,8 @@ struct KUZU_API uint128_t {
     uint128_t& operator=(const uint128_t&) noexcept = default;
     uint128_t& operator=(uint128_t&&) noexcept = default;
 
+    uint128_t operator-() const;
+
     // inplace arithmetic operators
     uint128_t& operator+=(const uint128_t& rhs);
     uint128_t& operator*=(const uint128_t& rhs);
@@ -102,6 +104,17 @@ public:
             throw common::OverflowException("UINT128 is out of range");
         }
         return result;
+    }
+
+    // negate (required by function/arithmetic/negate.h)
+    static void negateInPlace(uint128_t& input) {
+        input.low = UINT64_MAX + 1 - input.low;
+        input.high = -input.high - 1 + (input.low == 0);
+    }
+
+    static uint128_t negate(uint128_t input) {
+        negateInPlace(input);
+        return input;
     }
 
     static bool tryMultiply(uint128_t lhs, uint128_t rhs, uint128_t& result);

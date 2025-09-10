@@ -445,6 +445,21 @@ TEST(Uint128Tests, BitwiseTest2) {
 //     }
 // }
 
+TEST(Uint128Tests, UnaryMinusTest) {
+    {
+        uint128_t zero{0, 0};
+        EXPECT_EQ(-zero, uint128_t(0, 0));
+        EXPECT_EQ(UInt128_t::negate(zero), uint128_t(0, 0));
+        uint128_t one{1, 0};
+        EXPECT_EQ(-one, uint128_t(UINT64_MAX, UINT64_MAX));
+        EXPECT_EQ(UInt128_t::negate(one), uint128_t(UINT64_MAX, UINT64_MAX));
+        EXPECT_EQ(-(uint128_t(16, 18)), uint128_t(UINT64_MAX - 15, UINT64_MAX - 18));
+        EXPECT_EQ(-(uint128_t(15, 0)), uint128_t(UINT64_MAX - 14, UINT64_MAX));
+        EXPECT_EQ(-(uint128_t(0, 15)), uint128_t(0, UINT64_MAX - 14));
+        EXPECT_EQ(-(-(uint128_t(932, 654))), uint128_t(932, 654));
+    }
+}
+
 TEST(Uint128Tests, InPlaceOperatorsTest) {
     {
         uint128_t value1{100, 34};

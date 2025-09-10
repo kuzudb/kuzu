@@ -603,6 +603,10 @@ bool operator<=(const uint128_t& lhs, const uint128_t& rhs) {
     return UInt128_t::lessThanOrEquals(lhs, rhs);
 }
 
+uint128_t uint128_t::operator-() const {
+    return UInt128_t::negate(*this);
+}
+
 // support for operations like (int32_t)x + (uint128_t)y
 
 uint128_t operator+(const uint128_t& lhs, const uint128_t& rhs) {
