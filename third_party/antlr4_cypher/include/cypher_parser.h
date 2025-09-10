@@ -1708,6 +1708,8 @@ public:
     OC_SetItemContext* oC_SetItem(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    OC_AtomContext *oC_Atom();
+    KU_PropertiesContext *kU_Properties();
 
    
   };

@@ -598,6 +598,13 @@ std::unique_ptr<ParsedExpression> Transformer::transformOcQuantifier(
 }
 
 std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(
+    CypherParser::OC_PropertyKeyNameContext& ctx, std::unique_ptr<ParsedExpression> child) {
+    auto key = transformPropertyKeyName(ctx);
+    return std::make_unique<ParsedPropertyExpression>(key, std::move(child),
+        child->toString() + "." + key);
+}
+
+std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(
     CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child) {
     auto key =
         ctx.STAR() ? InternalKeyword::STAR : transformPropertyKeyName(*ctx.oC_PropertyKeyName());

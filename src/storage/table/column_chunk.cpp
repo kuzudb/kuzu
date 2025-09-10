@@ -151,8 +151,6 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
         rangeSegments(offsetInChunk, 1, [&](auto& segment, auto offsetInSegment, auto, auto) {
             segment->write(&values, values.state->getSelVector().getSelectedPositions()[0],
                 offsetInSegment);
-            // FIXME: may not be needed? Should be done in write instead
-            segment->updateStats(&values, values.state->getSelVector());
         });
         return;
     }
@@ -161,7 +159,8 @@ void ColumnChunk::update(const Transaction* transaction, offset_t offsetInChunk,
     const auto rowIdxInVector = offsetInChunk % DEFAULT_VECTOR_CAPACITY;
     auto& vectorUpdateInfo = updateInfo.update(data.front()->getMemoryManager(), transaction,
         vectorIdx, rowIdxInVector, values);
-    transaction->pushVectorUpdateInfo(updateInfo, vectorIdx, vectorUpdateInfo);
+    transaction->pushVectorUpdateInfo(updateInfo, vectorIdx, vectorUpdateInfo,
+        transaction->getID());
 }
 
 MergedColumnChunkStats ColumnChunk::getMergedColumnChunkStats() const {
