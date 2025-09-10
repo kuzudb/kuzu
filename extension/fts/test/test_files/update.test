@@ -10,14 +10,14 @@
 ---- 2
 0|0.857996
 2|0.827832
--STATEMENT MATCH (b:Book) WHERE b.ID = 3 set b.title = 'quantum physics math'
+-STATEMENT MATCH (b:Book) WHERE b.ID = 3 SET b.title = 'quantum physics math'
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
 ---- 3
 0|0.545231
 2|0.833550
 3|0.348882
--STATEMENT MATCH (b:Book) WHERE b.ID = 4 set b.abstract = 'this is a book introducing quantum machine knowledge'
+-STATEMENT MATCH (b:Book) WHERE b.ID = 4 SET b.abstract = 'this is a book introducing quantum machine knowledge'
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
 ---- 4
@@ -35,7 +35,7 @@
 3|0.175746
 4|0.613436
 5|0.203796
--STATEMENT MATCH (b:Book) WHERE b.ID = 5 set b.title = 'an introduction to the quantum chemistry world'
+-STATEMENT MATCH (b:Book) WHERE b.ID = 5 SET b.title = 'an introduction to the quantum chemistry world'
 ---- ok
 -STATEMENT CALL QUERY_FTS_INDEX('Book', 'book_index', 'Quantum machine') RETURN node.id, score;
 ---- 5

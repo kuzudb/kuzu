@@ -583,7 +583,8 @@ oC_MergeAction
         ;
 
 oC_Set
-    : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )* ;
+    : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )*
+        | SET SP? oC_Atom SP? '=' SP? kU_Properties;
 
 oC_SetItem
     : ( oC_PropertyExpression SP? '=' SP? oC_Expression ) ;
