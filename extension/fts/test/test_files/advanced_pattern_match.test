@@ -1,0 +1,24 @@
+-DATASET CSV fts-basic
+
+--
+
+-CASE WildcardBasic
+
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE NODE TABLE news (content string, primary key(content));
+---- ok
+-STATEMENT create (n:news {content: "alice is a canadian runner"})
+---- ok
+-STATEMENT create (n:news {content: "carol is running in the playground"})
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('news', 'news_index_0', ['content'], advanced_pattern_match := FALSE);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_0', 'runn*') RETURN node.content, score order by score
+---- 1
+alice is a canadian runner|0.301030
+-STATEMENT CALL CREATE_FTS_INDEX('news', 'news_index_1', ['content'], advanced_pattern_match := TRUE);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_1', 'runn*') RETURN node.content, score order by score
+---- 2
+alice is a canadian runner|0.301030
+carol is running in the playground|0.301030

@@ -1,4 +1,4 @@
-#include "function/query_fts_bind_data.h"
+#include "function/query_fts/query_fts_bind_data.h"
 
 #include "binder/binder.h"
 #include "binder/expression/expression_util.h"
@@ -42,19 +42,47 @@ void QueryFTSOptionalParams::evaluateParams(main::ClientContext* context) {
     topK.evaluateParam(context);
 }
 
+QueryFTSBindData::QueryFTSBindData(binder::expression_vector columns,
+    graph::NativeGraphEntry graphEntry, std::shared_ptr<binder::Expression> docs,
+    std::shared_ptr<binder::Expression> query, const catalog::IndexCatalogEntry& entry,
+    std::unique_ptr<QueryFTSOptionalParams> optionalParams, common::idx_t numDocs, double avgDocLen)
+    : GDSBindData{std::move(columns), std::move(graphEntry), binder::expression_vector{docs}},
+      query{std::move(query)}, entry{entry},
+      outputTableID{output[0]->constCast<binder::NodeExpression>().getTableIDs()[0]},
+      numDocs{numDocs}, avgDocLen{avgDocLen},
+      patternMatchAlgo{PatternMatchFactory::getPatternMatchAlgo(
+          entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.advancedPatternMatch)} {
+    auto& nodeExpr = output[0]->constCast<binder::NodeExpression>();
+    KU_ASSERT(nodeExpr.getNumEntries() == 1);
+    outputTableID = nodeExpr.getEntry(0)->getTableID();
+    this->optionalParams = std::move(optionalParams);
+}
+
+catalog::TableCatalogEntry* QueryFTSBindData::getTermsEntry(main::ClientContext& context) const {
+    auto catalog = catalog::Catalog::Get(context);
+    return catalog->getTableCatalogEntry(transaction::Transaction::Get(context),
+        FTSUtils::getTermsTableName(entry.getTableID(), entry.getIndexName()));
+}
+
+catalog::TableCatalogEntry* QueryFTSBindData::getOrigTermsEntry(
+    main::ClientContext& context) const {
+    auto catalog = catalog::Catalog::Get(context);
+    return catalog->getTableCatalogEntry(transaction::Transaction::Get(context),
+        FTSUtils::getOrigTermsTableName(entry.getTableID(), entry.getIndexName()));
+}
+
 std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& context) const {
     auto queryInStr =
         ExpressionUtil::evaluateLiteral<std::string>(&context, query, LogicalType::STRING());
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
     FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
     auto terms = FTSUtils::tokenizeString(queryInStr, config);
-    auto stopWordsTable =
-        StorageManager::Get(context)
-            ->getTable(catalog::Catalog::Get(context)
-                           ->getTableCatalogEntry(transaction::Transaction::Get(context),
-                               config.stopWordsTableName)
-                           ->getTableID())
-            ->ptrCast<NodeTable>();
+    auto stopWordsTable = StorageManager::Get(context)
+                              ->getTable(catalog::Catalog::Get(context)
+                                      ->getTableCatalogEntry(transaction::Transaction::Get(context),
+                                          config.stopWordsTableName)
+                                      ->getTableID())
+                              ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
         MemoryManager::Get(context), stopWordsTable, transaction::Transaction::Get(context),
         optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal(),

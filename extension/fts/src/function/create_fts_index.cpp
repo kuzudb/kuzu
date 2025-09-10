@@ -145,6 +145,20 @@ static std::string formatStrInCypher(const std::string& input) {
     return result;
 }
 
+static std::string createAdvancedPatternMatchTable(const CreateFTSBindData& bindData) {
+    std::string query;
+    auto appearsInfoTableName =
+        FTSUtils::getAppearsInfoTableName(bindData.tableID, bindData.indexName);
+    auto originalTermsTableName =
+        FTSUtils::getOrigTermsTableName(bindData.tableID, bindData.indexName);
+    query += common::stringFormat("CREATE NODE TABLE `{}`(term string, primary key(term));",
+        originalTermsTableName);
+    query +=
+        common::stringFormat("COPY `{}` FROM (match (doc:`{}`) return distinct doc.term_origin);",
+            originalTermsTableName, appearsInfoTableName);
+    return query;
+}
+
 std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<CreateFTSBindData>();
     auto tableID = ftsBindData->tableID;
@@ -207,13 +221,17 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
 
     auto termsTableName = FTSUtils::getTermsTableName(tableID, indexName);
     // Create the dic table which records all distinct terms and their document frequency.
-    query += stringFormat(
-        "CREATE NODE TABLE `{}` (term STRING, term_origin STRING, df UINT64, PRIMARY KEY(term));",
+    query += stringFormat("CREATE NODE TABLE `{}` (term STRING, df UINT64, PRIMARY KEY(term));",
         termsTableName);
     query += stringFormat("COPY `{}` FROM "
                           "(MATCH (t:`{}`) "
                           "RETURN t.term, CAST(count(distinct t.docID) AS UINT64));",
         termsTableName, appearsInfoTableName);
+
+    // If the advanced_pattern_match is enabled, we need to create two additional tables.
+    if (ftsBindData->createFTSConfig.advancedPatternMatch) {
+        query += createAdvancedPatternMatchTable(*ftsBindData);
+    }
 
     auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
@@ -238,8 +256,10 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     properties += "]";
     std::string params;
     params += stringFormat("stemmer := '{}', ", ftsBindData->createFTSConfig.stemmer);
-    params += stringFormat("stopWords := '{}'",
+    params += stringFormat("stopWords := '{}', ",
         ftsBindData->createFTSConfig.stopWordsTableInfo.stopWords);
+    params += stringFormat("advanced_pattern_match := {}",
+        ftsBindData->createFTSConfig.advancedPatternMatch ? "true" : "false");
     query += stringFormat("CALL _CREATE_FTS_INDEX('{}', '{}', {}, {});", tableName, indexName,
         properties, params);
     query += stringFormat("RETURN 'Index {} has been created.' as result;", ftsBindData->indexName);

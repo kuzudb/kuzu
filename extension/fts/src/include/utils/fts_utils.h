@@ -48,6 +48,16 @@ struct FTSUtils {
         return common::stringFormat("{}_terms", getInternalTablePrefix(tableID, indexName));
     }
 
+    static std::string getOrigTermsTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_orig_terms", getInternalTablePrefix(tableID, indexName));
+    }
+
+    static std::string getOrigTermsRelTableName(common::table_id_t tableID,
+        const std::string& indexName) {
+        return common::stringFormat("{}_orig_terms_rel", getInternalTablePrefix(tableID, indexName));
+    }
+
     static std::string getAppearsInTableName(common::table_id_t tableID,
         const std::string& indexName) {
         return common::stringFormat("{}_appears_in", getInternalTablePrefix(tableID, indexName));
