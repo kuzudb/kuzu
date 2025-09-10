@@ -4,6 +4,7 @@
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/system_config.h"
+#include "common/constants.h"
 #include "main/client_context.h"
 #include "protocol/TCompactProtocol.h"
 #include "storage/buffer_manager/memory_manager.h"

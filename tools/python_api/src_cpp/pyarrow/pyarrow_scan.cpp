@@ -7,6 +7,7 @@
 #include "function/cast/functions/numeric_limits.h"
 #include "function/table/bind_input.h"
 #include "processor/execution_context.h"
+#include "processor/warning_context.h"
 #include "py_connection.h"
 #include "py_scan_config.h"
 #include "pyarrow/pyarrow_bind.h"
@@ -125,7 +126,7 @@ function_set PyArrowTableScanFunction::getFunctionSet() {
 }
 
 static void finalizeFunc(const processor::ExecutionContext* ctx, TableFuncSharedState*) {
-    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+    processor::WarningContext::Get(*ctx->clientContext)->defaultPopulateAllWarnings(ctx->queryID);
 }
 
 TableFunction PyArrowTableScanFunction::getFunction() {

@@ -228,7 +228,7 @@ void LocalFileErrorHandler::flushCachedErrors(bool canThrowCachedError) {
     }
 
     if (!cachedErrors.empty()) {
-        context->getWarningContextUnsafe().appendWarningMessages(cachedErrors);
+        WarningContext::Get(*context)->appendWarningMessages(cachedErrors);
         cachedErrors.clear();
     }
 }

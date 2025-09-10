@@ -8,6 +8,7 @@
 #include "function/table/simple_table_function.h"
 #include "numpy/numpy_scan.h"
 #include "processor/execution_context.h"
+#include "processor/warning_context.h"
 #include "py_connection.h"
 #include "py_scan_config.h"
 #include "pyarrow/pyarrow_scan.h"
@@ -106,7 +107,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(const processor::ExecutionContext* ctx, TableFuncSharedState*) {
-    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+    processor::WarningContext::Get(*ctx->clientContext)->defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set PandasScanFunction::getFunctionSet() {

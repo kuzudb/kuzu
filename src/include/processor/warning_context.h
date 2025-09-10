@@ -52,6 +52,8 @@ public:
     // for other operators setIgnoreErrorsForCurrentQuery() is not called
     bool getIgnoreErrorsOption() const;
 
+    static WarningContext* Get(const main::ClientContext& context);
+
 private:
     std::mutex mtx;
     main::ClientConfig* clientConfig;

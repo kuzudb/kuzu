@@ -26,6 +26,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_context.h"
+#include <processor/warning_context.h>
 
 #if defined(_WIN32)
 #include "common/windows_utils.h"
@@ -50,7 +51,7 @@ void ActiveQuery::reset() {
 }
 
 ClientContext::ClientContext(Database* database)
-    : localDatabase{database}, warningContext(&clientConfig) {
+    : localDatabase{database} {
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
@@ -70,6 +71,7 @@ ClientContext::ClientContext(Database* database)
     clientConfig.disableMapKeyCheck = ClientConfigDefault::DISABLE_MAP_KEY_CHECK;
     clientConfig.warningLimit = ClientConfigDefault::WARNING_LIMIT;
     progressBar = std::make_unique<ProgressBar>(clientConfig.enableProgressBar);
+    warningContext = std::make_unique<WarningContext>(&clientConfig);
 }
 
 ClientContext::~ClientContext() {
@@ -255,22 +257,6 @@ void ClientContext::removeScalarFunction(const std::string& name) {
         [&]() { localDatabase->catalog->dropFunction(Transaction::Get(*this), name); },
         false /*readOnlyStatement*/, false /*isTransactionStatement*/,
         TransactionHelper::TransactionCommitAction::COMMIT_IF_NEW);
-}
-
-WarningContext& ClientContext::getWarningContextUnsafe() {
-    return warningContext;
-}
-
-const WarningContext& ClientContext::getWarningContext() const {
-    return warningContext;
-}
-
-graph::GraphEntrySet& ClientContext::getGraphEntrySetUnsafe() {
-    return *graphEntrySet;
-}
-
-const graph::GraphEntrySet& ClientContext::getGraphEntrySet() const {
-    return *graphEntrySet;
 }
 
 void ClientContext::cleanUp() {

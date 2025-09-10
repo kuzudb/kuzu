@@ -6,9 +6,9 @@
 #include "common/types/types.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
-#include "main/client_context.h"
 #include "storage/index/hash_index.h"
 #include "storage/table/node_table.h"
+#include "processor/warning_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -134,7 +134,7 @@ bool IndexLookup::getNextTuplesInternal(ExecutionContext* context) {
 
 void IndexLookup::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     auto errorHandler = std::make_unique<BatchInsertErrorHandler>(context,
-        context->clientContext->getWarningContext().getIgnoreErrorsOption());
+        WarningContext::Get(*context->clientContext)->getIgnoreErrorsOption());
     localState = std::make_unique<IndexLookupLocalState>(std::move(errorHandler));
     for (auto& pos : warningDataVectorPos) {
         localState->warningDataVectors.push_back(resultSet->getValueVector(pos).get());

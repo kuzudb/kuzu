@@ -2,7 +2,6 @@
 #include "function/table/bind_data.h"
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
-#include "main/client_context.h"
 #include "processor/warning_context.h"
 
 using namespace kuzu::common;
@@ -44,7 +43,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
     std::vector<LogicalType> columnTypes{WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.begin(),
         WarningConstants::WARNING_TABLE_COLUMN_DATA_TYPES.end()};
     std::vector<processor::WarningInfo> warningInfos;
-    for (const auto& warning : context->getWarningContext().getPopulatedWarnings()) {
+    for (const auto& warning : processor::WarningContext::Get(*context)->getPopulatedWarnings()) {
         warningInfos.emplace_back(warning);
     }
     columnNames = TableFunction::extractYieldVariables(columnNames, input->yieldVariables);
