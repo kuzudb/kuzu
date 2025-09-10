@@ -101,9 +101,9 @@ struct ChunkedCSRHeader {
 
     ChunkedCSRHeader(MemoryManager& memoryManager, bool enableCompression, uint64_t capacity,
         ResidencyState residencyState);
-    ChunkedCSRHeader(MemoryManager& mm, bool enableCompression, InMemChunkedCSRHeader&& other)
-        : offset{std::make_unique<ColumnChunk>(mm, enableCompression, std::move(other.offset))},
-          length{std::make_unique<ColumnChunk>(mm, enableCompression, std::move(other.length))},
+    ChunkedCSRHeader(bool enableCompression, InMemChunkedCSRHeader&& other)
+        : offset{std::make_unique<ColumnChunk>(enableCompression, std::move(other.offset))},
+          length{std::make_unique<ColumnChunk>(enableCompression, std::move(other.length))},
           randomLookup{other.randomLookup} {}
     ChunkedCSRHeader(std::unique_ptr<ColumnChunk> offset, std::unique_ptr<ColumnChunk> length)
         : offset{std::move(offset)}, length{std::move(length)} {
@@ -143,7 +143,7 @@ public:
               residencyState, NodeGroupDataFormat::CSR},
           csrHeader{mm, enableCompression, common::StorageConfig::NODE_GROUP_SIZE, residencyState} {
     }
-    ChunkedCSRNodeGroup(MemoryManager& mm, InMemChunkedCSRNodeGroup& base,
+    ChunkedCSRNodeGroup(InMemChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns);
     ChunkedCSRNodeGroup(ChunkedCSRNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns)
@@ -205,7 +205,7 @@ public:
     }
 
     std::unique_ptr<ChunkedNodeGroup> flush(transaction::Transaction* transaction,
-        MemoryManager& mm, PageAllocator& pageAllocator) override;
+        PageAllocator& pageAllocator) override;
 
 private:
     InMemChunkedCSRHeader csrHeader;

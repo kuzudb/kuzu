@@ -180,8 +180,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     if (!progress_bar) {
-        conn->getClientContext()->getClientConfigUnsafe()->enableProgressBar = true;
-        conn->getClientContext()->getProgressBar()->toggleProgressBarPrinting(true);
+        auto clientContext = conn->getClientContext();
+        clientContext->getClientConfigUnsafe()->enableProgressBar = true;
+        ProgressBar::Get(*clientContext)->toggleProgressBarPrinting(true);
     }
 
     std::string initFile = ".kuzurc";

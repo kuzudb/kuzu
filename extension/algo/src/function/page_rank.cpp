@@ -9,7 +9,6 @@
 #include "function/gds/gds_utils.h"
 #include "function/gds/gds_vertex_compute.h"
 #include "function/table/bind_input.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "transaction/transaction.h"
 
@@ -314,7 +313,7 @@ static offset_t tableFunc(const TableFuncInput& input, TableFuncOutput&) {
             break;
         }
         auto progress = static_cast<double>(currentIter) / numNodes;
-        clientContext->getProgressBar()->updateProgress(input.context->queryID, progress);
+        ProgressBar::Get(*clientContext)->updateProgress(input.context->queryID, progress);
         currentIter++;
     }
     auto outputVC = std::make_unique<PageRankResultVertexCompute>(mm, sharedState, *pCurrent);

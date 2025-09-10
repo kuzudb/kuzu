@@ -155,6 +155,8 @@ public:
 
     storage::MemoryManager* getMemoryManager() { return memoryManager.get(); }
 
+    processor::QueryProcessor* getQueryProcessor() { return queryProcessor.get(); }
+
     extension::ExtensionManager* getExtensionManager() { return extensionManager.get(); }
 
     common::VirtualFileSystem* getVFS() { return vfs.get(); }

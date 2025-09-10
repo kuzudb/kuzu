@@ -75,6 +75,7 @@ void DBTest::runTest(std::vector<TestStatement>& statements, uint64_t checkpoint
         if (statement.reloadDBFlag) {
             // For in-mem mode, we skip reload.
             if (!inMemMode) {
+                spdlog::info("QUERY: RELOAD DB");
                 for (auto& name : connNames) {
                     if (connMap.contains(name)) {
                         connMap.erase(name);

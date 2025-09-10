@@ -85,8 +85,9 @@ public:
     ~ConnectionExecuteAsyncWorker() override = default;
 
     void Execute() override {
-        uint64_t queryID = connection->getClientContext()->getDatabase()->getNextQueryID();
-        auto progressBar = connection->getClientContext()->getProgressBar();
+        auto clientContext = connection->getClientContext();
+        uint64_t queryID = clientContext->getDatabase()->getNextQueryID();
+        auto progressBar = common::ProgressBar::Get(*clientContext);
         auto trackProgress = progressBar->getProgressBarPrinting();
         auto display = progressBar->getDisplay().get();
         NodeProgressBarDisplay* nodeDisplay = ku_dynamic_cast<NodeProgressBarDisplay*>(display);
@@ -141,8 +142,9 @@ public:
     ~ConnectionQueryAsyncWorker() override = default;
 
     void Execute() override {
-        uint64_t queryID = connection->getClientContext()->getDatabase()->getNextQueryID();
-        auto progressBar = connection->getClientContext()->getProgressBar();
+        auto clientContext = connection->getClientContext();
+        uint64_t queryID = clientContext->getDatabase()->getNextQueryID();
+        auto progressBar = common::ProgressBar::Get(*clientContext);
         auto trackProgress = progressBar->getProgressBarPrinting();
         auto display = progressBar->getDisplay().get();
         NodeProgressBarDisplay* nodeDisplay = ku_dynamic_cast<NodeProgressBarDisplay*>(display);

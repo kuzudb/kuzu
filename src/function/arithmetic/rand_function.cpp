@@ -11,7 +11,7 @@ using namespace kuzu::common;
 struct Rand {
     static void operation(double& result, void* dataPtr) {
         auto context = reinterpret_cast<FunctionBindData*>(dataPtr)->clientContext;
-        result = static_cast<double>(context->getRandomEngine()->nextRandomInteger()) /
+        result = static_cast<double>(RandomEngine::Get(*context)->nextRandomInteger()) /
                  static_cast<double>(UINT32_MAX);
     }
 };

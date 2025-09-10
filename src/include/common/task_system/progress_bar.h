@@ -7,6 +7,9 @@
 #include "progress_bar_display.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
 namespace common {
 
 typedef std::unique_ptr<ProgressBarDisplay> (*progress_bar_display_create_func_t)();
@@ -38,6 +41,8 @@ public:
     std::shared_ptr<ProgressBarDisplay> getDisplay() { return display; }
 
     bool getProgressBarPrinting() const { return trackProgress; }
+
+    KUZU_API static ProgressBar* Get(const main::ClientContext& context);
 
 private:
     void resetProgressBar(uint64_t queryID);

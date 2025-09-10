@@ -1,6 +1,7 @@
 #include "catalog/catalog_entry/function_catalog_entry.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/hnsw_index_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "function/built_in_function_utils.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
@@ -44,17 +45,22 @@ static std::unique_ptr<TableFuncBindData> createInMemHNSWBindFunc(main::ClientCo
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
     const auto columnName = input->getLiteralVal<std::string>(2);
-    auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
-        HNSWIndexUtils::IndexOperation::CREATE);
-    const auto tableID = tableEntry->getTableID();
-    HNSWIndexUtils::validateColumnType(*tableEntry, columnName);
+    auto config = HNSWIndexConfig{input->optionalParams};
+    const auto nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName);
+    if (HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
+            HNSWIndexUtils::IndexOperation::CREATE, config.conflictAction)) {
+        return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nullptr, 0, 0,
+            std::move(config),
+            true); // Placeholders for nodeTableEntry, propertyID, numNodes - WILL NOT BE ACCESSED
+    }
+    const auto tableID = nodeTableEntry->getTableID();
+    HNSWIndexUtils::validateColumnType(*nodeTableEntry, columnName);
     const auto& table =
         storage::StorageManager::Get(*context)->getTable(tableID)->cast<storage::NodeTable>();
-    auto propertyID = tableEntry->getPropertyID(columnName);
-    auto config = HNSWIndexConfig{input->optionalParams};
+    auto propertyID = nodeTableEntry->getPropertyID(columnName);
     auto transaction = transaction::Transaction::Get(*context);
     auto numNodes = table.getStats(transaction).getTableCard();
-    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, tableEntry, propertyID,
+    return std::make_unique<CreateHNSWIndexBindData>(context, indexName, nodeTableEntry, propertyID,
         numNodes, std::move(config));
 }
 
@@ -327,6 +333,9 @@ static std::string rewriteCreateHNSWQuery(main::ClientContext& context,
     const TableFuncBindData& bindData) {
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
     const auto hnswBindData = bindData.constPtrCast<CreateHNSWIndexBindData>();
+    if (hnswBindData->skipAfterBind) {
+        return "";
+    }
     std::string query = "BEGIN TRANSACTION;";
     auto indexName = hnswBindData->indexName;
     auto tableName = hnswBindData->tableEntry->getName();

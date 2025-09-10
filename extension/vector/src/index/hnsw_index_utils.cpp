@@ -5,32 +5,59 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "common/exception/binder.h"
 #include "common/types/types.h"
-#include "main/client_context.h"
 #include "simsimd.h"
 #include "transaction/transaction_context.h"
 
 namespace kuzu {
 namespace vector_extension {
 
-void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
+bool HNSWIndexUtils::indexExists(const main::ClientContext& context,
+    const transaction::Transaction* transaction, const catalog::TableCatalogEntry* tableEntry,
+    const std::string& indexName) {
+    return catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
+        indexName);
+}
+
+bool HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
     const catalog::TableCatalogEntry* tableEntry, const std::string& indexName,
-    IndexOperation indexOperation) {
+    IndexOperation indexOperation, common::ConflictAction conflictAction) {
     auto transaction = transaction::Transaction::Get(context);
     switch (indexOperation) {
     case IndexOperation::CREATE: {
-        if (catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
-                indexName)) {
-            throw common::BinderException{common::stringFormat(
-                "Index {} already exists in table {}.", indexName, tableEntry->getName())};
+        if (indexExists(context, transaction, tableEntry, indexName)) {
+            switch (conflictAction) {
+            case common::ConflictAction::ON_CONFLICT_THROW:
+                throw common::BinderException{common::stringFormat(
+                    "Index {} already exists in table {}.", indexName, tableEntry->getName())};
+            case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+                return true;
+            default:
+                KU_UNREACHABLE;
+            }
         }
+        return false;
     } break;
-    case IndexOperation::DROP:
+    case IndexOperation::DROP: {
+        if (!indexExists(context, transaction, tableEntry, indexName)) {
+            switch (conflictAction) {
+            case common::ConflictAction::ON_CONFLICT_THROW:
+                throw common::BinderException{
+                    common::stringFormat("Table {} doesn't have an index with name {}.",
+                        tableEntry->getName(), indexName)};
+            case common::ConflictAction::ON_CONFLICT_DO_NOTHING:
+                return false;
+            default:
+                KU_UNREACHABLE;
+            }
+        }
+        return true;
+    } break;
     case IndexOperation::QUERY: {
-        if (!catalog::Catalog::Get(context)->containsIndex(transaction, tableEntry->getTableID(),
-                indexName)) {
+        if (!indexExists(context, transaction, tableEntry, indexName)) {
             throw common::BinderException{common::stringFormat(
                 "Table {} doesn't have an index with name {}.", tableEntry->getName(), indexName)};
         }
+        return true;
     } break;
     default: {
         KU_UNREACHABLE;
@@ -39,19 +66,18 @@ void HNSWIndexUtils::validateIndexExistence(const main::ClientContext& context,
 }
 
 catalog::NodeTableCatalogEntry* HNSWIndexUtils::bindNodeTable(const main::ClientContext& context,
-    const std::string& tableName, const std::string& indexName, IndexOperation indexOperation) {
+    const std::string& tableName) {
     binder::Binder::validateTableExistence(context, tableName);
     auto transaction = transaction::Transaction::Get(context);
     const auto tableEntry =
         catalog::Catalog::Get(context)->getTableCatalogEntry(transaction, tableName);
     binder::Binder::validateNodeTableType(tableEntry);
-    validateIndexExistence(context, tableEntry, indexName, indexOperation);
     return tableEntry->ptrCast<catalog::NodeTableCatalogEntry>();
 }
 
 void HNSWIndexUtils::validateAutoTransaction(const main::ClientContext& context,
     const std::string& funcName) {
-    if (!context.getTransactionContext()->isAutoTransaction()) {
+    if (!transaction::TransactionContext::Get(context)->isAutoTransaction()) {
         throw common::BinderException{
             common::stringFormat("{} is only supported in auto transaction mode.", funcName)};
     }

@@ -1,7 +1,7 @@
 #include "processor/processor.h"
 
 #include "common/task_system/progress_bar.h"
-#include "main/client_context.h"
+#include "main/query_result.h"
 #include "processor/operator/sink.h"
 #include "processor/physical_plan.h"
 #include "processor/processor_task.h"
@@ -35,7 +35,7 @@ std::unique_ptr<main::QueryResult> QueryProcessor::execute(PhysicalPlan* physica
         decomposePlanIntoTask(sink->getChild(i), task.get(), context);
     }
     initTask(task.get());
-    auto progressBar = context->clientContext->getProgressBar();
+    auto progressBar = ProgressBar::Get(*context->clientContext);
     progressBar->startProgress(context->queryID);
     taskScheduler->scheduleTaskAndWaitOrError(task, context);
     progressBar->endProgress(context->queryID);
@@ -45,7 +45,7 @@ std::unique_ptr<main::QueryResult> QueryProcessor::execute(PhysicalPlan* physica
 void QueryProcessor::decomposePlanIntoTask(PhysicalOperator* op, Task* task,
     ExecutionContext* context) {
     if (op->isSource()) {
-        context->clientContext->getProgressBar()->addPipeline();
+        ProgressBar::Get(*context->clientContext)->addPipeline();
     }
     if (op->isSink()) {
         auto childTask = std::make_unique<ProcessorTask>(ku_dynamic_cast<Sink*>(op), context);

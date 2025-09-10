@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
+#include "common/exception/binder.h"
 #include "function/hnsw_index_functions.h"
 #include "function/table/bind_data.h"
 #include "index/hnsw_index_utils.h"
@@ -16,12 +17,15 @@ namespace vector_extension {
 struct DropHNSWIndexBindData final : TableFuncBindData {
     catalog::NodeTableCatalogEntry* tableEntry;
     std::string indexName;
+    bool skipAfterBind;
 
-    DropHNSWIndexBindData(catalog::NodeTableCatalogEntry* tableEntry, std::string indexName)
-        : TableFuncBindData{0}, tableEntry{tableEntry}, indexName{std::move(indexName)} {}
+    DropHNSWIndexBindData(catalog::NodeTableCatalogEntry* tableEntry, std::string indexName,
+        bool skipAfterBind = false)
+        : TableFuncBindData{0}, tableEntry{tableEntry}, indexName{std::move(indexName)},
+          skipAfterBind{skipAfterBind} {}
 
     std::unique_ptr<TableFuncBindData> copy() const override {
-        return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
+        return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName, skipAfterBind);
     }
 };
 
@@ -29,9 +33,13 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     const TableFuncBindInput* input) {
     const auto tableName = input->getLiteralVal<std::string>(0);
     const auto indexName = input->getLiteralVal<std::string>(1);
-    const auto tableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName, indexName,
-        HNSWIndexUtils::IndexOperation::DROP);
-    return std::make_unique<DropHNSWIndexBindData>(tableEntry, indexName);
+    auto config = DropHNSWConfig{input->optionalParams};
+    const auto nodeTableEntry = HNSWIndexUtils::bindNodeTable(*context, tableName);
+    if (!HNSWIndexUtils::validateIndexExistence(*context, nodeTableEntry, indexName,
+            HNSWIndexUtils::IndexOperation::DROP, config.conflictAction)) {
+        return std::make_unique<DropHNSWIndexBindData>(nullptr, indexName, true);
+    }
+    return std::make_unique<DropHNSWIndexBindData>(nodeTableEntry, indexName);
 }
 
 static common::offset_t internalTableFunc(const TableFuncInput& input, TableFuncOutput&) {
@@ -49,8 +57,12 @@ static std::string dropHNSWIndexTables(main::ClientContext& context,
     const TableFuncBindData& bindData) {
     const auto dropHNSWIndexBindData = bindData.constPtrCast<DropHNSWIndexBindData>();
     context.setUseInternalCatalogEntry(true /* useInternalCatalogEntry */);
+    if (dropHNSWIndexBindData->skipAfterBind) {
+        return "";
+    }
     std::string query = "";
-    const auto requireNewTransaction = !context.getTransactionContext()->hasActiveTransaction();
+    const auto requireNewTransaction =
+        !transaction::TransactionContext::Get(context)->hasActiveTransaction();
     if (requireNewTransaction) {
         query += "BEGIN TRANSACTION;";
     }

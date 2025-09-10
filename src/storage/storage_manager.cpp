@@ -3,6 +3,7 @@
 #include "catalog/catalog_entry/node_table_catalog_entry.h"
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "common/file_system/virtual_file_system.h"
+#include "common/random_engine.h"
 #include "common/serializer/in_mem_file_writer.h"
 #include "main/attached_database.h"
 #include "main/client_context.h"
@@ -295,7 +296,7 @@ const storage::DatabaseHeader* StorageManager::getOrInitDatabaseHeader(
         // We should only create the database header if a persistent one doesn't exist
         KU_ASSERT(std::nullopt == DatabaseHeader::readDatabaseHeader(*dataFH->getFileInfo()));
         databaseHeader = std::make_unique<DatabaseHeader>(
-            DatabaseHeader::createInitialHeader(clientContext.getRandomEngine()));
+            DatabaseHeader::createInitialHeader(RandomEngine::Get(clientContext)));
     }
     return databaseHeader.get();
 }

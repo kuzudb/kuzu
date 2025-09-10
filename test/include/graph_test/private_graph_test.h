@@ -19,16 +19,21 @@ protected:
         return database.getTransactionManager();
     }
     static transaction::TransactionMode getTransactionMode(const main::Connection& connection) {
-        return connection.clientContext->getTransactionContext()->getTransactionMode();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->getTransactionMode();
     }
     static transaction::Transaction* getActiveTransaction(const main::Connection& connection) {
-        return connection.clientContext->getTransactionContext()->getActiveTransaction();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->getActiveTransaction();
     }
     static uint64_t getActiveTransactionID(const main::Connection& connection) {
-        return connection.clientContext->getTransactionContext()->getActiveTransaction()->getID();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->getActiveTransaction()
+            ->getID();
     }
     static bool hasActiveTransaction(const main::Connection& connection) {
-        return connection.clientContext->getTransactionContext()->hasActiveTransaction();
+        return transaction::TransactionContext::Get(*connection.clientContext)
+            ->hasActiveTransaction();
     }
 };
 
@@ -40,7 +45,7 @@ class EmptyDBTest : public PrivateGraphTest {
 // ConcurrentTestExecutor is not thread safe
 class ConcurrentTestExecutor {
 public:
-    ConcurrentTestExecutor(bool& connectionsPaused, main::Connection& connection,
+    ConcurrentTestExecutor(std::atomic<bool>& connectionsPaused, main::Connection& connection,
         std::string databasePath)
         : connectionPaused{connectionsPaused}, connection{connection},
           databasePath{std::move(databasePath)} {}
@@ -57,7 +62,7 @@ public:
 private:
     void runStatements() const;
 
-    bool& connectionPaused;
+    std::atomic<bool>& connectionPaused;
     main::Connection& connection;
     std::string databasePath;
     std::thread connThread;
@@ -81,7 +86,7 @@ public:
 
 protected:
     bool isConcurrent = false;
-    bool connectionsPaused = false;
+    std::atomic<bool> connectionsPaused = false;
     std::unordered_map<std::string, ConcurrentTestExecutor> concurrentTests;
 };
 

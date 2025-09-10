@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catalog/catalog_entry/function_catalog_entry.h"
+#include "catalog/catalog_entry/scalar_macro_catalog_entry.h"
 #include "catalog/catalog_set.h"
 #include "common/cast.h"
 #include "function/function.h"
@@ -170,6 +171,10 @@ public:
     std::vector<FunctionCatalogEntry*> getFunctionEntries(
         const transaction::Transaction* transaction) const;
 
+    // Get all macro entries.
+    std::vector<ScalarMacroCatalogEntry*> getMacroEntries(
+        const transaction::Transaction* transaction) const;
+
     // Add function with name.
     void addFunction(transaction::Transaction* transaction, CatalogEntryType entryType,
         std::string name, function::function_set functionSet, bool isInternal = false);
@@ -225,6 +230,7 @@ private:
     std::unique_ptr<CatalogSet> functions;
     std::unique_ptr<CatalogSet> types;
     std::unique_ptr<CatalogSet> indexes;
+    std::unique_ptr<CatalogSet> macros;
     std::unique_ptr<CatalogSet> internalTables;
     std::unique_ptr<CatalogSet> internalSequences;
     std::unique_ptr<CatalogSet> internalFunctions;

@@ -623,7 +623,7 @@ ChunkCheckpointState CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock
     dummyChunkForNulls->resetToAllNull();
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
-         nodeOffset++) {
+        nodeOffset++) {
         const auto oldCSRLength = csrState.oldHeader->getCSRLength(nodeOffset);
         KU_ASSERT(csrState.oldHeader->getStartCSROffset(nodeOffset) >= leftCSROffset);
         const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
@@ -895,7 +895,7 @@ void CSRNodeGroup::checkpointInMemOnly(const UniqLock& lock, NodeGroupCheckpoint
     csrState.newHeader->offset->flush(csrState.pageAllocator);
     csrState.newHeader->length->flush(csrState.pageAllocator);
     persistentChunkGroup = std::make_unique<ChunkedCSRNodeGroup>(
-        ChunkedCSRHeader(mm, false /*enableCompression*/, std::move(*csrState.newHeader)),
+        ChunkedCSRHeader(false /*enableCompression*/, std::move(*csrState.newHeader)),
         std::move(dataChunksToFlush), 0);
     // TODO(Guodong): Use `finalizeCheckpoint`.
     chunkedGroups.clear(lock);

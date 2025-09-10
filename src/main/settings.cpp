@@ -7,6 +7,7 @@
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
+
 namespace kuzu {
 namespace main {
 
@@ -40,7 +41,7 @@ common::Value TimeoutSetting::getSetting(const ClientContext* context) {
 void ProgressBarSetting::setContext(ClientContext* context, const common::Value& parameter) {
     parameter.validateType(inputType);
     context->getClientConfigUnsafe()->enableProgressBar = parameter.getValue<bool>();
-    context->getProgressBar()->toggleProgressBarPrinting(parameter.getValue<bool>());
+    common::ProgressBar::Get(*context)->toggleProgressBarPrinting(parameter.getValue<bool>());
 }
 
 common::Value ProgressBarSetting::getSetting(const ClientContext* context) {

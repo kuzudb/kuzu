@@ -213,7 +213,7 @@ void NodeBatchInsert::writeAndResetNodeGroup(transaction::Transaction* transacti
         InMemChunkedNodeGroup sliceToWriteToDisk{*nodeGroup, info->outputDataColumns};
         FinallyWrapper sliceRestorer{
             [&]() { nodeGroup->merge(sliceToWriteToDisk, info->outputDataColumns); }};
-        std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(*mm, transaction,
+        std::tie(nodeOffset, numRowsWritten) = nodeTable->appendToLastNodeGroup(transaction,
             info->insertColumnIDs, sliceToWriteToDisk, pageAllocator);
     }
 

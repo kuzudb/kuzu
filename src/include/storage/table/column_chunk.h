@@ -133,9 +133,8 @@ public:
         bool enableCompression, ResidencyState residencyState, bool initializeToZero = true);
     ColumnChunk(MemoryManager& mm, common::LogicalType&& dataType, bool enableCompression,
         ColumnChunkMetadata metadata);
-    ColumnChunk(MemoryManager& mm, bool enableCompression, std::unique_ptr<ColumnChunkData> data);
-    ColumnChunk(MemoryManager& mm, bool enableCompression,
-        std::vector<std::unique_ptr<ColumnChunkData>> segments);
+    ColumnChunk(bool enableCompression, std::unique_ptr<ColumnChunkData> data);
+    ColumnChunk(bool enableCompression, std::vector<std::unique_ptr<ColumnChunkData>> segments);
 
     void initializeScanState(ChunkState& state, const Column* column) const;
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
@@ -194,9 +193,6 @@ public:
 
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction) const;
 
-    std::pair<std::unique_ptr<ColumnChunkData>, std::unique_ptr<ColumnChunkData>> scanUpdates(
-        const transaction::Transaction* transaction) const;
-
     // TODO(bmwinger): Segments could probably share a single datatype
     const common::LogicalType& getDataType() const { return data.front()->getDataType(); }
     bool isCompressionEnabled() const { return enableCompression; }
@@ -206,17 +202,12 @@ public:
         RUNTIME_CHECK(for (auto& chunk : data) { KU_ASSERT(chunk->getResidencyState() == state); });
         return state;
     }
-    bool hasUpdates() const { return updateInfo != nullptr; }
+    bool hasUpdates() const { return updateInfo.isSet(); }
     bool hasUpdates(const transaction::Transaction* transaction, common::row_idx_t startRow,
         common::length_t numRows) const;
-    void resetUpdateInfo() {
-        if (updateInfo) {
-            updateInfo.reset();
-        }
-    }
+    void resetUpdateInfo() { updateInfo.reset(); }
 
-    MergedColumnChunkStats getMergedColumnChunkStats(
-        const transaction::Transaction* transaction) const;
+    MergedColumnChunkStats getMergedColumnChunkStats() const;
 
     void reclaimStorage(PageAllocator& pageAllocator) const;
 
@@ -317,24 +308,18 @@ public:
     }
 
 private:
-    void scanCommittedUpdates(const transaction::Transaction* transaction, ColumnChunkData& output,
-        common::offset_t startOffsetInOutput, common::row_idx_t startRowScanned,
-        common::row_idx_t numRows) const;
-
     template<typename Func>
     void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) const {
         genericRangeSegments(std::span(data), offsetInChunk, length, func);
     }
 
 private:
-    MemoryManager& mm;
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in
     // storage structures, instead should be fed into functions needed from ClientContext
     // dbConfig.
     bool enableCompression;
     std::vector<std::unique_ptr<ColumnChunkData>> data;
-    // Update versions.
-    std::unique_ptr<UpdateInfo> updateInfo;
+    UpdateInfo updateInfo;
 };
 
 } // namespace storage

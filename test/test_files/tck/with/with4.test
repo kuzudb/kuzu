@@ -59,7 +59,7 @@ King Kong
 -STATEMENT WITH 1 AS a, 2 AS a
            RETURN a;
 ---- error
-Binder exception: Multiple result column with the same name a are not supported.
+Binder exception: Multiple result columns with the same name a are not supported.
 
 # Fail when not aliasing expressions in WITH
 -CASE Scenario5

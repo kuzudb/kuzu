@@ -1,8 +1,8 @@
 -DATASET CSV tinysnb
--SKIP
 --
 
 -CASE ConcurrentSingleWriteCreate
+-SKIP
 -CREATE_CONNECTION conn2
 -BEGIN_CONCURRENT_EXECUTION
 -STATEMENT CREATE (:person {ID: 11, fName: 'Ivan'});
@@ -23,6 +23,9 @@
 11|Ivan
 
 -CASE ConcurrentSingleWriteUpdate
+-SKIP_WASM
+-STATEMENT CALL debug_enable_multi_writes=true;
+---- ok
 -CREATE_CONNECTION conn2
 -BEGIN_CONCURRENT_EXECUTION
 -STATEMENT MATCH (p:person) WHERE p.ID=0 SET p.fName='Apple';
@@ -42,6 +45,7 @@
 10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -CASE ConcurrentSingleWriteDelete
+-SKIP
 -STATEMENT CREATE (:person {ID: 11, fName: 'Ivan'});
 ---- ok
 -CREATE_CONNECTION conn2

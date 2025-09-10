@@ -207,19 +207,18 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 }
 
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flush(
-    transaction::Transaction* transaction, MemoryManager& mm, PageAllocator& pageAllocator) {
+    transaction::Transaction* transaction, PageAllocator& pageAllocator) {
     auto csrOffset = Column::flushChunkData(*csrHeader.offset, pageAllocator);
     auto csrLength = Column::flushChunkData(*csrHeader.length, pageAllocator);
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
         getColumnChunk(i).finalize();
-        flushedChunks[i] =
-            std::make_unique<ColumnChunk>(mm, getColumnChunk(i).isCompressionEnabled(),
-                Column::flushChunkData(getColumnChunk(i), pageAllocator));
+        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
+            Column::flushChunkData(getColumnChunk(i), pageAllocator));
     }
     InMemChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
     auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
-        ChunkedCSRHeader(mm, newCSRHeader.offset->isCompressionEnabled(), std::move(newCSRHeader)),
+        ChunkedCSRHeader(newCSRHeader.offset->isCompressionEnabled(), std::move(newCSRHeader)),
         std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());
@@ -289,12 +288,12 @@ std::unique_ptr<ChunkedCSRNodeGroup> ChunkedCSRNodeGroup::deserialize(MemoryMana
     return chunkedGroup;
 }
 
-ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(MemoryManager& mm, InMemChunkedCSRNodeGroup& base,
+ChunkedCSRNodeGroup::ChunkedCSRNodeGroup(InMemChunkedCSRNodeGroup& base,
     const std::vector<common::column_id_t>& selectedColumns)
-    : ChunkedNodeGroup{mm, base, selectedColumns},
-      csrHeader{std::make_unique<ColumnChunk>(mm, true /*enableCompression*/,
+    : ChunkedNodeGroup{base, selectedColumns},
+      csrHeader{std::make_unique<ColumnChunk>(true /*enableCompression*/,
                     std::move(base.csrHeader.offset)),
-          std::make_unique<ColumnChunk>(mm, true /*enableCompression*/,
+          std::make_unique<ColumnChunk>(true /*enableCompression*/,
               std::move(base.csrHeader.length))} {}
 
 void InMemChunkedCSRHeader::fillDefaultValues(const offset_t newNumValues) const {

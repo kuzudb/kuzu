@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aggregate_function.h"
+#include "catalog/catalog_entry/catalog_entry_type.h"
 #include "function.h"
 
 namespace kuzu {
@@ -82,7 +83,7 @@ private:
     static Function* getBestMatch(std::vector<Function*>& functions);
 
     static uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes,
-        Function* function);
+        Function* function, catalog::CatalogEntryType type);
     static uint32_t matchParameters(const std::vector<common::LogicalType>& inputTypes,
         const std::vector<common::LogicalTypeID>& targetTypeIDs);
     static uint32_t matchVarLengthParameters(const std::vector<common::LogicalType>& inputTypes,

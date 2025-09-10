@@ -101,7 +101,7 @@ public:
     }
 
     virtual std::unique_ptr<ChunkedNodeGroup> flush(transaction::Transaction* transaction,
-        MemoryManager& mm, PageAllocator& pageAllocator);
+        PageAllocator& pageAllocator);
 
 protected:
     common::row_idx_t startRowIdx;
@@ -122,7 +122,7 @@ public:
     ChunkedNodeGroup(std::vector<std::unique_ptr<ColumnChunk>> chunks,
         common::row_idx_t startRowIdx, NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     // Moves the specified columns out of base
-    ChunkedNodeGroup(MemoryManager& memoryManager, InMemChunkedNodeGroup& base,
+    ChunkedNodeGroup(InMemChunkedNodeGroup& base,
         const std::vector<common::column_id_t>& selectedColumns,
         NodeGroupDataFormat format = NodeGroupDataFormat::REGULAR);
     ChunkedNodeGroup(ChunkedNodeGroup& base,
@@ -191,9 +191,6 @@ public:
     bool hasDeletions(const transaction::Transaction* transaction) const;
     common::row_idx_t getNumUpdatedRows(const transaction::Transaction* transaction,
         common::column_id_t columnID);
-
-    std::pair<std::unique_ptr<ColumnChunkData>, std::unique_ptr<ColumnChunkData>> scanUpdates(
-        const transaction::Transaction* transaction, common::column_id_t columnID);
 
     bool lookup(const transaction::Transaction* transaction, const TableScanState& state,
         const NodeGroupScanState& nodeGroupScanState, common::offset_t rowIdxInChunk,
