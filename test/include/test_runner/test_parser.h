@@ -94,8 +94,7 @@ const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", Token
     {"-CREATE_DATASET_SCHEMA", TokenType::CREATE_DATASET_SCHEMA},
     {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW},
     {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}, {"-LOOP", TokenType::LOOP},
-    {"-ENDLOOP", TokenType::ENDLOOP},
-    {"-SKIP_FSM_LEAK_CHECK", TokenType::SKIP_FSM_LEAK_CHECKER}};
+    {"-ENDLOOP", TokenType::ENDLOOP}, {"-SKIP_FSM_LEAK_CHECK", TokenType::SKIP_FSM_LEAK_CHECKER}};
 
 class LogicToken {
 public:

@@ -3,7 +3,9 @@
 #include <cstdint>
 
 namespace kuzu {
-namespace main { class Connection; }  // forward declare to keep header light
+namespace main {
+class Connection;
+} // namespace main
 
 namespace testing {
 
