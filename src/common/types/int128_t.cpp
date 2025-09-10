@@ -3,7 +3,6 @@
 #include <cmath>
 #include <cstdint>
 
-#include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
 #include "common/numeric_utils.h"
 #include "common/type_utils.h"
@@ -32,7 +31,7 @@ static uint8_t positiveInt128BitsAmount(int128_t input) {
     return result;
 }
 
-static bool PositiveInt128IsBitSet(int128_t input, uint8_t bit) {
+static bool positiveInt128IsBitSet(int128_t input, uint8_t bit) {
     if (bit < 64) {
         return input.low & (1ULL << uint64_t(bit));
     } else {
@@ -40,7 +39,7 @@ static bool PositiveInt128IsBitSet(int128_t input, uint8_t bit) {
     }
 }
 
-int128_t PositiveInt128LeftShift(int128_t lhs, uint32_t amount) {
+int128_t positiveInt128LeftShift(int128_t lhs, uint32_t amount) {
     int128_t result{};
     result.low = lhs.low << amount;
     result.high = (lhs.high << amount) + (lhs.low >> (64 - amount));
@@ -54,9 +53,9 @@ int128_t Int128_t::divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainde
     remainder = 0;
 
     for (uint8_t i = positiveInt128BitsAmount(lhs); i > 0; i--) {
-        result = PositiveInt128LeftShift(result, 1);
+        result = positiveInt128LeftShift(result, 1);
         remainder <<= 1;
-        if (PositiveInt128IsBitSet(lhs, i - 1)) {
+        if (positiveInt128IsBitSet(lhs, i - 1)) {
             remainder++;
         }
         if (remainder >= rhs) {
@@ -288,11 +287,11 @@ int128_t Int128_t::divMod(int128_t lhs, int128_t rhs, int128_t& remainder) {
     // now iterate over the amount of bits that are set in the LHS
     for (uint8_t x = positiveInt128BitsAmount(lhs); x > 0; x--) {
         // left-shift the current result and remainder by 1
-        div_result = PositiveInt128LeftShift(div_result, 1);
-        remainder = PositiveInt128LeftShift(remainder, 1);
+        div_result = positiveInt128LeftShift(div_result, 1);
+        remainder = positiveInt128LeftShift(remainder, 1);
 
         // we get the value of the bit at position X, where position 0 is the least-significant bit
-        if (PositiveInt128IsBitSet(lhs, x - 1)) {
+        if (positiveInt128IsBitSet(lhs, x - 1)) {
             // increment the remainder
             addInPlace(remainder, 1);
         }

@@ -126,7 +126,7 @@ struct Int128CastData {
             if (digits > DECIMAL_PRECISION_LIMIT) {
                 return false;
             }
-            if (!Int128_t::tryMultiply(result, UInt128_t::powerOf10[digits], result)) {
+            if (!Int128_t::tryMultiply(result, (int128_t)UInt128_t::powerOf10[digits], result)) {
                 return false;
             }
         }
