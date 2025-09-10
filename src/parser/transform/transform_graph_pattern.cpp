@@ -195,8 +195,11 @@ std::vector<std::string> Transformer::transformRelTypes(
 
 std::vector<std::string> Transformer::transformNodeLabels(CypherParser::OC_NodeLabelsContext& ctx) {
     std::vector<std::string> nodeLabels;
-    for (auto& nodeLabel : ctx.oC_NodeLabel()) {
+    for (auto& nodeLabel : ctx.oC_NodeLabel()) { // To be deprecated?
         nodeLabels.push_back(transformNodeLabel(*nodeLabel));
+    }
+    for (auto& labelName : ctx.oC_LabelName()) { // NodeLabels XOR LabelNames will be used depending on the format of NodeLabels
+        nodeLabels.push_back(transformLabelName(*labelName));
     }
     return nodeLabels;
 }

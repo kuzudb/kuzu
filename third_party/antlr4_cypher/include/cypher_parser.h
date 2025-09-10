@@ -2048,6 +2048,10 @@ public:
     OC_NodeLabelContext* oC_NodeLabel(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> COLON();
+    antlr4::tree::TerminalNode* COLON(size_t i);
+    std::vector<OC_LabelNameContext *> oC_LabelName();
+    OC_LabelNameContext* oC_LabelName(size_t i);
 
    
   };
