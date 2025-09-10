@@ -10,6 +10,7 @@
 
 namespace kuzu {
 namespace testing {
+
 enum class TokenType {
     // header only
     DATASET,
@@ -48,7 +49,6 @@ enum class TokenType {
     MULTI_COPY_RANDOM,
     LOAD_DYNAMIC_EXTENSION,
     SEED,
-    SKIP_FSM_LEAK_CHECKER,
 
     CHECKPOINT_WAIT_TIMEOUT,
     CREATE_CONNECTION,
@@ -93,7 +93,7 @@ const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", Token
     {"-CREATE_DATASET_SCHEMA", TokenType::CREATE_DATASET_SCHEMA},
     {"-INSERT_DATASET_BY_ROW", TokenType::INSERT_DATASET_BY_ROW},
     {"-MULTI_COPY_RANDOM", TokenType::MULTI_COPY_RANDOM}, {"-LOOP", TokenType::LOOP},
-    {"-ENDLOOP", TokenType::ENDLOOP}, {"-SKIP_FSM_LEAK_CHECK", TokenType::SKIP_FSM_LEAK_CHECKER}};
+    {"-ENDLOOP", TokenType::ENDLOOP}};
 
 class LogicToken {
 public:
