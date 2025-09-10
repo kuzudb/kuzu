@@ -43,7 +43,7 @@ TEST(Uint128Tests, Casting) {
     }
 
     { // conversion from int128_t 2^64 + 1 (no implicit casting between int128_t and uint128_t)
-        int128_t int128_value {(uint64_t)1, (int64_t)1};
+        int128_t int128_value{(uint64_t)1, (int64_t)1};
         uint128_t value = (uint128_t)int128_value;
         EXPECT_EQ(value.low, 1);
         EXPECT_EQ(value.high, 1);
