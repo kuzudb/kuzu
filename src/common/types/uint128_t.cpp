@@ -131,7 +131,7 @@ std::string UInt128_t::toString(uint128_t input) {
 
 bool UInt128_t::addInPlace(uint128_t& lhs, uint128_t rhs) {
     int overflow = lhs.low + rhs.low < lhs.low;
-    if (lhs.high > UINT64_MAX - rhs.high - overflow) {
+    if (lhs.high > UINT64_MAX - rhs.high - overflow || (rhs.high == UINT64_MAX && lhs.high + overflow != 0)) { // need second condition in case the unsigned (UINT64_MAX - rhs.high - overflow) evaluates to -1 
         return false;
     }
     lhs.high = lhs.high + rhs.high + overflow;
