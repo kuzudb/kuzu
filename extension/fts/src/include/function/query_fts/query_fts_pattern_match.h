@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <variant>
 
 #include "graph/graph.h"
