@@ -7,12 +7,12 @@
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
+#include "processor/warning_context.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/node_table.h"
 #include "transaction/transaction.h"
-#include "processor/warning_context.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

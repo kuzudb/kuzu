@@ -313,8 +313,8 @@ static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState* shar
     for (idx_t i = 0; i < state->fileScanInfo.getNumFiles(); ++i) {
         state->errorHandlers[i].throwCachedErrorsIfNeeded();
     }
-    WarningContext::Get(*ctx->clientContext)->populateWarnings(ctx->queryID,
-        state->populateErrorFunc, BaseCSVReader::getFileIdxFunc);
+    WarningContext::Get(*ctx->clientContext)
+        ->populateWarnings(ctx->queryID, state->populateErrorFunc, BaseCSVReader::getFileIdxFunc);
 }
 
 function_set ParallelCSVScan::getFunctionSet() {

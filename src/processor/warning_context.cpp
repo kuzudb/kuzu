@@ -91,6 +91,5 @@ WarningContext* WarningContext::Get(const main::ClientContext& context) {
     return context.warningContext.get();
 }
 
-
 } // namespace processor
 } // namespace kuzu

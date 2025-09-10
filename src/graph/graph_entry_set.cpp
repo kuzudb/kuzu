@@ -25,6 +25,5 @@ GraphEntrySet* GraphEntrySet::Get(const main::ClientContext& context) {
     return context.graphEntrySet.get();
 }
 
-
 } // namespace graph
 } // namespace kuzu

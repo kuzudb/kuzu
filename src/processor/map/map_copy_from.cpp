@@ -10,10 +10,10 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
+#include "processor/warning_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
-#include "processor/warning_context.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -26,8 +26,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator* logicalOperator) {
     const auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
-    WarningContext::Get(*clientContext)->setIgnoreErrorsForCurrentQuery(
-        copyFrom.getInfo()->getIgnoreErrorsOption());
+    WarningContext::Get(*clientContext)
+        ->setIgnoreErrorsForCurrentQuery(copyFrom.getInfo()->getIgnoreErrorsOption());
     switch (copyFrom.getInfo()->tableType) {
     case TableType::NODE: {
         return mapCopyNodeFrom(logicalOperator);

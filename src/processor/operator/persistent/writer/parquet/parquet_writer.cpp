@@ -1,10 +1,10 @@
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 
+#include "common/constants.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"
 #include "common/system_config.h"
-#include "common/constants.h"
 #include "main/client_context.h"
 #include "protocol/TCompactProtocol.h"
 #include "storage/buffer_manager/memory_manager.h"

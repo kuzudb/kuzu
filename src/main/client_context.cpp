@@ -50,8 +50,7 @@ void ActiveQuery::reset() {
     timer = Timer();
 }
 
-ClientContext::ClientContext(Database* database)
-    : localDatabase{database} {
+ClientContext::ClientContext(Database* database) : localDatabase{database} {
     transactionContext = std::make_unique<TransactionContext>(*this);
     randomEngine = std::make_unique<RandomEngine>();
     remoteDatabase = nullptr;
