@@ -1,5 +1,7 @@
 #pragma once
 
+#include <variant>
+
 #include "graph/graph.h"
 #include "processor/execution_context.h"
 #include "re2.h"
