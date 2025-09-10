@@ -6,7 +6,6 @@
 #include "common/assert.h"
 #include "common/cast.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/spill_result.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/update_info.h"
 
