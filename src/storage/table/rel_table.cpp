@@ -3,7 +3,6 @@
 #include <algorithm>
 
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "common/cast.h"
 #include "common/exception/message.h"
 #include "common/exception/runtime.h"
 #include "common/types/types.h"

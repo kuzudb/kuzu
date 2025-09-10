@@ -5,7 +5,6 @@
 #include <memory>
 
 #include "common/assert.h"
-#include "common/data_chunk/data_chunk_state.h"
 #include "common/data_chunk/sel_vector.h"
 #include "common/null_mask.h"
 #include "common/system_config.h"
@@ -13,7 +12,6 @@
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/compression/compression.h"
-#include "storage/enums/residency_state.h"
 #include "storage/file_handle.h"
 #include "storage/page_allocator.h"
 #include "storage/page_manager.h"

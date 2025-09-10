@@ -3,7 +3,6 @@
 #include <exception>
 
 #include "common/assert.h"
-#include "common/exception/buffer_manager.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/memory_manager.h"

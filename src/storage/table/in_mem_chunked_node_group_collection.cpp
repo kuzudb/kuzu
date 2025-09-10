@@ -1,7 +1,6 @@
 #include "storage/table/in_mem_chunked_node_group_collection.h"
 
 #include "storage/buffer_manager/memory_manager.h"
-#include "transaction/transaction.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
