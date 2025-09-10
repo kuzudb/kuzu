@@ -326,7 +326,8 @@ TEST_F(ApiTest, MissingParam) {
     result = conn->execute(prep.get(), std::make_pair(std::string("val2"), 1.1));
     ASSERT_TRUE(result->isSuccess());
     ASSERT_STREQ("4.100000\n", result->getNext()->toString().c_str());
-    result = conn->execute(prep.get(), std::make_pair(std::string("val2"), 1.1), std::make_pair(std::string("val1"), 1.1));
+    result = conn->execute(prep.get(), std::make_pair(std::string("val2"), 1.1),
+        std::make_pair(std::string("val1"), 1.1));
     ASSERT_TRUE(result->isSuccess());
     ASSERT_STREQ("2.200000\n", result->getNext()->toString().c_str());
 }

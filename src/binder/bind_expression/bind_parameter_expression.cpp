@@ -1,7 +1,7 @@
 #include "binder/expression/parameter_expression.h"
 #include "binder/expression_binder.h"
-#include "parser/expression/parsed_parameter_expression.h"
 #include "common/exception/binder.h"
+#include "parser/expression/parsed_parameter_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -17,7 +17,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
         return make_shared<ParameterExpression>(parameterName, *knownParameters.at(parameterName));
     }
     // LCOV_EXCL_START
-    throw BinderException(stringFormat("Cannot find parameter {}. This should not happen.", parameterName));
+    throw BinderException(
+        stringFormat("Cannot find parameter {}. This should not happen.", parameterName));
     // LCOV_EXCL_STOP
 }
 

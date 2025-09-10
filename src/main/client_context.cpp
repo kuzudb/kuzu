@@ -319,7 +319,6 @@ static void bindParametersNoLock(PreparedStatement& preparedStatement,
         }
         preparedStatement.addParameter(key, inputParams.at(key).get());
     }
-
 }
 
 std::unique_ptr<QueryResult> ClientContext::executeWithParams(PreparedStatement* preparedStatement,

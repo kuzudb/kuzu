@@ -205,7 +205,8 @@ TEST_F(ApiTest, ParamNotExist) {
     auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("a"), "A"));
     ASSERT_FALSE(result->isSuccess());
     ASSERT_STREQ("Parameter n not found.", result->getErrorMessage().c_str());
-    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("a"), "A"),  std::make_pair(std::string("n"), "A"));
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("a"), "A"),
+        std::make_pair(std::string("n"), "A"));
     ASSERT_TRUE(result->isSuccess());
     ASSERT_STREQ("1\n", result->getNext()->toString().c_str());
 }

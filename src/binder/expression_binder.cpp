@@ -150,6 +150,5 @@ void ExpressionBinder::addParameter(const std::string& name, std::shared_ptr<Val
     knownParameters[name] = value;
 }
 
-
 } // namespace binder
 } // namespace kuzu

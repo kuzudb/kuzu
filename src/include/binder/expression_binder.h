@@ -134,7 +134,8 @@ public:
     const std::unordered_set<std::string>& getUnknownParameters() const {
         return unknownParameters;
     }
-    const std::unordered_map<std::string, std::shared_ptr<common::Value>>& getKnownParameters() const {
+    const std::unordered_map<std::string, std::shared_ptr<common::Value>>&
+    getKnownParameters() const {
         return knownParameters;
     }
 
