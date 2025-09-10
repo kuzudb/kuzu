@@ -6,13 +6,14 @@
 #include "common/file_system/virtual_file_system.h"
 #include "common/string_format.h"
 #include "function/table/bind_data.h"
+#include "function/table/bind_input.h"
 #include "function/table/table_function.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/parquet/list_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/struct_column_reader.h"
 #include "processor/operator/persistent/reader/parquet/thrift_tools.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
+#include "processor/warning_context.h"
 
 using namespace kuzu_parquet::format;
 
@@ -735,7 +736,7 @@ static double progressFunc(TableFuncSharedState* sharedState) {
 }
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {
-    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+    WarningContext::Get(*ctx->clientContext)->defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set ParquetScanFunction::getFunctionSet() {

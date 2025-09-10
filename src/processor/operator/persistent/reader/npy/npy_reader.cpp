@@ -5,9 +5,9 @@
 
 #include "binder/binder.h"
 #include "common/exception/binder.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
+#include "processor/warning_context.h"
 
 #ifdef _WIN32
 #include "common/exception/buffer_manager.h"
@@ -337,7 +337,7 @@ static std::unique_ptr<TableFuncSharedState> initSharedState(
 }
 
 static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState*) {
-    ctx->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(ctx->queryID);
+    processor::WarningContext::Get(*ctx->clientContext)->defaultPopulateAllWarnings(ctx->queryID);
 }
 
 function_set NpyScanFunction::getFunctionSet() {

@@ -1,5 +1,4 @@
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
-#include "main/client_context.h"
 #include "planner/operator/logical_partitioner.h"
 #include "planner/operator/persistent/logical_copy_from.h"
 #include "processor/expression_mapper.h"
@@ -11,6 +10,7 @@
 #include "processor/operator/table_function_call.h"
 #include "processor/plan_mapper.h"
 #include "processor/result/factorized_table_util.h"
+#include "processor/warning_context.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
@@ -26,8 +26,8 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(const LogicalOperator* logicalOperator) {
     const auto& copyFrom = logicalOperator->constCast<LogicalCopyFrom>();
-    clientContext->getWarningContextUnsafe().setIgnoreErrorsForCurrentQuery(
-        copyFrom.getInfo()->getIgnoreErrorsOption());
+    WarningContext::Get(*clientContext)
+        ->setIgnoreErrorsForCurrentQuery(copyFrom.getInfo()->getIgnoreErrorsOption());
     switch (copyFrom.getInfo()->tableType) {
     case TableType::NODE: {
         return mapCopyNodeFrom(logicalOperator);

@@ -952,8 +952,8 @@ static void finalizeFunc(const processor::ExecutionContext* ctx,
     auto* jsonSharedState = sharedState->ptrCast<JSONScanSharedState>();
 
     jsonSharedState->sharedErrorHandler.throwCachedErrorsIfNeeded();
-    ctx->clientContext->getWarningContextUnsafe().populateWarnings(ctx->queryID,
-        jsonSharedState->populateErrorFunc);
+    processor::WarningContext::Get(*ctx->clientContext)
+        ->populateWarnings(ctx->queryID, jsonSharedState->populateErrorFunc);
 }
 
 function_set JsonScan::getFunctionSet() {

@@ -1,5 +1,6 @@
 #include "processor/operator/persistent/writer/parquet/parquet_writer.h"
 
+#include "common/constants.h"
 #include "common/data_chunk/data_chunk.h"
 #include "common/exception/runtime.h"
 #include "common/file_system/virtual_file_system.h"

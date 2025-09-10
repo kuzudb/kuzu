@@ -4,7 +4,6 @@
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "graph/graph_entry_set.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -103,11 +102,11 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
     std::vector<std::string> returnColumnNames;
     std::vector<LogicalType> returnTypes;
     auto graphName = input->getValue(0).toString();
-    auto& graphEntrySet = context->getGraphEntrySet();
-    if (!graphEntrySet.hasGraph(graphName)) {
+    auto graphEntrySet = graph::GraphEntrySet::Get(*context);
+    if (!graphEntrySet->hasGraph(graphName)) {
         throw BinderException(stringFormat("Graph {} does not exist.", graphName));
     }
-    auto graphEntry = graphEntrySet.getEntry(graphName);
+    auto graphEntry = graphEntrySet->getEntry(graphName);
     switch (graphEntry->type) {
     case graph::GraphEntryType::CYPHER: {
         returnColumnNames.emplace_back("cypher statement");
