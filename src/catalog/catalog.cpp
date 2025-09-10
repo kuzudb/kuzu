@@ -175,7 +175,7 @@ void Catalog::dropMacroEntry(Transaction* transaction, const kuzu::common::oid_t
 }
 
 void Catalog::dropMacroEntry(Transaction* transaction, const ScalarMacroCatalogEntry* entry) {
-    functions->dropEntry(transaction, entry->getName(), entry->getOID());
+    macros->dropEntry(transaction, entry->getName(), entry->getOID());
 }
 
 void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
