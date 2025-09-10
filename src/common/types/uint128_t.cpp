@@ -2,7 +2,6 @@
 
 #include <cmath>
 
-#include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/int128_t.h"
@@ -75,7 +74,7 @@ static uint8_t uint128BitsAmount(uint128_t input) {
     return result;
 }
 
-static bool Uint128IsBitSet(uint128_t input, uint8_t bit) {
+static bool uint128IsBitSet(uint128_t input, uint8_t bit) {
     if (bit < 64) {
         return input.low & (1ULL << uint64_t(bit));
     } else {
@@ -83,7 +82,7 @@ static bool Uint128IsBitSet(uint128_t input, uint8_t bit) {
     }
 }
 
-uint128_t Uint128LeftShift(uint128_t lhs, uint32_t amount) {
+uint128_t uint128LeftShift(uint128_t lhs, uint32_t amount) {
     uint128_t result{};
     result.low = lhs.low << amount;
     result.high = (lhs.high << amount) + (lhs.low >> (64 - amount));
@@ -97,9 +96,9 @@ uint128_t UInt128_t::divModPositive(uint128_t lhs, uint64_t rhs, uint64_t& remai
     remainder = 0;
 
     for (uint8_t i = uint128BitsAmount(lhs); i > 0; i--) {
-        result = Uint128LeftShift(result, 1);
+        result = uint128LeftShift(result, 1);
         remainder <<= 1;
-        if (Uint128IsBitSet(lhs, i - 1)) {
+        if (uint128IsBitSet(lhs, i - 1)) {
             remainder++;
         }
         if (remainder >= rhs) {
@@ -131,7 +130,7 @@ std::string UInt128_t::toString(uint128_t input) {
 
 bool UInt128_t::addInPlace(uint128_t& lhs, uint128_t rhs) {
     int overflow = lhs.low + rhs.low < lhs.low;
-    if (lhs.high > UINT64_MAX - rhs.high - overflow || (rhs.high == UINT64_MAX && lhs.high + overflow != 0)) { // need second condition in case the unsigned (UINT64_MAX - rhs.high - overflow) evaluates to -1 
+    if (lhs.high > UINT64_MAX - rhs.high - overflow || (rhs.high == UINT64_MAX && lhs.high + overflow != 0)) { // need second condition in case the unsigned (UINT64_MAX - rhs.high - overflow) evaluates to -1
         return false;
     }
     lhs.high = lhs.high + rhs.high + overflow;
@@ -267,11 +266,11 @@ uint128_t UInt128_t::divMod(uint128_t lhs, uint128_t rhs, uint128_t& remainder) 
     // now iterate over the amount of bits that are set in the LHS
     for (uint8_t x = uint128BitsAmount(lhs); x > 0; x--) {
         // left-shift the current result and remainder by 1
-        div_result = Uint128LeftShift(div_result, 1);
-        remainder = Uint128LeftShift(remainder, 1);
+        div_result = uint128LeftShift(div_result, 1);
+        remainder = uint128LeftShift(remainder, 1);
 
         // we get the value of the bit at position X, where position 0 is the least-significant bit
-        if (Uint128IsBitSet(lhs, x - 1)) {
+        if (uint128IsBitSet(lhs, x - 1)) {
             // increment the remainder
             addInPlace(remainder, 1);
         }

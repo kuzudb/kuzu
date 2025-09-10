@@ -2,10 +2,11 @@
 
 #include <cstdint>
 #include <functional>
-#include <stdexcept>
 #include <string>
 
 #include "common/api.h"
+#include "common/exception/overflow.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace common {
@@ -16,7 +17,7 @@ struct KUZU_API uint128_t {
     uint64_t low;
     uint64_t high;
 
-    uint128_t() = default;
+    uint128_t() noexcept = default;
     uint128_t(int64_t value);  // NOLINT: Allow implicit conversion from numeric values
     uint128_t(int32_t value);  // NOLINT: Allow implicit conversion from numeric values
     uint128_t(int16_t value);  // NOLINT: Allow implicit conversion from numeric values
@@ -28,14 +29,12 @@ struct KUZU_API uint128_t {
     uint128_t(double value);   // NOLINT: Allow implicit conversion from numeric values
     uint128_t(float value);    // NOLINT: Allow implicit conversion from numeric values
 
-    constexpr uint128_t(uint64_t low, uint64_t high) : low(low), high(high) {}
+    constexpr uint128_t(uint64_t low, uint64_t high) noexcept : low(low), high(high) {}
 
-    constexpr uint128_t(const uint128_t&) = default;
-    constexpr uint128_t(uint128_t&&) = default;
-    uint128_t& operator=(const uint128_t&) = default;
-    uint128_t& operator=(uint128_t&&) = default;
-
-    uint128_t operator-() const;
+    constexpr uint128_t(const uint128_t&) noexcept = default;
+    constexpr uint128_t(uint128_t&&) noexcept = default;
+    uint128_t& operator=(const uint128_t&) noexcept = default;
+    uint128_t& operator=(uint128_t&&) noexcept = default;
 
     // inplace arithmetic operators
     uint128_t& operator+=(const uint128_t& rhs);
@@ -55,8 +54,7 @@ struct KUZU_API uint128_t {
     explicit operator double() const;
     explicit operator float() const;
 
-    // implicit casting from uint128 to int128
-    operator int128_t() const; // NOLINT: Allow implicit conversion from numeric values
+    explicit operator int128_t() const;
 };
 
 // arithmetic operators
@@ -101,7 +99,7 @@ public:
     static uint128_t castTo(T value) {
         uint128_t result{};
         if (!tryCastTo(value, result)) {
-            throw std::overflow_error("UINT128 is out of range");
+            throw common::OverflowException("UINT128 is out of range");
         }
         return result;
     }
