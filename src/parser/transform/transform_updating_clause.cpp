@@ -45,8 +45,6 @@ std::unique_ptr<UpdatingClause> Transformer::transformMerge(CypherParser::OC_Mer
 std::unique_ptr<UpdatingClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
     auto setClause = std::make_unique<SetClause>();
     if (ctx.kU_Properties()) {
-        KU_ASSERT(ctx.kU_Properties()->oC_PropertyKeyName().size() ==
-                  ctx.kU_Properties()->oC_Expression().size());
         auto child = transformAtom(*ctx.oC_Atom());
         for (auto i = 0u; i < ctx.kU_Properties()->oC_PropertyKeyName().size(); ++i) {
             auto propertyKeyName = createPropertyExpression(
