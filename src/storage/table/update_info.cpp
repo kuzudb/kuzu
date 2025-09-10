@@ -116,10 +116,10 @@ void UpdateInfo::iterateVectorInfo(const Transaction* transaction, idx_t idx,
     const UpdateNode* head = nullptr;
     {
         std::shared_lock lock{mtx};
-        if (idx >= updates.size() || !updates[idx].isEmpty()) {
+        if (idx >= updates.size() || !updates[idx]->isEmpty()) {
             return;
         }
-        head = &updates[idx];
+        head = updates[idx].get();
     }
     // We lock the head of the chain to ensure that we can safely read from any part of the
     // chain.
@@ -168,7 +168,7 @@ void UpdateInfo::rollback(idx_t vectorIdx, transaction_t version) {
     {
         std::unique_lock lock{mtx};
         KU_ASSERT(updates.size() > vectorIdx);
-        header = &updates[vectorIdx];
+        header = updates[vectorIdx].get();
     }
     KU_ASSERT(header);
     std::unique_lock chainLock{header->mtx};
@@ -226,15 +226,20 @@ UpdateNode& UpdateInfo::getUpdateNode(idx_t vectorIdx) {
         throw InternalException(
             "UpdateInfo does not have update node for vector index: " + std::to_string(vectorIdx));
     }
-    return updates[vectorIdx];
+    return *updates[vectorIdx];
 }
 
 UpdateNode& UpdateInfo::getOrCreateUpdateNode(idx_t vectorIdx) {
     std::unique_lock lock{mtx};
     if (vectorIdx >= updates.size()) {
         updates.resize(vectorIdx + 1);
+        for (auto i = 0u; i < updates.size(); i++) {
+            if (!updates[i]) {
+                updates[i] = std::make_unique<UpdateNode>();
+            }
+        }
     }
-    return updates[vectorIdx];
+    return *updates[vectorIdx];
 }
 
 void UpdateInfo::iterateScan(const Transaction* transaction, uint64_t startOffsetToScan,

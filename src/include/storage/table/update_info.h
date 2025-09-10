@@ -53,6 +53,7 @@ struct UpdateNode {
 
     UpdateNode() : info{nullptr} {}
     UpdateNode(UpdateNode&& other) noexcept : info{std::move(other.info)} {}
+    UpdateNode(const UpdateNode& other) = delete;
 
     bool isEmpty() const {
         std::shared_lock lock{mtx};
@@ -74,7 +75,7 @@ public:
 
     void clearVectorInfo(common::idx_t vectorIdx) {
         std::unique_lock lock{mtx};
-        updates[vectorIdx].clear();
+        updates[vectorIdx]->clear();
     }
 
     common::idx_t getNumVectors() const {
@@ -124,7 +125,7 @@ private:
 
 private:
     mutable std::shared_mutex mtx;
-    std::vector<UpdateNode> updates;
+    std::vector<std::unique_ptr<UpdateNode>> updates;
 };
 
 } // namespace storage
