@@ -326,7 +326,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
             left = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
             right = std::make_unique<ParsedLiteralExpression>(Value(-1), "-1");
         } else {
-            if (ctx.children[1]->getText() == ":" || ctx.children[1]->getText() == "..") { // [:right]/[..right]
+            if (ctx.children[1]->getText() == ":" ||
+                ctx.children[1]->getText() == "..") { // [:right]/[..right]
                 left = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
                 right = transformExpression(*ctx.oC_Expression(0));
             } else { // [left:]/[left..]
