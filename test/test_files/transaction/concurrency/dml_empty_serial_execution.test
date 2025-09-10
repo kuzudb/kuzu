@@ -67,6 +67,8 @@ Runtime exception: Write-write conflict of updating the same row.
 -CASE NodeUpdatesRollback
 -STATEMENT CALL debug_enable_multi_writes=true;
 ---- ok
+-STATEMENT CALL auto_checkpoint=false;
+---- ok
 -CREATE_CONNECTION conn2
 -STATEMENT CREATE NODE TABLE test(id INT64, val INT64, PRIMARY KEY(id));
 ---- ok
@@ -94,6 +96,8 @@ Runtime exception: Write-write conflict of updating the same row.
 
 -CASE NodeUpdatesMixedCommitAndRollback
 -STATEMENT CALL debug_enable_multi_writes=true;
+---- ok
+-STATEMENT CALL auto_checkpoint=false;
 ---- ok
 -CREATE_CONNECTION conn2
 -CREATE_CONNECTION conn3
