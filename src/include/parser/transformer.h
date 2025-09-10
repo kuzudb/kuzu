@@ -186,6 +186,8 @@ public:
     std::unique_ptr<ParsedExpression> transformOcQuantifier(
         CypherParser::OC_QuantifierContext& ctx);
     std::unique_ptr<ParsedExpression> createPropertyExpression(
+        CypherParser::OC_PropertyKeyNameContext& ctx, std::unique_ptr<ParsedExpression> child);
+    std::unique_ptr<ParsedExpression> createPropertyExpression(
         CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child);
     std::unique_ptr<ParsedExpression> transformCaseExpression(
         CypherParser::OC_CaseExpressionContext& ctx);
