@@ -187,8 +187,7 @@ void StringColumn::scanSegment(const SegmentState& state, ColumnChunkData* resul
             return;
         }
         dictionary.scan(getChildState(state, ChildStateIndex::OFFSET),
-            getChildState(state, ChildStateIndex::DATA), offsetsToScan,
-            &stringResultChunk->getDictionaryChunk(),
+            getChildState(state, ChildStateIndex::DATA), offsetsToScan, stringResultChunk,
             getChildState(state, ChildStateIndex::INDEX).metadata);
     }
     KU_ASSERT(resultChunk->getNumValues() == startOffsetInResult + numValuesToScan &&

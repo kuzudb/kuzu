@@ -10,6 +10,7 @@
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/dictionary_chunk.h"
+#include "storage/table/string_chunk_data.h"
 #include "storage/table/string_column.h"
 #include <bit>
 #include <concepts>
@@ -100,7 +101,7 @@ void DictionaryColumn::scan(const SegmentState& offsetState, const SegmentState&
         dataState.metadata.numValues);
 
     if constexpr (std::same_as<Result, ColumnChunkData>) {
-        auto& offsetChunk = *result->getOffsetChunk();
+        auto& offsetChunk = *result->getDictionaryChunk()->getOffsetChunk();
         if (offsetChunk.getNumValues() + offsetsToScan.size() > offsetChunk.getCapacity()) {
             offsetChunk.resize(std::bit_ceil(offsetChunk.getNumValues() + offsetsToScan.size()));
         }
@@ -139,10 +140,10 @@ template void DictionaryColumn::scan<common::ValueVector>(const SegmentState& of
     std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
     common::ValueVector* result, const ColumnChunkMetadata& indexMeta) const;
 
-template void DictionaryColumn::scan<DictionaryChunk>(const SegmentState& offsetState,
+template void DictionaryColumn::scan<StringChunkData>(const SegmentState& offsetState,
     const SegmentState& dataState,
     std::vector<std::pair<DictionaryChunk::string_index_t, uint64_t>>& offsetsToScan,
-    DictionaryChunk* result, const ColumnChunkMetadata& indexMeta) const;
+    StringChunkData* result, const ColumnChunkMetadata& indexMeta) const;
 
 string_index_t DictionaryColumn::append(const DictionaryChunk& dictChunk, SegmentState& state,
     std::string_view val) const {
@@ -179,19 +180,24 @@ void DictionaryColumn::scanValue(const SegmentState& dataState, uint64_t startOf
 }
 
 void DictionaryColumn::scanValue(const SegmentState& dataState, uint64_t startOffset,
-    uint64_t length, DictionaryChunk* result, uint64_t offsetInResult) const {
-    auto& stringDataChunk = *result->getStringDataChunk();
-    auto& offsetChunk = *result->getOffsetChunk();
+    uint64_t length, StringChunkData* result, uint64_t offsetInResult) const {
+    auto& stringDataChunk = *result->getDictionaryChunk().getStringDataChunk();
+    auto& offsetChunk = *result->getDictionaryChunk().getOffsetChunk();
+    auto& indexChunk = *result->getIndexColumnChunk();
     if (stringDataChunk.getCapacity() < stringDataChunk.getNumValues() + length) {
         stringDataChunk.resize(std::bit_ceil(stringDataChunk.getNumValues() + length));
     }
-    if (offsetChunk.getCapacity() == offsetChunk.getNumValues()) {
+    if (offsetChunk.getNumValues() == offsetChunk.getCapacity()) {
         offsetChunk.resize(std::bit_ceil(offsetChunk.getNumValues() + 1));
+    }
+    if (offsetInResult >= indexChunk.getCapacity()) {
+        indexChunk.resize(std::bit_ceil(offsetInResult + 1));
     }
     dataColumn->scanSegment(dataState, startOffset, length,
         stringDataChunk.getData<uint8_t>() + stringDataChunk.getNumValues());
-    result->getOffsetChunk()->setValue<string_offset_t>(stringDataChunk.getNumValues(),
-        offsetInResult);
+    indexChunk.setValue<string_index_t>(offsetChunk.getNumValues(), offsetInResult);
+    offsetChunk.setValue<string_offset_t>(stringDataChunk.getNumValues(),
+        offsetChunk.getNumValues());
     stringDataChunk.setNumValues(stringDataChunk.getNumValues() + length);
 }
 

@@ -35,7 +35,7 @@ private:
     void scanOffsets(const SegmentState& state, DictionaryChunk::string_offset_t* offsets,
         uint64_t index, uint64_t numValues, uint64_t dataSize) const;
     void scanValue(const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
-        DictionaryChunk* result, uint64_t offsetInVector) const;
+        StringChunkData* result, uint64_t offsetInVector) const;
     void scanValue(const SegmentState& dataState, uint64_t startOffset, uint64_t endOffset,
         common::ValueVector* resultVector, uint64_t offsetInVector) const;
 
