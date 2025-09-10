@@ -42,27 +42,30 @@ TEST(Uint128Tests, Casting) {
         EXPECT_THROW({ [[maybe_unused]] uint128_t value = int8_value; }, OverflowException);
     }
 
-    { // conversion from int128_t 2^64 + 1
-        uint128_t value = int128_t((uint64_t)1, (int64_t)1);
+    { // conversion from int128_t 2^64 + 1 (no implicit casting between int128_t and uint128_t)
+        int128_t int128_value {(uint64_t)1, (int64_t)1};
+        uint128_t value = (uint128_t)int128_value;
         EXPECT_EQ(value.low, 1);
         EXPECT_EQ(value.high, 1);
     }
 
     { // conversion to int128_t
         uint128_t value = {35, 165};
-        int128_t int128_value = value;
+        int128_t int128_value = (int128_t)value;
         EXPECT_EQ(int128_value.low, 35);
         EXPECT_EQ(int128_value.high, 165);
     }
 
     { // conversion from int128_t (error: negative value)
         int128_t negative_two = -2;
-        EXPECT_THROW({ [[maybe_unused]] uint128_t value = negative_two; }, OverflowException);
+        EXPECT_THROW((uint128_t)negative_two, OverflowException);
     }
 
     { // conversion to int128_t (error: overflow)
+        uint128_t large_uint128 = {335882, (1ULL << 63) + 9101028};
+        EXPECT_THROW((int128_t)large_uint128, OverflowException);
         uint128_t max_uint128 = {UINT64_MAX, UINT64_MAX};
-        EXPECT_THROW({ [[maybe_unused]] int128_t value = max_uint128; }, OverflowException);
+        EXPECT_THROW((int128_t)max_uint128, OverflowException);
     }
 
     { // conversion to float and double
@@ -88,22 +91,32 @@ TEST(Uint128Tests, Casting) {
         EXPECT_EQ(value2, uint128_t(3, 0));
         uint128_t value3 = 2.71828182845904523536;
         EXPECT_EQ(value3, uint128_t(3, 0));
-        uint128_t value4 = 20000000000000000000.142857f;
-        uint128_t expected4{1553255926290448384, 1};
-        int error4 = (int)(value4 > expected4 ? value4 - expected4 : expected4 - value4);
-        EXPECT_TRUE(error4 < 500000000);
+        uint128_t value4 = 176.5194f;
+        EXPECT_EQ(value4, uint128_t(177, 0));
+        uint128_t value5 = 20000000000000000000.142857f;
+        uint128_t expected5{1553255926290448384, 1};
+        int error5 = (int)(value5 > expected5 ? value5 - expected5 : expected5 - value5);
+        EXPECT_TRUE(error5 < 500000000);
         EXPECT_THROW(
             {
                 float negative_value = -17939777519457.96f;
                 [[maybe_unused]] uint128_t value = negative_value;
             },
-            std::overflow_error);
+            OverflowException);
         EXPECT_THROW(
             {
                 double overly_large_value = 1e39;
                 [[maybe_unused]] uint128_t value = overly_large_value;
             },
-            std::overflow_error);
+            OverflowException);
+    }
+
+    { // tests for operator==
+        EXPECT_EQ(350, uint128_t(350, 0));
+        EXPECT_EQ((uint64_t)154250, uint128_t(154250, 0));
+        EXPECT_EQ(uint128_t(12, 87), (uint128_t)(int128_t(12, 87)));
+        EXPECT_NE(15, uint128_t(15, 1));
+        EXPECT_NE(uint128_t(180, 179), uint128_t(181, 179));
     }
 }
 
@@ -135,6 +148,21 @@ TEST(Uint128Tests, AdditionTest) {
     {                                             // overflow
         uint128_t value1{UINT64_MAX, UINT64_MAX}; // 11111111...111
         uint128_t value2{1, 0};
+        EXPECT_THROW(value1 + value2, OverflowException);
+    }
+
+    { // overflow 2
+        uint128_t value1{100, 0xF000183A60873890};
+        uint128_t value2{100, 0x0FFFE7C59F78CFFF};
+        EXPECT_THROW(value1 + value2, OverflowException);
+    }
+
+    { // overflow 3 (edge case for UInt128_t::addInPlace)
+        uint128_t value1{UINT64_MAX, 0};
+        uint128_t value2{1, UINT64_MAX};
+        EXPECT_THROW(value1 + value2, OverflowException);
+        uint128_t value3{UINT64_MAX, 1};
+        uint128_t value4{0, UINT64_MAX};
         EXPECT_THROW(value1 + value2, OverflowException);
     }
 }
@@ -267,9 +295,12 @@ TEST(Uint128Tests, DivisionTest) {
     {
         uint128_t value1{UINT64_MAX, INT64_MAX}; // 011...111
         uint128_t value2{0, (1ULL << 63)};       // 100...000
-        uint128_t expected_value{0, 0};
-        EXPECT_EQ(expected_value, value1 / value2);
-        EXPECT_EQ(expected_value, UInt128_t::Div(value1, value2));
+        uint128_t expected_value1{0, 0};
+        EXPECT_EQ(expected_value1, value1 / value2);
+        EXPECT_EQ(expected_value1, UInt128_t::Div(value1, value2));
+        uint128_t expected_value2{1, 0};
+        EXPECT_EQ(expected_value2, value2 / value1);
+        EXPECT_EQ(expected_value2, UInt128_t::Div(value2, value1));
     }
 
     { // division by 0
@@ -299,9 +330,11 @@ TEST(Uint128Tests, ModuloTest) {
     {
         uint128_t value1{UINT64_MAX, INT64_MAX}; // 011...111
         uint128_t value2{0, (1ULL << 63)};       // 100...000
-        uint128_t expected_value{UINT64_MAX, INT64_MAX};
-        EXPECT_EQ(expected_value, value1 % value2);
-        EXPECT_EQ(expected_value, UInt128_t::Mod(value1, value2));
+        EXPECT_EQ(value1, value1 % value2);
+        EXPECT_EQ(value1, UInt128_t::Mod(value1, value2));
+        uint128_t expected_value{1, 0};
+        EXPECT_EQ(expected_value, value2 % value1);
+        EXPECT_EQ(expected_value, UInt128_t::Mod(value2, value1));
     }
 
     { // modulo by 0
@@ -413,8 +446,7 @@ TEST(Uint128Tests, InPlaceOperatorsTest) {
         EXPECT_EQ(value1, uint128_t(107, 34));
         value1 += value2;
         EXPECT_EQ(value1, uint128_t(107, 64));
-        value1 += uint128_t(UINT64_MAX, UINT64_MAX);
-        // EXPECT_THROW({ value1 += uint128_t(UINT64_MAX, UINT64_MAX); }, OverflowException);
+        EXPECT_THROW({ value1 += uint128_t(UINT64_MAX, UINT64_MAX); }, OverflowException);
     }
 
     {
@@ -424,6 +456,7 @@ TEST(Uint128Tests, InPlaceOperatorsTest) {
         EXPECT_EQ(value1, uint128_t(0, 30));
         value1 *= 12;
         EXPECT_EQ(value1, uint128_t(0, 360));
+        EXPECT_THROW({ value1 *= uint128_t((1ULL << 61), 0); }, OverflowException);
     }
 }
 
