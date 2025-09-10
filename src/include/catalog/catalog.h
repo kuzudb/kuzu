@@ -194,7 +194,7 @@ public:
     function::ScalarMacroFunction* getScalarMacroFunction(
         const transaction::Transaction* transaction, const std::string& name) const;
     std::vector<std::string> getMacroNames(const transaction::Transaction* transaction) const;
-    void handleMacroExistence(const main::ClientContext* context);
+    void dropMacro(transaction::Transaction* transaction, std::string& name);
     
     void incrementVersion() { version++; }
     uint64_t getVersion() const { return version; }

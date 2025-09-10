@@ -505,6 +505,14 @@ std::vector<std::string> Catalog::getMacroNames(const Transaction* transaction) 
     return macroNames;
 }
 
+void Catalog::dropMacro(Transaction* transaction, std::string& name) {
+    if (!containsMacro(transaction, name)) {
+        throw CatalogException{stringFormat("Marco {} doesn't exist.", name)};
+    }
+    auto entry = getFunctionEntry(transaction, name);
+    macros->dropEntry(transaction, name, entry->getOID());
+}
+
 void Catalog::registerBuiltInFunctions() {
     auto functionCollection = function::FunctionCollection::getFunctions();
     for (auto i = 0u; functionCollection[i].name != nullptr; ++i) {

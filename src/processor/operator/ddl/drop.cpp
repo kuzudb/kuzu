@@ -105,7 +105,7 @@ void Drop::dropMacro(const main::ClientContext* context) {
     auto transaction = transaction::Transaction::Get(*context);
     auto memoryManager = storage::MemoryManager::Get(*context);
     handleMacroExistence(context);
-    catalog->dropFunction(transaction, dropInfo.name);
+    catalog->dropMacro(transaction, dropInfo.name);
     appendMessage(stringFormat("Macro {} has been dropped.", dropInfo.name), memoryManager);
 }
 
