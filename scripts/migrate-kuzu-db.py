@@ -26,6 +26,7 @@ import argparse
 import os
 
 
+# FIXME: Replace this with a Kuzu query to get the mapping when available.
 kuzu_version_mapping = {
     34: "0.7.0",
     35: "0.7.1",
@@ -37,14 +38,16 @@ kuzu_version_mapping = {
 
 minimum_kuzu_migration_version = "0.11.0"
 
+
 def kuzu_version_comparison(version: str, target: str) -> bool:
     """Return True if Kuzu *v* is greater or equal to target version"""
     # Transform version string to version tuple to use in version tuple comparison
     # NOTE: If version info contains non digit info (like dev release info 0.11.0.dev1) set the value of the non digit
     # tuple part to be 0 (transform it to 0.11.0.0)
-    target = tuple(int(part) if part.isdigit() else 0 for part in target.split('.'))
-    current = tuple(int(part) if part.isdigit() else 0 for part in version.split('.'))
+    target = tuple(int(part) if part.isdigit() else 0 for part in target.split("."))
+    current = tuple(int(part) if part.isdigit() else 0 for part in version.split("."))
     return current >= target
+
 
 def read_kuzu_storage_version(kuzu_db_path: str) -> int:
     """
@@ -117,7 +120,9 @@ conn.execute(r\"\"\"{cypher}\"\"\")
         sys.exit(proc.returncode)
 
 
-def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None, delete_old=None):
+def kuzu_migration(
+    new_db, old_db, new_version, old_version=None, overwrite=None, delete_old=None
+):
     """
     Main migration function that handles the complete migration process.
     """
@@ -126,10 +131,16 @@ def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None
             "The new database path cannot be the same as the old database path. Please provide a different path for the new database."
         )
 
-    if not kuzu_version_comparison(version=new_version, target=minimum_kuzu_migration_version):
-        raise ValueError(f"New version for kuzu is not supported, has to be equal or higher than version: {minimum_kuzu_migration_version}")
+    if not kuzu_version_comparison(
+        version=new_version, target=minimum_kuzu_migration_version
+    ):
+        raise ValueError(
+            f"New version for kuzu is not supported, has to be equal or higher than version: {minimum_kuzu_migration_version}"
+        )
 
-    print(f"Migrating Kuzu database from {old_version} to {new_version}", file=sys.stderr)
+    print(
+        f"Migrating Kuzu database from {old_version} to {new_version}", file=sys.stderr
+    )
     print(f"Source: {old_db}", file=sys.stderr)
     print("", file=sys.stderr)
 
@@ -149,7 +160,7 @@ def kuzu_migration(new_db, old_db, new_version, old_version=None, overwrite=None
 
     if os.path.exists(new_db):
         raise FileExistsError(
-            "File already exists at new database location, remove file or change new database file path to continue"
+            f"File already exists at {new_db}, remove file or change new database file path to continue"
         )
 
     # Use temp directory for all processing, it will be cleaned up after with statement
@@ -218,7 +229,10 @@ def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: boo
             os.rename(old_db, backup_dir)
             print(f"Renamed directory '{old_db}' to '{backup_dir}'", file=sys.stderr)
     else:
-        print(f"Original database path '{old_db}' not found for renaming.", file=sys.stderr)
+        print(
+            f"Original database path '{old_db}' not found for renaming.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Now move new files into place
@@ -249,7 +263,9 @@ to isolate different Kuzu versions.
         default=None,
         help="Source Kuzu version (e.g., 0.9.0). If not provided automatic kuzu version detection will be attempted.",
     )
-    p.add_argument("--new-version", required=True, help="Target Kuzu version (e.g., 0.11.0)")
+    p.add_argument(
+        "--new-version", required=True, help="Target Kuzu version (e.g., 0.11.0)"
+    )
     p.add_argument("--old-db", required=True, help="Path to source database directory")
     p.add_argument(
         "--new-db",
