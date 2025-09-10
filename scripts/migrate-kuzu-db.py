@@ -2,7 +2,7 @@
 """
 Kuzu Database Migration Script
 
-This script help migrate Kuzu databases between versions.
+This script helps migrate Kuzu databases between versions.
 - Sets up isolated Python environments for each Kuzu version
 - Exports data from the source database using the old version
 - Imports data into the target database using the new version
@@ -24,6 +24,9 @@ import shutil
 import subprocess
 import argparse
 import os
+
+# Database file extensions
+KUZU_FILE_EXTENSIONS = ["", ".wal", ".shadow"]
 
 
 # FIXME: Replace this with a Kuzu query to get the mapping when available.
@@ -51,7 +54,7 @@ def kuzu_version_comparison(version: str, target: str) -> bool:
 
 def read_kuzu_storage_version(kuzu_db_path: str) -> int:
     """
-    Reads the Kùzu storage version code from the first catalog.bin file bytes.
+    Reads the Kuzu storage version.
 
     :param kuzu_db_path: Path to the Kuzu database file/directory.
     :return: Storage version code as an integer.
@@ -73,15 +76,15 @@ def read_kuzu_storage_version(kuzu_db_path: str) -> int:
             )
         version_code = struct.unpack("<Q", data)[0]
 
-    if kuzu_version_mapping.get(version_code):
+    if version_code in kuzu_version_mapping:
         return kuzu_version_mapping[version_code]
     else:
-        raise ValueError("Could not map version_code to proper Kuzu version.")
+        raise ValueError(f"Could not map version_code {version_code} to proper Kuzu version.")
 
 
 def ensure_env(version: str, export_dir) -> str:
     """
-    Creates a venv at `{export_dir}/.kuzu_envs/{version}` and installs` kuzu=={version}`
+    Creates a venv at `{export_dir}/.kuzu_envs/{version}` and installs `kuzu=={version}`
     Returns the venv's python executable path.
     """
     # Use temp directory to create venv
@@ -150,8 +153,7 @@ def kuzu_migration(
 
     # Check if old database exists
     if not os.path.exists(old_db):
-        print(f"Source database '{old_db}' does not exist.", file=sys.stderr)
-        sys.exit(1)
+        raise FileNotFoundError(f"Source database '{old_db}' does not exist.")
 
     # Prepare target - ensure parent directory exists but remove target if it exists
     parent_dir = os.path.dirname(new_db)
@@ -201,7 +203,10 @@ def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: boo
     When overwrite is enabled, back up the original old_db (file with .shadow and .wal or directory)
     by renaming it to *_old, and replace it with the newly imported new_db files.
 
-    When delete_old is enabled replace the old database with the new one and delete old database
+    When delete_old is enabled, replace the old database with the new one and delete old database.
+
+    :raises FileNotFoundError: If the original database path is not found
+    :raises OSError: If file operations fail
     """
     base_dir = os.path.dirname(old_db)
     name = os.path.basename(old_db.rstrip(os.sep))
@@ -211,7 +216,7 @@ def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: boo
 
     if os.path.isfile(old_db):
         # File-based database: handle main file and accompanying lock/WAL
-        for ext in ["", ".wal", ".shadow"]:
+        for ext in KUZU_FILE_EXTENSIONS:
             src = old_db + ext
             dst = backup_base + ext
             if os.path.exists(src):
@@ -246,7 +251,7 @@ def rename_databases(old_db: str, old_version: str, new_db: str, delete_old: boo
 
 def main():
     p = argparse.ArgumentParser(
-        description="Migrate Kùzu DB via PyPI versions",
+        description="Migrate Kuzu DB via PyPI versions",
         epilog="""
 Examples:
   %(prog)s --old-version 0.9.0 --new-version 0.11.0 \\
@@ -261,7 +266,7 @@ to isolate different Kuzu versions.
         "--old-version",
         required=False,
         default=None,
-        help="Source Kuzu version (e.g., 0.9.0). If not provided automatic kuzu version detection will be attempted.",
+        help="Source Kuzu version (e.g., 0.9.0). If not provided, automatic kuzu version detection will be attempted.",
     )
     p.add_argument(
         "--new-version", required=True, help="Target Kuzu version (e.g., 0.11.0)"
@@ -277,14 +282,14 @@ to isolate different Kuzu versions.
         required=False,
         action="store_true",
         default=False,
-        help="Rename new-db to the old-db name and location, keeps old-db as backup if delete-old is not True",
+        help="Rename new-db to the old-db name and location, and keeps old-db as backup if delete-old is not True",
     )
     p.add_argument(
         "--delete-old",
         required=False,
         action="store_true",
         default=False,
-        help="When overwrite and delete-old is True old-db will not be stored as backup",
+        help="When overwrite and delete-old are True, old-db will not be stored as backup",
     )
 
     args = p.parse_args()
