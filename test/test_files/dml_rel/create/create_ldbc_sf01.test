@@ -4,7 +4,7 @@
 
 --
 
--CASE CreateLikeComment
+-CASE CreateLikeComment_SLOW
 -STATEMENT MATCH (n:Person), (m:Comment) WHERE n.id=24189255812290 AND m.id=412317157805 CREATE (n)-[:likes_Comment {creationDate: 202311180116}]->(m);
 ---- ok
 -STATEMENT MATCH (n:Person)-[r:likes_Comment]->(m:Comment) WHERE n.id=24189255812290 AND m.id=412317157805 RETURN r.creationDate;
