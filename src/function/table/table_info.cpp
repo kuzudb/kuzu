@@ -40,12 +40,16 @@ struct ExtraNodePropertyInfo : ExtraPropertyInfo {
 
 struct ExtraRelPropertyInfo : ExtraPropertyInfo {
     std::string storageDirection;
+    std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries;
 
-    explicit ExtraRelPropertyInfo(std::string storageDirection)
-        : storageDirection{std::move(storageDirection)} {}
+    explicit ExtraRelPropertyInfo(
+        std::string storageDirection,
+        std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries)
+        : storageDirection{std::move(storageDirection)},
+          srcDstEntries{std::move(srcDstEntries)} {}
 
     std::unique_ptr<ExtraPropertyInfo> copy() const override {
-        return std::make_unique<ExtraRelPropertyInfo>(storageDirection);
+        return std::make_unique<ExtraRelPropertyInfo>(storageDirection, srcDstEntries);
     }
 };
 
@@ -102,6 +106,11 @@ static offset_t internalTableFunc(const TableFuncMorsel& morsel, const TableFunc
         case CatalogEntryType::REL_GROUP_ENTRY: {
             auto extraInfo = info.extraInfo->ptrCast<ExtraRelPropertyInfo>();
             output.getValueVectorMutable(4).setValue(i, extraInfo->storageDirection);
+            auto [srcEntry, dstEntry]=extraInfo->srcDstEntries[i + morsel.startOffset];
+            output.getValueVectorMutable(5).setValue(i, srcEntry->getName());
+            output.getValueVectorMutable(6).setValue(i, dstEntry->getName());
+            output.getValueVectorMutable(7).setValue(i, srcEntry->getPrimaryKeyName());
+            output.getValueVectorMutable(8).setValue(i, dstEntry->getPrimaryKeyName());
         } break;
         default:
             break;
@@ -140,7 +149,7 @@ static std::vector<PropertyInfo> getNodePropertyInfos(NodeTableCatalogEntry* ent
     return infos;
 }
 
-static std::vector<PropertyInfo> getRelPropertyInfos(RelGroupCatalogEntry* entry) {
+static std::vector<PropertyInfo> getRelPropertyInfos(RelGroupCatalogEntry* entry, const kuzu::main::ClientContext* context) {
     std::vector<PropertyInfo> infos;
     for (auto& def : entry->getProperties()) {
         if (def.getName() == InternalKeyword::ID) {
@@ -148,8 +157,18 @@ static std::vector<PropertyInfo> getRelPropertyInfos(RelGroupCatalogEntry* entry
         }
         auto info = getInfo(def);
         info.propertyID = entry->getPropertyID(def.getName());
+        const auto catalog = Catalog::Get(*context);
+        auto transaction = transaction::Transaction::Get(*context);
+        std::vector<std::pair<NodeTableCatalogEntry*, NodeTableCatalogEntry*>> srcDstEntries;
+        for (auto& connectionInfo: entry->ptrCast<RelGroupCatalogEntry>()->getRelEntryInfos()) {
+            auto srcEntry = catalog->getTableCatalogEntry(transaction, connectionInfo.nodePair.srcTableID)
+                                ->ptrCast<NodeTableCatalogEntry>();
+            auto dstEntry = catalog->getTableCatalogEntry(transaction, connectionInfo.nodePair.dstTableID)
+                                ->ptrCast<NodeTableCatalogEntry>();
+            srcDstEntries.emplace_back(srcEntry, dstEntry);
+        }
         info.extraInfo = std::make_unique<ExtraRelPropertyInfo>(
-            ExtendDirectionUtil::toString(entry->getStorageDirection()));
+            ExtendDirectionUtil::toString(entry->getStorageDirection()), srcDstEntries);
         infos.push_back(std::move(info));
     }
     return infos;
@@ -187,7 +206,15 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const main::ClientContext* co
             case CatalogEntryType::REL_GROUP_ENTRY: {
                 columnNames.emplace_back("storage_direction");
                 columnTypes.push_back(LogicalType::STRING());
-                infos = getRelPropertyInfos(entry->ptrCast<RelGroupCatalogEntry>());
+                columnNames.emplace_back("source table name");
+                columnTypes.emplace_back(LogicalType::STRING());
+                columnNames.emplace_back("destination table name");
+                columnTypes.emplace_back(LogicalType::STRING());
+                columnNames.emplace_back("source table primary key");
+                columnTypes.emplace_back(LogicalType::STRING());
+                columnNames.emplace_back("destination table primary key");
+                columnTypes.emplace_back(LogicalType::STRING());
+                infos = getRelPropertyInfos(entry->ptrCast<RelGroupCatalogEntry>(), context);
                 type = CatalogEntryType::REL_GROUP_ENTRY;
             } break;
             default:
