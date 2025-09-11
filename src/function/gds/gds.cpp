@@ -9,7 +9,6 @@
 #include "function/table/bind_input.h"
 #include "graph/graph_entry_set.h"
 #include "graph/on_disk_graph.h"
-#include "main/client_context.h"
 #include "parser/parser.h"
 #include "planner/operator/logical_table_function_call.h"
 #include "planner/operator/sip/logical_semi_masker.h"
@@ -65,9 +64,9 @@ static void validateRelSrcDstNodeAreProjected(const TableCatalogEntry& entry,
 }
 
 NativeGraphEntry GDSFunction::bindGraphEntry(ClientContext& context, const std::string& name) {
-    auto& set = context.getGraphEntrySetUnsafe();
-    set.validateGraphExist(name);
-    auto entry = set.getEntry(name);
+    auto set = GraphEntrySet::Get(context);
+    set->validateGraphExist(name);
+    auto entry = set->getEntry(name);
     if (entry->type != GraphEntryType::NATIVE) {
         throw BinderException("AA");
     }

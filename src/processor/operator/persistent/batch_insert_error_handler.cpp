@@ -4,6 +4,7 @@
 #include "common/uniq_lock.h"
 #include "main/client_context.h"
 #include "processor/execution_context.h"
+#include "processor/warning_context.h"
 
 using namespace kuzu::common;
 
@@ -67,7 +68,7 @@ void BatchInsertErrorHandler::flushStoredErrors() {
 
     if (!unpopulatedErrors.empty()) {
         KU_ASSERT(ignoreErrors);
-        context->clientContext->getWarningContextUnsafe().appendWarningMessages(unpopulatedErrors);
+        WarningContext::Get(*context->clientContext)->appendWarningMessages(unpopulatedErrors);
     }
 
     if (!unpopulatedErrors.empty() && sharedErrorCounter != nullptr) {

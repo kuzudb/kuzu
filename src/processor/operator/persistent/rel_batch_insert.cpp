@@ -5,9 +5,9 @@
 #include "common/exception/message.h"
 #include "common/string_format.h"
 #include "common/task_system/progress_bar.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/result/factorized_table_util.h"
+#include "processor/warning_context.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
@@ -243,11 +243,12 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
 
         auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
             sharedState->getNumRows(), relInfo->tableName);
+        auto clientContext = context->clientContext;
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
-            MemoryManager::Get(*context->clientContext));
+            MemoryManager::Get(*clientContext));
 
-        const auto warningCount =
-            context->clientContext->getWarningContextUnsafe().getWarningCount(context->queryID);
+        auto warningContext = WarningContext::Get(*context->clientContext);
+        const auto warningCount = warningContext->getWarningCount(context->queryID);
         if (warningCount > 0) {
             auto warningMsg =
                 stringFormat("{} warnings encountered during copy. Use 'CALL "
@@ -255,8 +256,7 @@ void RelBatchInsert::finalizeInternal(ExecutionContext* context) {
                     warningCount, context->queryID);
             FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
                 MemoryManager::Get(*context->clientContext));
-            context->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(
-                context->queryID);
+            warningContext->defaultPopulateAllWarnings(context->queryID);
         }
     }
     sharedState->numRows.store(0);

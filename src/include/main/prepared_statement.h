@@ -62,15 +62,16 @@ public:
      */
     KUZU_API bool isReadOnly() const;
 
-    std::unordered_map<std::string, std::shared_ptr<common::Value>>& getParameterMapUnsafe() {
-        return parameterMap;
+    const std::unordered_set<std::string>& getUnknownParameters() const {
+        return unknownParameters;
     }
+    std::unordered_set<std::string> getKnownParameters();
+    void updateParameter(const std::string& name, common::Value* value);
+    void addParameter(const std::string& name, common::Value* value);
 
     std::string getName() const { return cachedPreparedStatementName; }
 
     common::StatementType getStatementType() const;
-
-    void validateExecuteParam(const std::string& paramName, common::Value* param) const;
 
     static std::unique_ptr<PreparedStatement> getPreparedStatementWithError(
         const std::string& errorMessage);
@@ -81,6 +82,7 @@ private:
     std::string errMsg;
     PreparedSummary preparedSummary;
     std::string cachedPreparedStatementName;
+    std::unordered_set<std::string> unknownParameters;
     std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
 };
 

@@ -12,9 +12,7 @@
 #include "main/client_config.h"
 #include "main/prepared_statement_manager.h"
 #include "main/query_result.h"
-#include "parser/statement.h"
 #include "prepared_statement.h"
-#include "processor/warning_context.h"
 
 namespace kuzu {
 namespace common {
@@ -42,6 +40,7 @@ class StorageManager;
 
 namespace processor {
 class ImportDB;
+class WarningContext;
 } // namespace processor
 
 namespace transaction {
@@ -75,9 +74,11 @@ class KUZU_API ClientContext {
     friend class EmbeddedShell;
     friend struct SpillToDiskSetting;
     friend class processor::ImportDB;
+    friend class processor::WarningContext;
     friend class transaction::TransactionContext;
     friend class common::RandomEngine;
     friend class common::ProgressBar;
+    friend class graph::GraphEntrySet;
 
 public:
     explicit ClientContext(Database* database);
@@ -144,13 +145,6 @@ public:
     void addScalarFunction(std::string name, function::function_set definitions);
     void removeScalarFunction(const std::string& name);
 
-    processor::WarningContext& getWarningContextUnsafe();
-    const processor::WarningContext& getWarningContext() const;
-
-    graph::GraphEntrySet& getGraphEntrySetUnsafe();
-
-    const graph::GraphEntrySet& getGraphEntrySet() const;
-
     void cleanUp();
 
     struct QueryConfig {
@@ -203,8 +197,7 @@ private:
 
     PrepareResult prepareNoLock(std::shared_ptr<parser::Statement> parsedStatement,
         bool shouldCommitNewTransaction,
-        std::optional<std::unordered_map<std::string, std::shared_ptr<common::Value>>> inputParams =
-            std::nullopt);
+        std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParams = {});
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
@@ -249,7 +242,7 @@ private:
     // Progress bar.
     std::unique_ptr<common::ProgressBar> progressBar;
     // Warning information
-    processor::WarningContext warningContext;
+    std::unique_ptr<processor::WarningContext> warningContext;
     // Graph entries
     std::unique_ptr<graph::GraphEntrySet> graphEntrySet;
     // Whether the query can access internal tables/sequences or not.

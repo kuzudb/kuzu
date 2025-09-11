@@ -251,19 +251,22 @@ TEST_F(ApiTest, PrepareWithSkipLimitError) {
     auto prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $sp");
     auto result = conn->execute(prepared.get());
     ASSERT_FALSE(result->isSuccess());
-    ASSERT_EQ(result->toString(), "Runtime exception: Cannot evaluate $sp as a valid skip number.");
+    ASSERT_EQ(result->toString(), "Parameter sp not found.");
+
+    result = conn->execute(prepared.get(), std::make_pair(std::string("sp"), "abc"));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->toString(),
+        "Runtime exception: The number of rows to skip/limit must be a non-negative integer.");
 
     prepared = conn->prepare("MATCH (p:person) RETURN p.ID limit $sp");
     result = conn->execute(prepared.get());
     ASSERT_FALSE(result->isSuccess());
-    ASSERT_EQ(result->toString(),
-        "Runtime exception: Cannot evaluate $sp as a valid limit number.");
+    ASSERT_EQ(result->toString(), "Parameter sp not found.");
 
     prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $s limit $sp");
     result = conn->execute(prepared.get(), std::make_pair(std::string("s"), 3));
     ASSERT_FALSE(result->isSuccess());
-    ASSERT_EQ(result->toString(),
-        "Runtime exception: Cannot evaluate $sp as a valid limit number.");
+    ASSERT_EQ(result->toString(), "Parameter sp not found.");
 
     prepared = conn->prepare("MATCH (p:person) RETURN p.ID skip $s");
     result = conn->execute(prepared.get(), std::make_pair(std::string("s"), 3.4));
@@ -316,8 +319,17 @@ TEST_F(ApiTest, MissingParam) {
     std::unordered_map<std::string, std::unique_ptr<Value>> params;
     params["val1"] = std::make_unique<Value>(Value::createValue(3));
     auto prep = conn->prepareWithParams("RETURN $val1 + $val2", std::move(params));
-    ASSERT_FALSE(prep->isSuccess());
-    ASSERT_STREQ("Parameter val1 not found.", prep->getErrorMessage().c_str());
+    ASSERT_TRUE(prep->isSuccess());
+    auto result = conn->execute(prep.get(), std::make_pair(std::string("s"), 3));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_STREQ("Parameter val2 not found.", result->getErrorMessage().c_str());
+    result = conn->execute(prep.get(), std::make_pair(std::string("val2"), 1.1));
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_STREQ("4.100000\n", result->getNext()->toString().c_str());
+    result = conn->execute(prep.get(), std::make_pair(std::string("val2"), 1.1),
+        std::make_pair(std::string("val1"), 1.1));
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_STREQ("2.200000\n", result->getNext()->toString().c_str());
 }
 
 TEST_F(ApiTest, CloseDatabaseBeforeQueryResultAndConnection) {

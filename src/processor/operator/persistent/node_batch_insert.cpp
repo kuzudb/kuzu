@@ -4,10 +4,10 @@
 #include "common/cast.h"
 #include "common/finally_wrapper.h"
 #include "common/string_format.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/index_builder.h"
 #include "processor/result/factorized_table_util.h"
+#include "processor/warning_context.h"
 #include "storage/local_storage/local_storage.h"
 #include "storage/storage_manager.h"
 #include "storage/table/chunked_node_group.h"
@@ -169,7 +169,7 @@ NodeBatchInsertErrorHandler NodeBatchInsert::createErrorHandler(ExecutionContext
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     auto* nodeTable = ku_dynamic_cast<NodeTable*>(sharedState->table);
     return NodeBatchInsertErrorHandler{context, nodeSharedState->pkType.getLogicalTypeID(),
-        nodeTable, context->clientContext->getWarningContext().getIgnoreErrorsOption(),
+        nodeTable, WarningContext::Get(*context->clientContext)->getIgnoreErrorsOption(),
         sharedState->numErroredRows, &sharedState->erroredRowMutex};
 }
 
@@ -260,12 +260,13 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     KU_ASSERT(localState == nullptr);
     const auto nodeSharedState = ku_dynamic_cast<NodeBatchInsertSharedState*>(sharedState.get());
     auto errorHandler = createErrorHandler(context);
-    auto transaction = Transaction::Get(*context->clientContext);
+    auto clientContext = context->clientContext;
+    auto transaction = Transaction::Get(*clientContext);
     auto& pageAllocator = *transaction->getLocalStorage()->addOptimisticAllocator();
     if (nodeSharedState->sharedNodeGroup) {
         while (nodeSharedState->sharedNodeGroup->getNumRows() > 0) {
             writeAndResetNodeGroup(transaction, nodeSharedState->sharedNodeGroup,
-                nodeSharedState->globalIndexBuilder, MemoryManager::Get(*context->clientContext),
+                nodeSharedState->globalIndexBuilder, MemoryManager::Get(*clientContext),
                 errorHandler, pageAllocator);
         }
     }
@@ -276,7 +277,7 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
 
     auto& nodeTable = nodeSharedState->table->cast<NodeTable>();
     for (auto& index : nodeTable.getIndexes()) {
-        index.finalize(context->clientContext);
+        index.finalize(clientContext);
     }
     // we want to flush all index errors before children call finalize
     // as the children (if they are table function calls) are responsible for populating the errors
@@ -287,24 +288,25 @@ void NodeBatchInsert::finalize(ExecutionContext* context) {
     // sends any remaining warnings in this case
     // if the child is a table function call it will have already sent the warnings so this line
     // will do nothing
-    context->clientContext->getWarningContextUnsafe().defaultPopulateAllWarnings(context->queryID);
+    WarningContext::Get(*clientContext)->defaultPopulateAllWarnings(context->queryID);
 }
 
 void NodeBatchInsert::finalizeInternal(ExecutionContext* context) {
     auto outputMsg = stringFormat("{} tuples have been copied to the {} table.",
         sharedState->getNumRows() - sharedState->getNumErroredRows(), info->tableName);
+    auto clientContext = context->clientContext;
     FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), outputMsg,
-        MemoryManager::Get(*context->clientContext));
+        MemoryManager::Get(*clientContext));
 
     const auto warningCount =
-        context->clientContext->getWarningContextUnsafe().getWarningCount(context->queryID);
+        WarningContext::Get(*clientContext)->getWarningCount(context->queryID);
     if (warningCount > 0) {
         auto warningMsg =
             stringFormat("{} warnings encountered during copy. Use 'CALL "
                          "show_warnings() RETURN *' to view the actual warnings. Query ID: {}",
                 warningCount, context->queryID);
         FactorizedTableUtils::appendStringToTable(sharedState->fTable.get(), warningMsg,
-            MemoryManager::Get(*context->clientContext));
+            MemoryManager::Get(*clientContext));
     }
 }
 

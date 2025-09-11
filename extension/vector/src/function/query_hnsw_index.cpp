@@ -81,8 +81,8 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     std::unique_ptr<BoundStatement> boundStatement;
     if (catalog->containsTable(transaction, tableOrGraphName)) {
         tableName = tableOrGraphName;
-    } else if (context->getGraphEntrySetUnsafe().hasGraph(tableOrGraphName)) {
-        auto graphEntry = context->getGraphEntrySetUnsafe().getEntry(tableOrGraphName);
+    } else if (graph::GraphEntrySet::Get(*context)->hasGraph(tableOrGraphName)) {
+        auto graphEntry = graph::GraphEntrySet::Get(*context)->getEntry(tableOrGraphName);
         std::string cypherQuery;
         if (graphEntry->type == graph::GraphEntryType::NATIVE) {
             auto& nativeEntry = graphEntry->cast<graph::ParsedNativeGraphEntry>();

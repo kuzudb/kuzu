@@ -8,7 +8,7 @@ from type_aliases import ConnDB
 def test_exception(conn_db_readonly: ConnDB) -> None:
     conn, _ = conn_db_readonly
 
-    with pytest.raises(RuntimeError, match=r"Parameter asd not found."):
+    with pytest.raises(RuntimeError, match=r"Parameter 1 not found."):
         conn.execute("MATCH (a:person) WHERE a.registerTime = $1 RETURN COUNT(*);", {"asd": 1})
 
     with pytest.raises(RuntimeError, match=r"Binder exception: Cannot find property dummy for a."):

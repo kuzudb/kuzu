@@ -86,9 +86,6 @@ struct TestStatement {
     std::string newOutput;
     bool isPartOfStatementBlock = false;
 
-    // Execute by default
-    bool skipFSMLeakCheckerFlag = false;
-
     bool isValid() const { return type != TestStatementType::INVALID; }
 };
 

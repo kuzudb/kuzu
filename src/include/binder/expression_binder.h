@@ -129,6 +129,16 @@ public:
     std::shared_ptr<Expression> forceCast(const std::shared_ptr<Expression>& expression,
         const common::LogicalType& targetType);
 
+    // Parameter
+    void addParameter(const std::string& name, std::shared_ptr<common::Value> value);
+    const std::unordered_set<std::string>& getUnknownParameters() const {
+        return unknownParameters;
+    }
+    const std::unordered_map<std::string, std::shared_ptr<common::Value>>&
+    getKnownParameters() const {
+        return knownParameters;
+    }
+
     std::string getUniqueName(const std::string& name) const;
 
     const ExpressionBinderConfig& getConfig() { return config; }
@@ -136,8 +146,8 @@ public:
 private:
     Binder* binder;
     main::ClientContext* context;
-    std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
-    std::unordered_set<std::string> parsedParameters;
+    std::unordered_set<std::string> unknownParameters;
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> knownParameters;
     ExpressionBinderConfig config;
 };
 

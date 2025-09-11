@@ -2,7 +2,6 @@
 
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/serial_csv_reader.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
@@ -314,8 +313,8 @@ static void finalizeFunc(const ExecutionContext* ctx, TableFuncSharedState* shar
     for (idx_t i = 0; i < state->fileScanInfo.getNumFiles(); ++i) {
         state->errorHandlers[i].throwCachedErrorsIfNeeded();
     }
-    ctx->clientContext->getWarningContextUnsafe().populateWarnings(ctx->queryID,
-        state->populateErrorFunc, BaseCSVReader::getFileIdxFunc);
+    WarningContext::Get(*ctx->clientContext)
+        ->populateWarnings(ctx->queryID, state->populateErrorFunc, BaseCSVReader::getFileIdxFunc);
 }
 
 function_set ParallelCSVScan::getFunctionSet() {
