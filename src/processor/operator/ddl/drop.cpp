@@ -25,6 +25,9 @@ void Drop::executeInternal(ExecutionContext* context) {
     case DropType::TABLE: {
         dropTable(clientContext);
     } break;
+    case DropType::MACRO: {
+        dropMacro(clientContext);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -96,6 +99,35 @@ void Drop::dropTable(const main::ClientContext* context) {
     }
     catalog->dropTableEntryAndIndex(transaction, dropInfo.name);
     appendMessage(stringFormat("Table {} has been dropped.", dropInfo.name), memoryManager);
+}
+
+void Drop::dropMacro(const main::ClientContext* context) {
+    auto catalog = Catalog::Get(*context);
+    auto transaction = transaction::Transaction::Get(*context);
+    auto memoryManager = storage::MemoryManager::Get(*context);
+    handleMacroExistence(context);
+    catalog->dropMacro(transaction, dropInfo.name);
+    appendMessage(stringFormat("Macro {} has been dropped.", dropInfo.name), memoryManager);
+}
+
+void Drop::handleMacroExistence(const main::ClientContext* context) {
+    auto catalog = Catalog::Get(*context);
+    auto transaction = transaction::Transaction::Get(*context);
+    auto memoryManager = storage::MemoryManager::Get(*context);
+    if (!catalog->containsMacro(transaction, dropInfo.name)) {
+        auto message = stringFormat("Macro {} does not exist.", dropInfo.name);
+        switch (dropInfo.conflictAction) {
+        case ConflictAction::ON_CONFLICT_DO_NOTHING: {
+            appendMessage(message, memoryManager);
+            return;
+        }
+        case ConflictAction::ON_CONFLICT_THROW: {
+            throw BinderException(message);
+        }
+        default:
+            KU_UNREACHABLE;
+        }
+    }
 }
 
 } // namespace processor

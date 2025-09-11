@@ -245,3 +245,110 @@ Catalog exception: function ADDWITHDEFAULT does not exist.
 -STATEMENT return addWithDefault(4,7);
 ---- 1
 11
+
+-CASE DropNonExistedMacro
+-STATEMENT drop macro add2
+---- error
+Binder exception: Macro add2 does not exist.
+
+-CASE DropMacros
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT call show_macros() return *
+---- 2
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+-STATEMENT drop macro case_macro
+---- ok
+-STATEMENT call show_macros() return *
+---- 1
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+-STATEMENT drop macro case_macro2
+---- ok
+-STATEMENT call show_macros() return *
+---- 0
+
+-CASE DropMacroCommit
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP MACRO case_macro2
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT CALL show_macros() RETURN *
+---- 1
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+
+-CASE DropMacroRollback
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP MACRO case_macro2
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT CALL show_macros() RETURN *
+---- 2
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+
+-CASE DropMacroCommitRecovery
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP MACRO case_macro2
+---- ok
+-STATEMENT COMMIT
+---- ok
+-STATEMENT CALL show_macros() RETURN *
+---- 1
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+-RELOADDB
+-STATEMENT CALL show_macros() RETURN *
+---- 1
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+
+-CASE DropMacroRollbackRecovery
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT BEGIN TRANSACTION
+---- ok
+-STATEMENT DROP MACRO case_macro2
+---- ok
+-STATEMENT ROLLBACK
+---- ok
+-STATEMENT CALL show_macros() RETURN *
+---- 2
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+-RELOADDB
+-STATEMENT CALL show_macros() RETURN *
+---- 2
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;
+CASE_MACRO2|CREATE MACRO `CASE_MACRO2` (x) AS CASE x WHEN 35 THEN x + 1 END;
+
+-CASE DropMacroRecovery
+-STATEMENT CREATE MACRO case_macro(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT CREATE MACRO case_macro2(x) AS CASE x WHEN 35 THEN x + 1 END
+---- ok
+-STATEMENT DROP MACRO case_macro2
+---- ok
+-RELOADDB
+-STATEMENT CALL show_macros() RETURN *
+---- 1
+CASE_MACRO|CREATE MACRO `CASE_MACRO` (x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END;

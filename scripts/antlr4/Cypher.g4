@@ -396,7 +396,7 @@ kU_IfExists
     : IF SP EXISTS ;
 
 kU_Drop
-    : DROP SP (TABLE | SEQUENCE) SP (kU_IfExists SP)? oC_SchemaName ;
+    : DROP SP (TABLE | SEQUENCE | MACRO) SP (kU_IfExists SP)? oC_SchemaName ;
 
 kU_AlterTable
     : ALTER SP TABLE SP oC_SchemaName SP kU_AlterOptions ;

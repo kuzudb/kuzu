@@ -170,6 +170,13 @@ void Catalog::dropTableEntry(Transaction* transaction, const TableCatalogEntry* 
         internalTables->dropEntry(transaction, entry->getName(), entry->getOID());
     }
 }
+void Catalog::dropMacroEntry(Transaction* transaction, const kuzu::common::oid_t macroID) {
+    dropMacroEntry(transaction, getScalarMacroCatalogEntry(transaction, macroID));
+}
+
+void Catalog::dropMacroEntry(Transaction* transaction, const ScalarMacroCatalogEntry* entry) {
+    macros->dropEntry(transaction, entry->getName(), entry->getOID());
+}
 
 void Catalog::alterTableEntry(Transaction* transaction, const BoundAlterInfo& info) {
     tables->alterTableEntry(transaction, info);
@@ -478,6 +485,17 @@ void Catalog::addScalarMacroFunction(Transaction* transaction, std::string name,
     macros->createEntry(transaction, std::move(entry));
 }
 
+ScalarMacroCatalogEntry* Catalog::getScalarMacroCatalogEntry(const Transaction* transaction,
+    kuzu::common::oid_t macroID) const {
+    auto result = functions->getEntryOfOID(transaction, macroID);
+    if (result == nullptr) {
+        throw RuntimeException(
+            stringFormat("Cannot find macro catalog entry with id {}.", std::to_string(macroID)));
+    }
+
+    return result->ptrCast<ScalarMacroCatalogEntry>();
+}
+
 std::vector<std::string> Catalog::getMacroNames(const Transaction* transaction) const {
     std::vector<std::string> macroNames;
     for (auto& [_, function] : macros->getEntries(transaction)) {
@@ -485,6 +503,14 @@ std::vector<std::string> Catalog::getMacroNames(const Transaction* transaction) 
         macroNames.push_back(function->getName());
     }
     return macroNames;
+}
+
+void Catalog::dropMacro(Transaction* transaction, std::string& name) {
+    if (!containsMacro(transaction, name)) {
+        throw CatalogException{stringFormat("Marco {} doesn't exist.", name)};
+    }
+    auto entry = getFunctionEntry(transaction, name);
+    macros->dropEntry(transaction, name, entry->getOID());
 }
 
 void Catalog::registerBuiltInFunctions() {

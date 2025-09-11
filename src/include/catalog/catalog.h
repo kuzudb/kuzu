@@ -188,9 +188,15 @@ public:
         const std::string& macroName) const;
     void addScalarMacroFunction(transaction::Transaction* transaction, std::string name,
         std::unique_ptr<function::ScalarMacroFunction> macro);
+    ScalarMacroCatalogEntry* getScalarMacroCatalogEntry(const transaction::Transaction* transaction,
+        kuzu::common::oid_t MacroID) const;
+    void dropMacroEntry(transaction::Transaction* transaction, const kuzu::common::oid_t macroID);
+    void dropMacroEntry(transaction::Transaction* transaction,
+        const ScalarMacroCatalogEntry* entry);
     function::ScalarMacroFunction* getScalarMacroFunction(
         const transaction::Transaction* transaction, const std::string& name) const;
     std::vector<std::string> getMacroNames(const transaction::Transaction* transaction) const;
+    void dropMacro(transaction::Transaction* transaction, std::string& name);
 
     void incrementVersion() { version++; }
     uint64_t getVersion() const { return version; }
