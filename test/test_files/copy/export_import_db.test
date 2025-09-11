@@ -342,3 +342,16 @@ Binder exception: The 'SCHEMA_ONLY' option must have a BOOL value.
 -STATEMENT IMPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_special/_multilinestring';
 ---- ok
 
+-CASE ExportDBWithOptions
+-STATEMENT CREATE NODE TABLE csvoptions(name STRING PRIMARY KEY, age UINT8);
+---- ok
+-STATEMENT CREATE (:csvoptions { name: 'First Last', age: 27 });
+---- ok
+-STATEMENT EXPORT DATABASE '${KUZU_EXPORT_DB_DIRECTORY}_options/with_options' (format="csv", quote="'", delimiter=";", escape="\\");
+---- ok
+-IMPORT_DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_options/with_options"
+-STATEMENT IMPORT DATABASE "${KUZU_EXPORT_DB_DIRECTORY}_options/with_options";
+---- ok
+-STATEMENT MATCH (u:csvoptions) return u.*
+---- 1
+First Last|27
