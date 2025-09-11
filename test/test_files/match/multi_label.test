@@ -13,9 +13,21 @@
 -STATEMENT MATCH (a:organisation:person) RETURN COUNT(*)
 ---- 1
 11
+-STATEMENT MATCH (a:organisation|person) RETURN COUNT(*)
+---- 1
+11
+-STATEMENT MATCH (a:organisation|:person) RETURN COUNT(*)
+---- 1
+11
 
 -LOG MultiLabelNodeTest
 -STATEMENT MATCH (a:organisation:person) MATCH (a:movies) RETURN COUNT(*)
+---- 1
+14
+-STATEMENT MATCH (a:organisation|person) MATCH (a:movies) RETURN COUNT(*)
+---- 1
+14
+-STATEMENT MATCH (a:organisation|:person) MATCH (a:movies) RETURN COUNT(*)
 ---- 1
 14
 
