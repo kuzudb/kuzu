@@ -382,7 +382,6 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto inputTableName = getParamVal(*input, 0);
     auto indexName = getParamVal(*input, 1);
     auto query = input->getParam(2);
-
     auto tableEntry = FTSIndexUtils::bindNodeTable(*context, inputTableName, indexName,
         FTSIndexUtils::IndexOperation::QUERY);
     auto catalog = catalog::Catalog::Get(*context);
@@ -398,7 +397,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(main::ClientContext* context,
     auto appearsInEntry = catalog->getTableCatalogEntry(transaction,
         FTSUtils::getAppearsInTableName(tableEntry->getTableID(), indexName));
     std::vector<catalog::TableCatalogEntry*> nodeEntries{termsEntry, docsEntry};
-    if (ftsIndexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config.advancedPatternMatch) {
+    if (ftsIndexEntry->getAuxInfo().cast<FTSIndexAuxInfo>().config.exactTermMatch) {
         nodeEntries.push_back(catalog->getTableCatalogEntry(transaction,
             FTSUtils::getOrigTermsTableName(tableEntry->getTableID(), indexName)));
     }

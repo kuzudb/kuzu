@@ -19,9 +19,14 @@ using pattern_match_algo = std::function<void(std::unordered_map<common::offset_
     std::vector<VCQueryTerm>& vcQueryTerms, processor::ExecutionContext* executionContext,
     graph::Graph* graph, const QueryFTSBindData& bindData)>;
 
+enum class TermMatchType : uint8_t {
+    STEM = 0,
+    EXACT = 1,
+};
+
 class PatternMatchFactory {
 public:
-    static pattern_match_algo getPatternMatchAlgo(bool isAdvanced);
+    static pattern_match_algo getPatternMatchAlgo(TermMatchType termMatchType);
 };
 
 } // namespace fts_extension

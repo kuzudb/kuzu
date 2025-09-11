@@ -17,8 +17,8 @@ struct Stemmer {
     static void validate(const std::string& stemmer);
 };
 
-struct AdvancedPatternMatch {
-    static constexpr const char* NAME = "advanced_pattern_match";
+struct ExactTermMatch {
+    static constexpr const char* NAME = "exact_term_match";
     static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
     static constexpr bool DEFAULT_VALUE = false;
 };
@@ -85,7 +85,7 @@ struct CreateFTSConfig {
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
     std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
     TokenizerInfo tokenizerInfo;
-    bool advancedPatternMatch = AdvancedPatternMatch::DEFAULT_VALUE;
+    bool exactTermMatch = ExactTermMatch::DEFAULT_VALUE;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
@@ -104,16 +104,16 @@ struct FTSConfig {
     std::string ignorePatternQuery = "";
     std::string tokenizer = "";
     std::string jiebaDictDir = "";
-    bool advancedPatternMatch = false;
+    bool exactTermMatch = false;
 
     FTSConfig() = default;
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
         std::string ignorePattern, std::string ignorePatternQuery, std::string tokenizer,
-        std::string jiebaDictDir, bool advancedPatternMatch)
+        std::string jiebaDictDir, bool exactTermMatch)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
           stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)},
           ignorePatternQuery{std::move(ignorePatternQuery)}, tokenizer{std::move(tokenizer)},
-          jiebaDictDir{std::move(jiebaDictDir)}, advancedPatternMatch{advancedPatternMatch} {}
+          jiebaDictDir{std::move(jiebaDictDir)}, exactTermMatch{exactTermMatch} {}
 
     void serialize(common::Serializer& serializer) const;
 

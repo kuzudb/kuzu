@@ -51,7 +51,8 @@ QueryFTSBindData::QueryFTSBindData(binder::expression_vector columns,
       outputTableID{output[0]->constCast<binder::NodeExpression>().getTableIDs()[0]},
       numDocs{numDocs}, avgDocLen{avgDocLen},
       patternMatchAlgo{PatternMatchFactory::getPatternMatchAlgo(
-          entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.advancedPatternMatch)} {
+          entry.getAuxInfo().cast<FTSIndexAuxInfo>().config.exactTermMatch ? TermMatchType::EXACT :
+                                                                             TermMatchType::STEM)} {
     auto& nodeExpr = output[0]->constCast<binder::NodeExpression>();
     KU_ASSERT(nodeExpr.getNumEntries() == 1);
     outputTableID = nodeExpr.getEntry(0)->getTableID();
@@ -77,13 +78,12 @@ std::vector<std::string> QueryFTSBindData::getQueryTerms(main::ClientContext& co
     auto config = entry.getAuxInfo().cast<FTSIndexAuxInfo>().config;
     FTSUtils::normalizeQuery(queryInStr, config.ignorePatternQuery);
     auto terms = FTSUtils::tokenizeString(queryInStr, config);
-    auto stopWordsTable =
-        StorageManager::Get(context)
-            ->getTable(catalog::Catalog::Get(context)
-                           ->getTableCatalogEntry(transaction::Transaction::Get(context),
-                               config.stopWordsTableName)
-                           ->getTableID())
-            ->ptrCast<NodeTable>();
+    auto stopWordsTable = StorageManager::Get(context)
+                              ->getTable(catalog::Catalog::Get(context)
+                                      ->getTableCatalogEntry(transaction::Transaction::Get(context),
+                                          config.stopWordsTableName)
+                                      ->getTableID())
+                              ->ptrCast<NodeTable>();
     return FTSUtils::stemTerms(terms, entry.getAuxInfo().cast<FTSIndexAuxInfo>().config,
         MemoryManager::Get(context), stopWordsTable, transaction::Transaction::Get(context),
         optionalParams->constCast<QueryFTSOptionalParams>().conjunctive.getParamVal(),

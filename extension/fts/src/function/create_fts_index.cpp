@@ -145,7 +145,7 @@ static std::string formatStrInCypher(const std::string& input) {
     return result;
 }
 
-static std::string createAdvancedPatternMatchTable(const CreateFTSBindData& bindData) {
+static std::string createTablesForExactTermMatch(const CreateFTSBindData& bindData) {
     std::string query;
     auto appearsInfoTableName =
         FTSUtils::getAppearsInfoTableName(bindData.tableID, bindData.indexName);
@@ -228,9 +228,9 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                           "RETURN t.term, CAST(count(distinct t.docID) AS UINT64));",
         termsTableName, appearsInfoTableName);
 
-    // If the advanced_pattern_match is enabled, we need to create two additional tables.
-    if (ftsBindData->createFTSConfig.advancedPatternMatch) {
-        query += createAdvancedPatternMatchTable(*ftsBindData);
+    // If the exact_term_match is enabled, we need to create an additional tables.
+    if (ftsBindData->createFTSConfig.exactTermMatch) {
+        query += createTablesForExactTermMatch(*ftsBindData);
     }
 
     auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
@@ -258,8 +258,8 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     params += stringFormat("stemmer := '{}', ", ftsBindData->createFTSConfig.stemmer);
     params += stringFormat("stopWords := '{}', ",
         ftsBindData->createFTSConfig.stopWordsTableInfo.stopWords);
-    params += stringFormat("advanced_pattern_match := {}",
-        ftsBindData->createFTSConfig.advancedPatternMatch ? "true" : "false");
+    params += stringFormat("exact_term_match := {}",
+        ftsBindData->createFTSConfig.exactTermMatch ? "true" : "false");
     query += stringFormat("CALL _CREATE_FTS_INDEX('{}', '{}', {}, {});", tableName, indexName,
         properties, params);
     query += stringFormat("RETURN 'Index {} has been created.' as result;", ftsBindData->indexName);

@@ -52,9 +52,9 @@ protected:
     std::unordered_map<common::offset_t, uint64_t>& resDfs;
 };
 
-class BasicMatchVertexCompute final : public MatchTermVertexCompute {
+class StemTermMatchVertexCompute final : public MatchTermVertexCompute {
 public:
-    explicit BasicMatchVertexCompute(std::unordered_map<common::offset_t, uint64_t>& resDfs,
+    explicit StemTermMatchVertexCompute(std::unordered_map<common::offset_t, uint64_t>& resDfs,
         std::vector<VCQueryTerm>& queryTerms)
         : MatchTermVertexCompute{queryTerms, resDfs} {}
 
@@ -65,13 +65,13 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<BasicMatchVertexCompute>(resDfs, queryTerms);
+        return std::make_unique<StemTermMatchVertexCompute>(resDfs, queryTerms);
     }
 };
 
-class AdvancedMatchVertexCompute final : public MatchTermVertexCompute {
+class ExactTermMatchVertexCompute final : public MatchTermVertexCompute {
 public:
-    AdvancedMatchVertexCompute(std::unordered_map<common::offset_t, uint64_t>& resDfs,
+    ExactTermMatchVertexCompute(std::unordered_map<common::offset_t, uint64_t>& resDfs,
         std::vector<VCQueryTerm>& queryTerms, const QueryFTSBindData& bindData,
         main::ClientContext& context)
         : MatchTermVertexCompute{queryTerms, resDfs},
@@ -82,7 +82,7 @@ public:
           bindData{bindData}, context{context},
           termsDFLookup{bindData.getTermsEntry(context), context} {}
 
-    ~AdvancedMatchVertexCompute() override { sb_stemmer_delete(sbStemmer); }
+    ~ExactTermMatchVertexCompute() override { sb_stemmer_delete(sbStemmer); }
 
     void handleMatchedTerm(uint64_t itr, const graph::VertexScanState::Chunk& chunk) override {
         auto term = chunk.getProperties<common::ku_string_t>(0)[itr];
@@ -94,7 +94,7 @@ public:
     }
 
     std::unique_ptr<VertexCompute> copy() override {
-        return std::make_unique<AdvancedMatchVertexCompute>(resDfs, queryTerms, bindData, context);
+        return std::make_unique<ExactTermMatchVertexCompute>(resDfs, queryTerms, bindData, context);
     }
 
 private:
@@ -104,30 +104,33 @@ private:
     TermsDFLookup termsDFLookup;
 };
 
-static void basicMatchAlgo(std::unordered_map<common::offset_t, uint64_t>& dfs,
+static void stemTermMatch(std::unordered_map<common::offset_t, uint64_t>& dfs,
     std::vector<VCQueryTerm>& vcQueryTerms, ExecutionContext* executionContext, graph::Graph* graph,
     const QueryFTSBindData& bindData) {
-    auto matchVc = BasicMatchVertexCompute{dfs, vcQueryTerms};
+    auto matchVc = StemTermMatchVertexCompute{dfs, vcQueryTerms};
     GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, matchVc,
         bindData.getTermsEntry(*executionContext->clientContext),
         std::vector<std::string>{"term", TermsDFLookup::DOC_FREQUENCY_PROP_NAME});
 }
 
-static void advancedMatchAlgo(std::unordered_map<common::offset_t, uint64_t>& dfs,
+static void exactTermMatch(std::unordered_map<common::offset_t, uint64_t>& dfs,
     std::vector<VCQueryTerm>& vcQueryTerms, ExecutionContext* executionContext, graph::Graph* graph,
     const QueryFTSBindData& bindData) {
     auto matchOrigTermVc =
-        AdvancedMatchVertexCompute{dfs, vcQueryTerms, bindData, *executionContext->clientContext};
+        ExactTermMatchVertexCompute{dfs, vcQueryTerms, bindData, *executionContext->clientContext};
     GDSUtils::runVertexCompute(executionContext, GDSDensityState::DENSE, graph, matchOrigTermVc,
         bindData.getOrigTermsEntry(*executionContext->clientContext),
         std::vector<std::string>{"term"});
 }
 
-pattern_match_algo PatternMatchFactory::getPatternMatchAlgo(bool isAdvanced) {
-    if (isAdvanced) {
-        return advancedMatchAlgo;
-    } else {
-        return basicMatchAlgo;
+pattern_match_algo PatternMatchFactory::getPatternMatchAlgo(TermMatchType termMatchType) {
+    switch (termMatchType) {
+    case TermMatchType::EXACT:
+        return exactTermMatch;
+    case TermMatchType::STEM:
+        return stemTermMatch;
+    default:
+        KU_UNREACHABLE;
     }
 }
 
