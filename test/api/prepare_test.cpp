@@ -204,7 +204,11 @@ TEST_F(ApiTest, ParamNotExist) {
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");
     auto result = conn->execute(preparedStatement.get(), std::make_pair(std::string("a"), "A"));
     ASSERT_FALSE(result->isSuccess());
-    ASSERT_STREQ("Parameter a not found.", result->getErrorMessage().c_str());
+    ASSERT_STREQ("Parameter n not found.", result->getErrorMessage().c_str());
+    result = conn->execute(preparedStatement.get(), std::make_pair(std::string("a"), "A"),
+        std::make_pair(std::string("n"), "A"));
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_STREQ("1\n", result->getNext()->toString().c_str());
 }
 
 TEST_F(ApiTest, ParamTypeError) {
