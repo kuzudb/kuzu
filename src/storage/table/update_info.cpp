@@ -104,11 +104,11 @@ void UpdateInfo::lookup(const Transaction* transaction, offset_t rowInChunk, Val
     });
 }
 
-void UpdateInfo::scanCommitted(const Transaction* transaction, SegmentScanner& output,
+void UpdateInfo::scanCommitted(const Transaction* transaction, ColumnChunkScanner& output,
     offset_t startOffsetInOutput, row_idx_t startRowScanned, row_idx_t numRows) const {
     iterateScan(transaction, startRowScanned, numRows, startOffsetInOutput,
         [&](const VectorUpdateInfo& vecUpdateInfo, uint64_t i, uint64_t posInOutput) -> void {
-            output.writeToSegment(*vecUpdateInfo.data, i, posInOutput);
+            output.updateScannedValue   (*vecUpdateInfo.data, i, posInOutput);
         });
 }
 
