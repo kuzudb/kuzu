@@ -686,7 +686,7 @@ kU_RecursiveType
         | ACYCLIC ;
 
 oC_RangeLiteral
-    :  oC_LowerBound? SP? '..' SP? oC_UpperBound?
+    :  oC_LowerBound? SP? DOTDOT SP? oC_UpperBound?
         | oC_IntegerLiteral ;
 
 kU_RecursiveComprehension
@@ -762,10 +762,11 @@ oC_StringListNullOperatorExpression
 oC_ListOperatorExpression
     : ( SP IN SP? oC_PropertyOrLabelsExpression )
         | ( '[' oC_Expression ']' )
-        | ( '[' oC_Expression? COLON oC_Expression? ']' )
-        ;
+        | ( '[' oC_Expression? ( COLON | DOTDOT ) oC_Expression? ']' ) ;
 
 COLON : ':' ;
+
+DOTDOT : '..' ;
 
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
