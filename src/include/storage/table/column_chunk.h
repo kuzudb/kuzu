@@ -15,7 +15,7 @@ namespace storage {
 class PageAllocator;
 class MemoryManager;
 class Column;
-struct SegmentScanner;
+struct ColumnChunkScanner;
 
 struct ChunkCheckpointState {
     std::unique_ptr<ColumnChunkData> chunkData;
@@ -142,7 +142,7 @@ public:
         common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(const transaction::Transaction* transaction, ChunkState& chunkState,
-        SegmentScanner& output, common::row_idx_t startRow = 0,
+        ColumnChunkScanner& output, common::row_idx_t startRow = 0,
         common::row_idx_t numRows = common::INVALID_ROW_IDX) const;
     void lookup(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t rowInChunk, common::ValueVector& output,
