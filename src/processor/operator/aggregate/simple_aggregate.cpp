@@ -1,6 +1,7 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <vector>
 

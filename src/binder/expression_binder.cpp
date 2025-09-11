@@ -35,10 +35,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindExpression(
         bool allParamExist = true;
         for (auto& parsedExpr : collector.getParamExprs()) {
             auto name = parsedExpr->constCast<ParsedParameterExpression>().getParameterName();
-            if (!parameterMap.contains(name)) {
-                auto value = std::make_shared<Value>(Value::createNullValue());
-                parameterMap.insert({name, value});
-                parsedParameters.insert(name);
+            if (!knownParameters.contains(name)) {
+                unknownParameters.insert(name);
                 allParamExist = false;
             }
         }
@@ -145,6 +143,11 @@ std::shared_ptr<Expression> ExpressionBinder::forceCast(
 
 std::string ExpressionBinder::getUniqueName(const std::string& name) const {
     return binder->getUniqueExpressionName(name);
+}
+
+void ExpressionBinder::addParameter(const std::string& name, std::shared_ptr<Value> value) {
+    KU_ASSERT(!knownParameters.contains(name));
+    knownParameters[name] = value;
 }
 
 } // namespace binder

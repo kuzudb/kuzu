@@ -3,7 +3,6 @@
 #include "function/table/bind_input.h"
 #include "function/table/simple_table_function.h"
 #include "graph/graph_entry_set.h"
-#include "main/client_context.h"
 
 using namespace kuzu::common;
 using namespace kuzu::main;
@@ -57,7 +56,7 @@ static std::unique_ptr<TableFuncBindData> bindFunc(const ClientContext* context,
         TableFunction::extractYieldVariables(returnColumnNames, input->yieldVariables);
     auto columns = input->binder->createVariables(returnColumnNames, returnTypes);
     std::vector<ProjectedGraphData> projectedGraphData;
-    for (auto& [name, entry] : context->getGraphEntrySet().getNameToEntryMap()) {
+    for (auto& [name, entry] : graph::GraphEntrySet::Get(*context)->getNameToEntryMap()) {
         projectedGraphData.emplace_back(name, graph::GraphEntryTypeUtils::toString(entry->type));
     }
     return std::make_unique<ShowProjectedGraphBindData>(std::move(projectedGraphData),

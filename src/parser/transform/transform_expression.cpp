@@ -313,23 +313,24 @@ std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
         listContains->addChild(std::move(child));
         return listContains;
     }
-    if (ctx.COLON()) { // x[:]
+    if (ctx.COLON() || ctx.DOTDOT()) { // x[:]/x[..]
         auto listSlice =
             std::make_unique<ParsedFunctionExpression>(ListSliceFunction::name, std::move(raw));
         listSlice->addChild(std::move(child));
         std::unique_ptr<ParsedExpression> left;
         std::unique_ptr<ParsedExpression> right;
-        if (ctx.oC_Expression().size() == 2) { // [left:right]
+        if (ctx.oC_Expression().size() == 2) { // [left:right]/[left..right]
             left = transformExpression(*ctx.oC_Expression(0));
             right = transformExpression(*ctx.oC_Expression(1));
-        } else if (ctx.oC_Expression().size() == 0) { // [:]
+        } else if (ctx.oC_Expression().size() == 0) { // [:]/[..]
             left = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
             right = std::make_unique<ParsedLiteralExpression>(Value(-1), "-1");
         } else {
-            if (ctx.children[1]->getText() == ":") { // [:right]
+            if (ctx.children[1]->getText() == ":" ||
+                ctx.children[1]->getText() == "..") { // [:right]/[..right]
                 left = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
                 right = transformExpression(*ctx.oC_Expression(0));
-            } else { // [left:]
+            } else { // [left:]/[left..]
                 left = transformExpression(*ctx.oC_Expression(0));
                 right = std::make_unique<ParsedLiteralExpression>(Value(-1), "-1");
             }

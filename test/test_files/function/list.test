@@ -838,9 +838,24 @@ True
 ABFs
 CsWo
 DEsW
+-STATEMENT MATCH (o:organisation) RETURN o.name[1..4]
+---- 3
+ABFs
+CsWo
+DEsW
 
 -LOG ListSliceStringRight
 -STATEMENT MATCH (a:person) RETURN a.fName[4:]
+---- 8
+ce
+
+ol
+
+zabeth
+ooq
+g
+ert Blaine Wolfeschlegelsteinhausenbergerdorff
+-STATEMENT MATCH (a:person) RETURN a.fName[4..]
 ---- 8
 ce
 
@@ -862,6 +877,16 @@ Eliza
 Faroo
 Greg
 Huber
+-STATEMENT MATCH (a:person) RETURN a.fName[..5]
+---- 8
+Alice
+Bob
+Carol
+Dan
+Eliza
+Faroo
+Greg
+Huber
 
 -LOG ListSliceStringNull
 -STATEMENT MATCH (o:organisation) RETURN o.name[:]
@@ -869,9 +894,24 @@ Huber
 ABFsUni
 CsWork
 DEsWork
+-STATEMENT MATCH (o:organisation) RETURN o.name[..]
+---- 3
+ABFsUni
+CsWork
+DEsWork
 
 -LOG ListSliceStringDoubleSlice
 -STATEMENT MATCH (a:person) RETURN a.fName[3:][2:4]
+---- 8
+ce
+
+ol
+
+zab
+ooq
+g
+ert
+-STATEMENT MATCH (a:person) RETURN a.fName[3..][2..4]
 ---- 8
 ce
 

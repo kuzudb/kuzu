@@ -3,7 +3,6 @@
 #include "binder/binder.h"
 #include "function/table/bind_data.h"
 #include "function/table/table_function.h"
-#include "main/client_context.h"
 #include "processor/execution_context.h"
 #include "processor/operator/persistent/reader/csv/driver.h"
 #include "processor/operator/persistent/reader/reader_bind_utils.h"
@@ -119,7 +118,7 @@ void SerialCSVScanSharedState::finalizeReader(main::ClientContext* context) cons
     }
     if (sharedErrorHandler) {
         sharedErrorHandler->throwCachedErrorsIfNeeded();
-        context->getWarningContextUnsafe().populateWarnings(queryID, populateErrorFunc,
+        WarningContext::Get(*context)->populateWarnings(queryID, populateErrorFunc,
             BaseCSVReader::getFileIdxFunc);
     }
 }
