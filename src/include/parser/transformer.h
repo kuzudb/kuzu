@@ -116,7 +116,6 @@ public:
     std::vector<s_parsed_expr_pair> transformProperties(CypherParser::KU_PropertiesContext& ctx);
     std::vector<std::string> transformRelTypes(CypherParser::OC_RelationshipTypesContext& ctx);
     std::vector<std::string> transformNodeLabels(CypherParser::OC_NodeLabelsContext& ctx);
-    std::string transformNodeLabel(CypherParser::OC_NodeLabelContext& ctx);
     std::string transformLabelName(CypherParser::OC_LabelNameContext& ctx);
     std::string transformRelTypeName(CypherParser::OC_RelTypeNameContext& ctx);
 
