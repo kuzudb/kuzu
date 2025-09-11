@@ -12,7 +12,7 @@ public:
     // Run edge compute for graph algorithms
     static void runAlgorithmEdgeCompute(processor::ExecutionContext* context,
         GDSComputeState& compState, graph::Graph* graph, common::ExtendDirection extendDirection,
-        uint64_t maxIteration);
+        uint64_t maxIteration, const std::vector<std::string>& propertiesToScan = {});
     // Run edge compute for full text search
     static void runFTSEdgeCompute(processor::ExecutionContext* context, GDSComputeState& compState,
         graph::Graph* graph, common::ExtendDirection extendDirection,
