@@ -2,6 +2,7 @@
 --
 
 -CASE AlterRelGroup
+-SKIP_FSM_LEAK_CHECK
 -STATEMENT ALTER TABLE KNOWS ADD FROM person to organisation
 ---- 1
 person->organisation added to table knows.

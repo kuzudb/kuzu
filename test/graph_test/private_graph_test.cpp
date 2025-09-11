@@ -4,6 +4,7 @@
 #include "graph_test/base_graph_test.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
+#include "test_runner/fsm_leak_checker.h"
 #include "test_runner/insert_by_row.h"
 #include "test_runner/multi_copy_split.h"
 #include "test_runner/test_runner.h"
@@ -57,6 +58,9 @@ void DBTest::runTest(std::vector<TestStatement>& statements, uint64_t checkpoint
     for (const auto& connName : connNames) {
         concurrentTests.try_emplace(connName, connectionsPaused, *connMap[connName], databasePath);
     }
+
+    bool skipFsmLeakCheck = false;
+
     for (auto& statement : statements) {
         // special for testing import and export test cases
         if (statement.removeFileFlag) {
@@ -133,6 +137,10 @@ void DBTest::runTest(std::vector<TestStatement>& statements, uint64_t checkpoint
             split.run();
             continue;
         }
+        if (statement.skipFSMLeakCheckerFlag) {
+            skipFsmLeakCheck = true;
+            continue;
+        }
         if (statement.type == TestStatementType::LOG) {
             spdlog::info("DEBUG LOG: {}", statement.logMessage);
             continue;
@@ -151,6 +159,20 @@ void DBTest::runTest(std::vector<TestStatement>& statements, uint64_t checkpoint
                 throw TestException(
                     stringFormat("No connection name provided for statement: {}", statement.query));
             }
+        }
+    }
+
+    // Run FSM checker for all tests.
+    if (!inMemMode && !skipFsmLeakCheck) {
+        main::Connection* leakConn = nullptr;
+        if (connNames.size() == 1) {
+            // conn (originally null) is populated in the case that the connection in connMap is
+            // reset. (ex. during import and export). Use conn in this case.
+            leakConn = conn ? conn.get() : connMap.begin()->second.get();
+            if (!leakConn) {
+                throw TestException("FSM leak check has no available connection.");
+            }
+            FSMLeakChecker::checkForLeakedPages(leakConn);
         }
     }
 }
