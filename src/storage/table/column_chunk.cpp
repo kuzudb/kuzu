@@ -89,7 +89,7 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
 
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
-    SegmentScanner& output, row_idx_t startRow, row_idx_t numRows) const {
+    ColumnChunkScanner& output, row_idx_t startRow, row_idx_t numRows) const {
     auto numValuesInChunk = getNumValues();
     if (numRows == INVALID_ROW_IDX || startRow + numRows > numValuesInChunk) {
         numRows = numValuesInChunk - startRow;
@@ -97,15 +97,16 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     if (numRows == 0 || startRow >= numValuesInChunk) {
         return;
     }
-    const auto numValuesBeforeScan = output.getNumValues();
-    switch (const auto residencyState = getResidencyState()) {
-    case ResidencyState::ON_DISK: {
-        if (SCAN_RESIDENCY_STATE == residencyState) {
-            // output.setNumValues(0);
+    const auto residencyState = getResidencyState();
+    if (SCAN_RESIDENCY_STATE == residencyState) {
+        const auto numValuesBeforeScan = output.getNumValues();
+        switch (residencyState) {
+        case ResidencyState::ON_DISK: {
+            KU_ASSERT(output.getNumValues() == 0);
             [[maybe_unused]] uint64_t numValuesScanned = chunkState.rangeSegments(startRow, numRows,
                 [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment,
                     auto dstOffset) {
-                    output.initSegment(dstOffset, lengthInSegment,
+                    output.scanSegment(dstOffset, lengthInSegment,
                         [&chunkState, &segmentState, offsetInSegment, lengthInSegment](
                             ColumnChunkData& outputChunk) {
                             chunkState.column->scanSegment(segmentState, &outputChunk,
@@ -113,30 +114,30 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
                         });
                 });
             KU_ASSERT(output.getNumValues() == numValuesScanned);
-        }
-    } break;
-    case ResidencyState::IN_MEMORY: {
-        if (SCAN_RESIDENCY_STATE == residencyState) {
+        } break;
+        case ResidencyState::IN_MEMORY: {
             rangeSegments(startRow, numRows,
-                [&](auto& segment, auto, auto lengthInSegment, auto dstOffset) {
-                    output.initSegment(dstOffset, lengthInSegment,
-                        [&segment, startRow, lengthInSegment](ColumnChunkData& outputChunk) {
-                            outputChunk.append(segment.get(), startRow, lengthInSegment);
+                [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+                    output.scanSegment(dstOffset, lengthInSegment,
+                        [&segment, offsetInSegment, lengthInSegment](ColumnChunkData& outputChunk) {
+                            outputChunk.append(segment.get(), offsetInSegment, lengthInSegment);
                         });
                 });
+        } break;
+        default: {
+            KU_UNREACHABLE;
         }
-    } break;
-    default: {
-        KU_UNREACHABLE;
+        }
+        updateInfo.scanCommitted(transaction, output, numValuesBeforeScan, startRow, numRows);
     }
-    }
-    updateInfo.scanCommitted(transaction, output, numValuesBeforeScan, startRow, numRows);
 }
 
 template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transaction* transaction,
-    ChunkState& chunkState, SegmentScanner& output, row_idx_t startRow, row_idx_t numRows) const;
+    ChunkState& chunkState, ColumnChunkScanner& output, row_idx_t startRow,
+    row_idx_t numRows) const;
 template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transaction* transaction,
-    ChunkState& chunkState, SegmentScanner& output, row_idx_t startRow, row_idx_t numRows) const;
+    ChunkState& chunkState, ColumnChunkScanner& output, row_idx_t startRow,
+    row_idx_t numRows) const;
 
 bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     length_t numRows) const {

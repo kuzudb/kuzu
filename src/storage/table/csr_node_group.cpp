@@ -112,24 +112,24 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
         auto offsetInGroup = nodeOffset % StorageConfig::NODE_GROUP_SIZE;
         auto offsetToScanFrom = offsetInGroup == 0 ? 0 : offsetInGroup - 1;
         {
-            CombinedSegmentScanner scanner{*nodeGroupScanState.header->offset};
+            CombinedChunkScanner scanner{*nodeGroupScanState.header->offset};
             csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
                 scanner, offsetToScanFrom, 1);
         }
         {
-            CombinedSegmentScanner scanner{*nodeGroupScanState.header->length};
+            CombinedChunkScanner scanner{*nodeGroupScanState.header->length};
             csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
                 scanner, offsetInGroup, 1);
         }
     } else {
         auto numBoundNodes = csrHeader.offset->getNumValues();
         {
-            CombinedSegmentScanner scanner{*nodeGroupScanState.header->offset};
+            CombinedChunkScanner scanner{*nodeGroupScanState.header->offset};
             csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
                 scanner);
         }
         {
-            CombinedSegmentScanner scanner{*nodeGroupScanState.header->length};
+            CombinedChunkScanner scanner{*nodeGroupScanState.header->length};
             csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
                 scanner);
         }
@@ -651,8 +651,8 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
             }
             return *this;
         }
-        SegmentScanner::SegmentData& operator*() { return segmentScanner.segments[segmentIdx]; }
-        SegmentScanner::SegmentData* operator->() { return &*(*this); }
+        ColumnChunkScanner::SegmentData& operator*() { return segmentScanner.segments[segmentIdx]; }
+        ColumnChunkScanner::SegmentData* operator->() { return &*(*this); }
     } it{0, 0, oldChunkScanner};
 
     std::vector<ChunkCheckpointState> ret;
@@ -713,7 +713,7 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
                     StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
                 const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
                 KU_ASSERT(!chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk));
-                CombinedSegmentScanner tmpScanner{*newChunk};
+                CombinedChunkScanner tmpScanner{*newChunk};
                 chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
                     &DUMMY_CHECKPOINT_TRANSACTION, chunkState, tmpScanner, rowInChunk, 1);
                 ++offsetInNewCSR;

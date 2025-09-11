@@ -4,20 +4,20 @@
 #include "storage/table/segment_scanner.h"
 namespace kuzu {
 namespace storage {
-// Separately scans each segment
-// Avoids scanning a segment unless a call to writeToSegment() is made for the current segment
-struct LazySegmentScanner : public SegmentScanner {
+// Separately scans each segment in a column chunk
+// Avoids scanning a segment unless a call to updateScannedValue() is made for the current segment
+struct LazySegmentScanner : public ColumnChunkScanner {
     LazySegmentScanner(MemoryManager& mm, common::LogicalType columnType, bool enableCompression)
         : numValues(0), mm(mm), columnType(std::move(columnType)),
           enableCompression(enableCompression) {}
 
-    void initSegment(common::offset_t dstOffset, common::offset_t segmentLength,
+    void scanSegment(common::offset_t dstOffset, common::offset_t segmentLength,
         scan_func_t newScanFunc) override {
         segments.emplace_back(nullptr, dstOffset, segmentLength, std::move(newScanFunc));
         numValues += segmentLength;
     }
 
-    void writeToSegment(ColumnChunkData& data, common::offset_t srcOffset,
+    void updateScannedValue(ColumnChunkData& data, common::offset_t srcOffset,
         common::offset_t dstOffset) override {
         KU_ASSERT(dstOffset < numValues);
         auto segmentIdx = 0;
