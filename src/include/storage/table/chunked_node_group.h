@@ -36,7 +36,7 @@ class PageAllocator;
 
 enum class NodeGroupDataFormat : uint8_t { REGULAR = 0, CSR = 1 };
 
-class InMemChunkedNodeGroup {
+class KUZU_API InMemChunkedNodeGroup {
     friend class ChunkedNodeGroup;
 
 public:
@@ -115,7 +115,7 @@ protected:
 };
 
 // Collection of ColumnChunks for each column in a particular Node Group
-class KUZU_API ChunkedNodeGroup {
+class ChunkedNodeGroup {
     friend class InMemChunkedNodeGroup;
 
 public:
