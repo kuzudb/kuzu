@@ -379,6 +379,7 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
         checkpointState.segmentCheckpointStates.end(),
         [](const auto& a, const auto& b) { return a.startRowInData < b.startRowInData; }));
     std::vector<std::unique_ptr<ColumnChunkData>> offsetsToWrite;
+    uint64_t totalAppendedListSize = 0;
     for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
         KU_ASSERT(
             segmentCheckpointState.chunkData.getNumValues() == segmentCheckpointState.numRows);
@@ -387,11 +388,15 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
                 segmentCheckpointState.numRows, ResidencyState::IN_MEMORY));
         const auto& listChunk = segmentCheckpointState.chunkData.cast<ListChunkData>();
         for (auto i = 0u; i < segmentCheckpointState.numRows; i++) {
-            offsetsToWrite.back()->setValue<offset_t>(
-                persistentListDataSize + listChunk.getListEndOffset(i), i);
+            // When checkpointing the data chunks we append each list in the checkpoint state to the
+            // end of the data This loop processes the lists in the same order, so the offsets match
+            // the ones used by the data chunk checkpoint
+            totalAppendedListSize += listChunk.getListSize(segmentCheckpointState.startRowInData + i);
+            offsetsToWrite.back()->setValue<offset_t>(persistentListDataSize + totalAppendedListSize,
+                i);
         }
         offsetChunkCheckpointStates.push_back(
-            SegmentCheckpointState{*offsetsToWrite.back(), segmentCheckpointState.startRowInData,
+            SegmentCheckpointState{*offsetsToWrite.back(), 0,
                 segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
     }
 
