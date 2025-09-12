@@ -486,11 +486,13 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
                     &DUMMY_CHECKPOINT_TRANSACTION, chunkState, updateSegmentScanner);
             }
             KU_ASSERT(updateSegmentScanner.getNumValues() <= numPersistentRows);
+            auto offsetInChunk = 0;
             for (auto& segment : updateSegmentScanner.segments) {
                 if (segment.segmentData) {
                     chunkCheckpointStates.emplace_back(std::move(segment.segmentData),
-                        segment.offsetInChunk, segment.length);
+                        offsetInChunk, segment.length);
                 }
+                offsetInChunk += segment.length;
             }
         }
         if (numInsertedRows > 0) {

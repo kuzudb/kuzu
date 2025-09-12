@@ -8,8 +8,9 @@ namespace storage {
 struct CombinedChunkScanner : public ColumnChunkScanner {
     explicit CombinedChunkScanner(ColumnChunkData& output) : output(output) {}
 
-    void scanSegment(common::offset_t, common::offset_t, scan_func_t scanFunc) override {
-        scanFunc(output);
+    void scanSegment(common::offset_t offsetInSegment, common::offset_t length,
+        scan_func_t scanFunc) override {
+        scanFunc(output, offsetInSegment, length);
     }
 
     void updateScannedValue(ColumnChunkData& data, common::offset_t srcOffset,
