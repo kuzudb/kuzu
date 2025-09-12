@@ -11,9 +11,9 @@ struct LazySegmentScanner : public ColumnChunkScanner {
         : numValues(0), mm(mm), columnType(std::move(columnType)),
           enableCompression(enableCompression) {}
 
-    void scanSegment(common::offset_t dstOffset, common::offset_t segmentLength,
+    void scanSegment(common::offset_t offsetInSegment, common::offset_t segmentLength,
         scan_func_t newScanFunc) override {
-        segments.emplace_back(nullptr, dstOffset, segmentLength, std::move(newScanFunc));
+        segments.emplace_back(nullptr, offsetInSegment, segmentLength, std::move(newScanFunc));
         numValues += segmentLength;
     }
 
@@ -39,7 +39,8 @@ struct LazySegmentScanner : public ColumnChunkScanner {
                 ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(), enableCompression,
                     currentSegment.length, ResidencyState::IN_MEMORY);
 
-            currentSegment.scanFunc(*currentSegment.segmentData);
+            currentSegment.scanFunc(*currentSegment.segmentData, currentSegment.offsetInSegment,
+                currentSegment.length);
         }
     }
 
