@@ -306,6 +306,9 @@ private:
         genericRangeSegments(std::span(data), offsetInChunk, length, func);
     }
 
+    void scanInMemSegments(ColumnChunkScanner& output, common::offset_t startRow,
+        common::offset_t numRows) const;
+
 private:
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in
     // storage structures, instead should be fed into functions needed from ClientContext

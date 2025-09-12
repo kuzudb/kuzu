@@ -645,26 +645,49 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
         LazySegmentScanner& segmentScanner;
         SegmentScannerIt& operator++() {
             ++offsetInSegment;
-            if (offsetInSegment == segmentScanner.segments[segmentIdx].length) {
+            if (segmentIdx + 1 < segmentScanner.segments.size() &&
+                offsetInSegment == segmentScanner.segments[segmentIdx].length) {
                 ++segmentIdx;
                 offsetInSegment = 0;
             }
             return *this;
         }
-        ColumnChunkScanner::SegmentData& operator*() { return segmentScanner.segments[segmentIdx]; }
+        bool isInRange() const {
+            return segmentIdx + 1 < segmentScanner.segments.size() ||
+                   offsetInSegment < segmentScanner.segments.back().length;
+        }
+        ColumnChunkScanner::SegmentData& operator*() {
+            KU_ASSERT(isInRange());
+            return segmentScanner.segments[segmentIdx];
+        }
         ColumnChunkScanner::SegmentData* operator->() { return &*(*this); }
-    } it{0, 0, oldChunkScanner};
+    } readIt{0, 0, oldChunkScanner}, writeIt{0, 0, oldChunkScanner};
 
     std::vector<ChunkCheckpointState> ret;
+
+    auto startNewWriteSegment = [&]() {
+        if (newChunk->getNumValues() > 0) {
+            KU_ASSERT(segmentStartOffset.has_value());
+            ret.emplace_back(std::move(newChunk), *segmentStartOffset, newChunk->getNumValues());
+            newChunk = ColumnChunkFactory::createColumnChunkData(*csrState.mm,
+                dataTypes[columnID].copy(), false, numRowsInRegion, ResidencyState::IN_MEMORY);
+            segmentStartOffset.reset();
+        }
+    };
 
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
         nodeOffset++) {
         const auto oldCSRLength = csrState.oldHeader->getCSRLength(nodeOffset);
-        KU_ASSERT(csrState.oldHeader->getStartCSROffset(nodeOffset) >= leftCSROffset);
-        const auto oldStartRow = csrState.oldHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
-        const auto newStartRow = csrState.newHeader->getStartCSROffset(nodeOffset) - leftCSROffset;
-        KU_UNUSED(newStartRow);
+        const auto oldStartCSROffset = csrState.oldHeader->getStartCSROffset(nodeOffset);
+
+        KU_ASSERT(offsetInOldCSR <= oldStartCSROffset);
+        while (offsetInOldCSR < oldStartCSROffset) {
+            // skip gaps
+            ++readIt;
+            ++offsetInOldCSR;
+        }
+
         // Copy old csr list with updates into the new chunk.
         // if (!region.hasPersistentDeletions) {
         //     newChunk->append(oldChunkWithUpdates.get(), oldStartRow, oldCSRLength);
@@ -672,29 +695,34 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
         // TODO(Guodong): Optimize the for loop away by appending in batch
         for (auto i = 0u; i < oldCSRLength; i++) {
             if (!persistentChunkGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, offsetInOldCSR)) {
-                if (offsetInOldCSR == offsetInNewCSR && it->segmentData == nullptr) {
+                if (offsetInOldCSR == offsetInNewCSR && readIt->segmentData == nullptr &&
+                    !segmentStartOffset.has_value()) {
                     // can skip, start new segment if needed
-                    if (newChunk->getNumValues() > 0) {
-                        KU_ASSERT(segmentStartOffset.has_value());
-                        ret.emplace_back(std::move(newChunk), *segmentStartOffset,
-                            newChunk->getNumValues());
-                        newChunk = ColumnChunkFactory::createColumnChunkData(*csrState.mm,
-                            dataTypes[columnID].copy(), false, numRowsInRegion,
-                            ResidencyState::IN_MEMORY);
+                    ++writeIt;
+                    if (writeIt.offsetInSegment == 0) {
+                        startNewWriteSegment();
                     }
                 } else {
-                    if (it->segmentData == nullptr) {
-                        oldChunkScanner.initScannedSegmentIfNeeded(it.segmentIdx);
+                    if (readIt->segmentData == nullptr) {
+                        oldChunkScanner.initScannedSegmentIfNeeded(readIt.segmentIdx);
                     }
                     if (!segmentStartOffset.has_value()) {
                         segmentStartOffset = offsetInNewCSR;
                     }
-                    newChunk->append(it->segmentData.get(), oldStartRow + i - it->offsetInChunk, 1);
+                    RUNTIME_CHECK(offset_t offsetInChunk = leftCSROffset; for (auto i = 0u;
+                        i < readIt.segmentIdx; ++i) {
+                        offsetInChunk += readIt->length;
+                    } KU_ASSERT(oldStartCSROffset + i == offsetInChunk + readIt.offsetInSegment););
+                    newChunk->append(readIt->segmentData.get(), readIt.offsetInSegment, 1);
+                    ++writeIt;
+                    if (writeIt.offsetInSegment == 0) {
+                        startNewWriteSegment();
+                    }
                 }
                 ++offsetInNewCSR;
             }
             ++offsetInOldCSR;
-            ++it;
+            ++readIt;
         }
         // }
         // Merge in-memory insertions into the new chunk.
@@ -717,6 +745,10 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
                 chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
                     &DUMMY_CHECKPOINT_TRANSACTION, chunkState, tmpScanner, rowInChunk, 1);
                 ++offsetInNewCSR;
+                ++writeIt;
+                if (writeIt.offsetInSegment == 0) {
+                    startNewWriteSegment();
+                }
             }
         }
         // Fill gaps if any.
@@ -733,6 +765,12 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
             }
             newChunk->append(dummyChunkForNulls.get(), 0, numGapsToFill);
             offsetInNewCSR += numGapsToFill;
+            for (int64_t j = 0; j < numGapsToFill; ++j) {
+                ++writeIt;
+                if (writeIt.offsetInSegment == 0) {
+                    startNewWriteSegment();
+                }
+            }
             numGaps -= numGapsToFill;
         }
     }
