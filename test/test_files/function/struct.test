@@ -157,6 +157,11 @@ C
 {date: , meetTime: , validInterval: , comments: , summary: , notes: , someMap: , location: [3.000000,5.200000], times: 11, data: NO hex code}
 {date: , meetTime: , validInterval: , comments: , summary: , notes: , someMap: , location: [3.500000,1.100000], times: 13, data: :\xA3}
 
+-LOG PropertiesStruct
+-STATEMENT RETURN STRUCT_PROPERTIES({name: "alice", age: 9, nullvar: null})
+---- 1
+{name: alice, age: 9, nullvar: }
+
 -LOG StructPackWithOptionalParam
 -STATEMENT RETURN STRUCT_PACK(x:=2,y:=3);
 ---- 1
