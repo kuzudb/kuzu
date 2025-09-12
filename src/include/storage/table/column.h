@@ -81,6 +81,7 @@ public:
         common::offset_t srcOffset, common::length_t numValues) const;
 
     // Append values to the end of the node group, resizing it if necessary
+    // Expects bools to be one bool per bit (like ColumnChunkData)
     common::offset_t appendValues(ColumnChunkData& persistentChunk, SegmentState& state,
         const uint8_t* data, const common::NullMask* nullChunkData,
         common::offset_t numValues) const;

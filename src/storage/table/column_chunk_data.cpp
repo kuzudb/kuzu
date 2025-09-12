@@ -197,7 +197,7 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
-    stats.update(values.getData(), offset, numValuesToCheck, &values.getNullMask(), physicalType);
+    stats.update(values, offset, numValuesToCheck, physicalType);
 }
 
 static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
@@ -205,8 +205,7 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* 
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
     const auto nullMask = values->getNullMask();
-    stats.update(values->getData(), offset, numValuesToCheck,
-        nullMask ? &nullMask.value() : nullptr, physicalType);
+    stats.update(*values, offset, numValuesToCheck, physicalType);
 }
 
 MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {

@@ -1169,7 +1169,7 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
         {
             if (numValues > 0) {
                 auto typedData = std::span(reinterpret_cast<const T*>(data) + offset, numValues);
-                returnValue = getTypedMinMax(typedData, nullMask, offset);
+                returnValue = getTypedMinMax(typedData, nullMask ? &*nullMask : nullptr, offset);
             }
         },
         [&]<typename T>(T)
@@ -1178,7 +1178,55 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
             if (numValues > 0) {
                 const auto typedData =
                     std::span(reinterpret_cast<const uint64_t*>(data) + offset, numValues);
-                returnValue = getTypedMinMax(typedData, nullMask, offset);
+                returnValue = getTypedMinMax(typedData, nullMask ? &*nullMask : nullptr, offset);
+            }
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, interval_t> || std::same_as<T, struct_entry_t> ||
+                     std::same_as<T, ku_string_t> || std::same_as<T, list_entry_t>)
+        {
+            if (valueRequiredIfUnsupported) {
+                // For unsupported types on the first copy,
+                // they need a non-optional value to distinguish them
+                // from supported types where every value is null
+                returnValue.first = std::numeric_limits<uint64_t>::min();
+                returnValue.second = std::numeric_limits<uint64_t>::max();
+            }
+        });
+    return returnValue;
+}
+std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
+    const ColumnChunkData& data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
+    bool valueRequiredIfUnsupported) {
+    auto nullMask = data.getNullMask();
+    return getMinMaxStorageValue(data.getData(), offset, numValues, physicalType,
+        nullMask ? &*nullMask : nullptr, valueRequiredIfUnsupported);
+}
+
+std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxStorageValue(
+    const ValueVector& data, uint64_t offset, uint64_t numValues, PhysicalTypeID physicalType,
+    bool valueRequiredIfUnsupported) {
+    std::pair<std::optional<StorageValue>, std::optional<StorageValue>> returnValue;
+    auto& nullMask = data.getNullMask();
+
+    TypeUtils::visit(
+        physicalType,
+        [&]<typename T>(T)
+            requires(numeric_utils::IsIntegral<T> || std::floating_point<T>)
+        {
+            if (numValues > 0) {
+                auto typedData =
+                    std::span(reinterpret_cast<const T*>(data.getData()) + offset, numValues);
+                returnValue = getTypedMinMax(typedData, &nullMask, offset);
+            }
+        },
+        [&]<typename T>(T)
+            requires(std::same_as<T, internalID_t>)
+        {
+            if (numValues > 0) {
+                const auto typedData = std::span(
+                    reinterpret_cast<const uint64_t*>(data.getData()) + offset, numValues);
+                returnValue = getTypedMinMax(typedData, &nullMask, offset);
             }
         },
         [&]<typename T>(T)

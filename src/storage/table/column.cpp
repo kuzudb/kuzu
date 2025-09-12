@@ -358,9 +358,8 @@ void Column::writeSegment(ColumnChunkData& persistentChunk, SegmentState& state,
 
     if (dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_DOUBLE &&
         dataType.getPhysicalType() != common::PhysicalTypeID::ALP_EXCEPTION_FLOAT) {
-        auto nullMask = data.getNullMask();
-        auto [minWritten, maxWritten] = getMinMaxStorageValue(data.getData(), srcOffset, numValues,
-            dataType.getPhysicalType(), nullMask ? &*nullMask : nullptr);
+        auto [minWritten, maxWritten] =
+            getMinMaxStorageValue(data, srcOffset, numValues, dataType.getPhysicalType());
         updateStatistics(persistentChunk.getMetadata(), dstOffsetInSegment + numValues - 1,
             minWritten, maxWritten);
     }
