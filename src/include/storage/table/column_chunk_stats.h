@@ -2,7 +2,7 @@
 
 #include "storage/compression/compression.h"
 namespace common {
-    class ValueVector;
+class ValueVector;
 }
 namespace kuzu::storage {
 class ColumnChunkData;
