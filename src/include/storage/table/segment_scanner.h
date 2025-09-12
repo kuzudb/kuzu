@@ -13,9 +13,13 @@ struct ColumnChunkScanner {
 
     struct SegmentData {
         std::unique_ptr<ColumnChunkData> segmentData;
-        common::offset_t offsetInSegment;
+        common::offset_t startOffsetInSegment;
         common::offset_t length;
         scan_func_t scanFunc;
+
+        // Used for genericRangeSegments()
+        const SegmentData& operator*() const { return *this; }
+        common::offset_t getNumValues() const { return length; }
     };
 
     virtual ~ColumnChunkScanner() {};

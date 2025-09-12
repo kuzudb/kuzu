@@ -133,6 +133,7 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
             static_assert(SCAN_RESIDENCY_STATE == ResidencyState::IN_MEMORY);
             scanInMemSegments(output, startRow, numRows);
         }
+        // TODO pass in iterator
         updateInfo.scanCommitted(transaction, output, numValuesBeforeScan, startRow, numRows);
     }
 }

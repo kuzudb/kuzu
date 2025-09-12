@@ -50,10 +50,6 @@ std::pair<typename std::span<SegmentView>::iterator, common::offset_t> genericFi
     return std::make_pair(segments.end(), 0);
 }
 
-// dstOffset starts from 0 and is the offset in the output data for a given segment
-//  (it increases by lengthInSegment for each segment)
-// Returns the total number of values scanned (input length can be longer than the available
-// values)
 template<class SegmentView,
     std::invocable<SegmentView&, common::offset_t /*offsetInSegment*/,
         common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
@@ -63,6 +59,20 @@ common::offset_t genericRangeSegments(std::span<SegmentView> segments,
     // TODO(bmwinger): try binary search (might only make a difference for a very large number
     // of segments)
     auto [segment, offsetInSegment] = genericFindSegment(segments, offsetInChunk);
+    return genericRangeSegmentsFromIt(segments, segment, offsetInSegment, length, std::move(func));
+}
+
+// dstOffset starts from 0 and is the offset in the output data for a given segment
+//  (it increases by lengthInSegment for each segment)
+// Returns the total number of values scanned (input length can be longer than the available
+// values)
+template<class SegmentView,
+    std::invocable<SegmentView&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+        Func>
+common::offset_t genericRangeSegmentsFromIt(std::span<SegmentView> segments,
+    typename std::span<SegmentView>::iterator segment, common::offset_t offsetInSegment,
+    common::length_t length, Func func) {
     common::offset_t lengthScanned = 0;
     while (lengthScanned < length && segment != segments.end()) {
         KU_ASSERT((**segment).getNumValues() > offsetInSegment);
