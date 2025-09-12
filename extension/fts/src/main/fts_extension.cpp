@@ -4,7 +4,7 @@
 #include "catalog/fts_index_catalog_entry.h"
 #include "function/create_fts_index.h"
 #include "function/drop_fts_index.h"
-#include "function/query_fts_index.h"
+#include "function/query_fts/query_fts_index.h"
 #include "function/stem.h"
 #include "function/tokenize.h"
 #include "index/fts_index.h"

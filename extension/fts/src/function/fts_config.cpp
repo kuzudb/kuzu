@@ -149,14 +149,17 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
             common::StringUtils::replaceAll(ignorePatternQuery, "?", "");
             IgnorePattern::validate(ignorePattern);
             IgnorePattern::validate(ignorePatternQuery);
-        } else if (lowerCaseName == "tokenizer") {
-            value.validateType(common::LogicalTypeID::STRING);
+        } else if (Tokenizer::NAME == lowerCaseName) {
+            value.validateType(Tokenizer::TYPE);
             tokenizerInfo.tokenizer = common::StringUtils::getLower(value.getValue<std::string>());
             Tokenizer::validate(tokenizerInfo.tokenizer);
         } else if (lowerCaseName == "jieba_dict_dir") {
             value.validateType(common::LogicalTypeID::STRING);
             tokenizerInfo.jiebaDictDir =
                 common::StringUtils::getLower(value.getValue<std::string>());
+        } else if (ExactTermMatch::NAME == lowerCaseName) {
+            value.validateType(ExactTermMatch::TYPE);
+            exactTermMatch = value.getValue<bool>();
         } else {
             throw common::BinderException{"Unrecognized optional parameter: " + name};
         }
@@ -165,7 +168,8 @@ CreateFTSConfig::CreateFTSConfig(main::ClientContext& context, common::table_id_
 
 FTSConfig CreateFTSConfig::getFTSConfig() const {
     return FTSConfig{stemmer, stopWordsTableInfo.tableName, stopWordsTableInfo.stopWords,
-        ignorePattern, ignorePatternQuery, tokenizerInfo.tokenizer, tokenizerInfo.jiebaDictDir};
+        ignorePattern, ignorePatternQuery, tokenizerInfo.tokenizer, tokenizerInfo.jiebaDictDir,
+        exactTermMatch};
 }
 
 void FTSConfig::serialize(common::Serializer& serializer) const {
@@ -176,6 +180,7 @@ void FTSConfig::serialize(common::Serializer& serializer) const {
     serializer.serializeValue(ignorePatternQuery);
     serializer.serializeValue(tokenizer);
     serializer.serializeValue(jiebaDictDir);
+    serializer.serializeValue(exactTermMatch);
 }
 
 FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
@@ -187,6 +192,7 @@ FTSConfig FTSConfig::deserialize(common::Deserializer& deserializer) {
     deserializer.deserializeValue(config.ignorePatternQuery);
     deserializer.deserializeValue(config.tokenizer);
     deserializer.deserializeValue(config.jiebaDictDir);
+    deserializer.deserializeValue(config.exactTermMatch);
     return config;
 }
 
