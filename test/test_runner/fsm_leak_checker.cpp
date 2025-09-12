@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include "catalog/catalog.h"
+#include "catalog/catalog_entry/table_catalog_entry.h"
 #include "common/string_format.h"
 #include "common/types/types.h"
 #include "gtest/gtest.h"
@@ -39,10 +41,26 @@ void FSMLeakChecker::checkForLeakedPages(main::Connection* conn) {
         tableNames.emplace_back(next->getValue(0)->toString(), next->getValue(1)->toString());
     }
 
+    auto ctx = conn->getClientContext();
+    catalog::Catalog* catalog = catalog::Catalog::Get(*ctx);
+
+    // Drop all indices on all tables.
+    ASSERT_TRUE(conn->query("begin transaction")->isSuccess());
+    for (const auto& [name, type] : tableNames) {
+        auto transaction = transaction::Transaction::Get(*ctx);
+        auto tableID = catalog->getTableCatalogEntry(transaction, name)->getTableID();
+        catalog->dropAllIndexes(transaction, tableID);
+        std::cout << "Dropped all indexes on table " << name << std::endl;
+    }
+    ASSERT_TRUE(conn->query("commit")->isSuccess());
+
     // Drop rel tables first
     for (const auto& [name, type] : tableNames) {
         if (type == common::TableTypeUtils::toString(common::TableType::REL)) {
+            std::cout << "Trying to drop table " << name << std::endl;
             ASSERT_TRUE(conn->query(common::stringFormat("drop table `{}`", name))->isSuccess());
+
+
         }
     }
     // Then non-rel
