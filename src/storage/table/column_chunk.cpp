@@ -234,15 +234,6 @@ void ColumnChunk::append(const ColumnChunkData* other, common::offset_t startPos
     data.back()->append(other, startPosInOtherChunk, numValuesToAppend);
 }
 
-std::unique_ptr<ColumnChunk> ColumnChunk::flushAsNewColumnChunk(
-    PageAllocator& pageAllocator) const {
-    std::vector<std::unique_ptr<ColumnChunkData>> segments;
-    for (auto& segment : data) {
-        segments.push_back(Column::flushChunkData(*segment, pageAllocator));
-    }
-    return std::make_unique<ColumnChunk>(isCompressionEnabled(), std::move(segments));
-}
-
 void ColumnChunk::write(Column& column, ChunkState& state, offset_t dstOffset,
     const ColumnChunkData& dataToWrite, offset_t srcOffset, common::length_t numValues) {
     auto segment = data.begin();

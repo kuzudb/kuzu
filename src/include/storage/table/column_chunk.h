@@ -6,6 +6,7 @@
 #include "common/assert.h"
 #include "common/cast.h"
 #include "common/types/types.h"
+#include "storage/enums/residency_state.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/update_info.h"
 
@@ -95,7 +96,7 @@ struct ColumnCheckpointState {
 };
 
 struct ChunkState {
-    const Column* column;
+    const Column* column = nullptr;
     std::vector<SegmentState> segmentStates;
 
     void reclaimAllocatedPages(PageAllocator& pageAllocator) const;
@@ -221,6 +222,7 @@ public:
     void mapValues(Func func, uint64_t startOffset = 0, uint64_t endOffset = UINT64_MAX) {
         rangeSegments(startOffset, endOffset == UINT64_MAX ? UINT64_MAX : endOffset - startOffset,
             [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
+                KU_ASSERT(segment->getResidencyState() == ResidencyState::IN_MEMORY);
                 auto* segmentData = segment->template getData<T>();
                 for (size_t i = offsetInSegment; i < lengthInSegment; i++) {
                     func(segmentData[i], dstOffset + i - offsetInSegment);
@@ -230,38 +232,28 @@ public:
 
     template<typename T>
     T getValue(common::offset_t pos) const {
-        KU_ASSERT(pos < getNumValues());
-        for (const auto& segment : data) {
-            if (segment->getNumValues() > pos) {
-                return segment->getValue<T>(pos);
-            } else {
-                pos -= segment->getNumValues();
-            }
-        }
-        KU_UNREACHABLE;
+        KU_ASSERT(pos < getCapacity());
+        auto [segment, offsetInSegment] = genericFindSegment(std::span(data), pos);
+        KU_ASSERT(segment->get() != nullptr);
+        KU_ASSERT((*segment)->getResidencyState() == ResidencyState::IN_MEMORY);
+        return (*segment)->template getValue<T>(offsetInSegment);
     }
 
     template<typename T>
     void setValue(T val, common::offset_t pos) const {
         KU_ASSERT(pos < getCapacity());
-        for (const auto& segment : data) {
-            if (segment->getCapacity() > pos) {
-                segment->setValue<T>(val, pos);
-                return;
-            } else {
-                pos -= segment->getNumValues();
-            }
-        }
-        KU_UNREACHABLE;
+        auto [segment, offsetInSegment] = genericFindSegment(std::span(data), pos);
+        KU_ASSERT(segment->get() != nullptr);
+        KU_ASSERT((*segment)->getResidencyState() == ResidencyState::IN_MEMORY);
+        (*segment)->template setValue<T>(val, pos);
     }
 
     void flush(PageAllocator& pageAllocator) {
         for (auto& segment : data) {
+            KU_ASSERT(segment->getResidencyState() == ResidencyState::IN_MEMORY);
             segment->flush(pageAllocator);
         }
     }
-
-    std::unique_ptr<ColumnChunk> flushAsNewColumnChunk(PageAllocator& pageAllocator) const;
 
     void populateWithDefaultVal(evaluator::ExpressionEvaluator& defaultEvaluator,
         uint64_t& numValues_, ColumnStats* newColumnStats) {
@@ -271,6 +263,7 @@ public:
 
     void finalize() {
         for (auto& segment : data) {
+            KU_ASSERT(segment->getResidencyState() == ResidencyState::IN_MEMORY);
             segment->finalize();
         }
     }
