@@ -55,5 +55,15 @@ struct KeysFunctions {
     static function_set getFunctionSet();
 };
 
+struct PropertiesFunctions {
+    static constexpr const char* name = "PROPERTIE";
+
+    static function_set getFunctionSet();
+
+    static void compileFunc(FunctionBindData* bindData,
+        const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        std::shared_ptr<common::ValueVector>& result);
+};
+
 } // namespace function
 } // namespace kuzu
