@@ -391,13 +391,13 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
             // When checkpointing the data chunks we append each list in the checkpoint state to the
             // end of the data This loop processes the lists in the same order, so the offsets match
             // the ones used by the data chunk checkpoint
-            totalAppendedListSize += listChunk.getListSize(segmentCheckpointState.startRowInData + i);
-            offsetsToWrite.back()->setValue<offset_t>(persistentListDataSize + totalAppendedListSize,
-                i);
+            totalAppendedListSize +=
+                listChunk.getListSize(segmentCheckpointState.startRowInData + i);
+            offsetsToWrite.back()->setValue<offset_t>(
+                persistentListDataSize + totalAppendedListSize, i);
         }
-        offsetChunkCheckpointStates.push_back(
-            SegmentCheckpointState{*offsetsToWrite.back(), 0,
-                segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
+        offsetChunkCheckpointStates.push_back(SegmentCheckpointState{*offsetsToWrite.back(), 0,
+            segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
     }
 
     // We do not allow nested splitting of offset/size segments
