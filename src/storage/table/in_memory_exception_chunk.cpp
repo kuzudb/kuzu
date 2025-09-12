@@ -19,13 +19,14 @@ template<std::floating_point T>
 using ExceptionInBuffer = std::array<std::byte, EncodeException<T>::sizeInBytes()>;
 
 template<std::floating_point T>
-InMemoryExceptionChunk<T>::InMemoryExceptionChunk(const ChunkState& state, FileHandle* dataFH,
+InMemoryExceptionChunk<T>::InMemoryExceptionChunk(const SegmentState& state, FileHandle* dataFH,
     MemoryManager* memoryManager, ShadowFile* shadowFile)
     : exceptionCount(state.metadata.compMeta.floatMetadata()->exceptionCount),
       finalizedExceptionCount(exceptionCount),
       exceptionCapacity(state.metadata.compMeta.floatMetadata()->exceptionCapacity),
-      emptyMask(exceptionCapacity), column(ColumnFactory::createColumn("ALPExceptionChunk",
-                                        physicalType, dataFH, memoryManager, shadowFile, false)) {
+      emptyMask(exceptionCapacity),
+      column(std::make_unique<Column>("ALPExceptionChunk", physicalType, dataFH, memoryManager,
+          shadowFile, false, false /*has nulls*/)) {
     const auto exceptionBaseCursor =
         getExceptionPageCursor(state.metadata, PageCursor{state.metadata.getStartPageIdx(), 0},
             state.metadata.compMeta.floatMetadata()->exceptionCapacity);
@@ -36,27 +37,28 @@ InMemoryExceptionChunk<T>::InMemoryExceptionChunk(const ChunkState& state, FileH
         safeIntegerConversion<page_idx_t>(
             EncodeException<T>::numPagesFromExceptions(exceptionCapacity)),
         exceptionCapacity, compMeta);
-    chunkState = std::make_unique<ChunkState>(exceptionChunkMeta,
+    chunkState = std::make_unique<SegmentState>(exceptionChunkMeta,
         EncodeException<T>::exceptionBytesPerPage() / EncodeException<T>::sizeInBytes());
 
-    chunkData = std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false,
-        exceptionChunkMeta, true);
+    chunkData =
+        std::make_unique<ColumnChunkData>(*memoryManager, physicalType, false, exceptionChunkMeta,
+            false /*all written data is non-null and nulls are kept in a separate mask in-memory*/);
     chunkData->setToInMemory();
-    column->scan(*chunkState, chunkData.get());
+    column->scanSegment(*chunkState, chunkData.get(), 0, chunkState->metadata.numValues);
 }
 
 template<std::floating_point T>
 InMemoryExceptionChunk<T>::~InMemoryExceptionChunk() = default;
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(ChunkState& state) {
+void InMemoryExceptionChunk<T>::finalizeAndFlushToDisk(SegmentState& state) {
     finalize(state);
 
-    column->write(*chunkData, *chunkState, 0, chunkData.get(), 0, exceptionCapacity);
+    column->writeSegment(*chunkData, *chunkState, 0, *chunkData, 0, exceptionCapacity);
 }
 
 template<std::floating_point T>
-void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
+void InMemoryExceptionChunk<T>::finalize(SegmentState& state) {
     // removes holes + sorts exception chunk
     finalizedExceptionCount = 0;
     for (size_t i = 0; i < exceptionCount; ++i) {
@@ -86,6 +88,7 @@ void InMemoryExceptionChunk<T>::finalize(ChunkState& state) {
     emptyMask.setNullFromRange(finalizedExceptionCount, (exceptionCount - finalizedExceptionCount),
         true);
     exceptionCount = finalizedExceptionCount;
+    chunkData->setNumValues(finalizedExceptionCount);
 }
 
 template<std::floating_point T>

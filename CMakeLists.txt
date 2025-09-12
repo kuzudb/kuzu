@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(Kuzu VERSION 0.11.2.1 LANGUAGES CXX C)
+project(Kuzu VERSION 0.11.2.2 LANGUAGES CXX C)
 
 option(SINGLE_THREADED "Single-threaded mode" FALSE)
 if(SINGLE_THREADED)
@@ -128,6 +128,12 @@ if(NOT KUZU_NODE_GROUP_SIZE_LOG2)
     set(KUZU_NODE_GROUP_SIZE_LOG2 17)
 endif()
 message(STATUS "KUZU_NODE_GROUP_SIZE_LOG2: ${KUZU_NODE_GROUP_SIZE_LOG2}")
+
+option(KUZU_MAX_SEGMENT_SIZE_LOG2 "Log2 of the maximum segment size in bytes." 18)
+if(NOT KUZU_MAX_SEGMENT_SIZE_LOG2)
+    set(KUZU_MAX_SEGMENT_SIZE_LOG2 18)
+endif()
+message(STATUS "KUZU_MAX_SEGMENT_SIZE_LOG2: ${KUZU_MAX_SEGMENT_SIZE_LOG2}")
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/system_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/src/include/common/system_config.h @ONLY)
 

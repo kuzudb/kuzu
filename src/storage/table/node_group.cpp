@@ -23,7 +23,7 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, ChunkedNodeGroup& chunkedGroup,
     row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
     KU_ASSERT(numRowsToAppend <= chunkedGroup.getNumRows());
-    std::vector<ColumnChunk*> chunksToAppend(chunkedGroup.getNumColumns());
+    std::vector<const ColumnChunk*> chunksToAppend(chunkedGroup.getNumColumns());
     for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
         chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
     }
@@ -31,7 +31,51 @@ row_idx_t NodeGroup::append(const Transaction* transaction,
 }
 
 row_idx_t NodeGroup::append(const Transaction* transaction,
-    const std::vector<column_id_t>& columnIDs, const std::vector<ColumnChunk*>& chunkedGroup,
+    const std::vector<column_id_t>& columnIDs, InMemChunkedNodeGroup& chunkedGroup,
+    row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
+    KU_ASSERT(numRowsToAppend <= chunkedGroup.getNumRows());
+    std::vector<const ColumnChunkData*> chunksToAppend(chunkedGroup.getNumColumns());
+    for (auto i = 0u; i < chunkedGroup.getNumColumns(); i++) {
+        chunksToAppend[i] = &chunkedGroup.getColumnChunk(i);
+    }
+    return append(transaction, columnIDs, chunksToAppend, startRowIdx, numRowsToAppend);
+}
+
+row_idx_t NodeGroup::append(const Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, std::span<const ColumnChunkData*> chunkedGroup,
+    row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
+    const auto lock = chunkedGroups.lock();
+    const auto numRowsBeforeAppend = getNumRows();
+    if (chunkedGroups.isEmpty(lock)) {
+        chunkedGroups.appendGroup(lock,
+            std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, 0, ResidencyState::IN_MEMORY));
+    }
+    row_idx_t numRowsAppended = 0u;
+    while (numRowsAppended < numRowsToAppend) {
+        auto lastChunkedGroup = chunkedGroups.getLastGroup(lock);
+        if (!lastChunkedGroup || lastChunkedGroup->isFullOrOnDisk()) {
+            chunkedGroups.appendGroup(lock,
+                std::make_unique<ChunkedNodeGroup>(mm, dataTypes, enableCompression,
+                    StorageConfig::CHUNKED_NODE_GROUP_CAPACITY,
+                    numRowsBeforeAppend + numRowsAppended, ResidencyState::IN_MEMORY));
+        }
+        lastChunkedGroup = chunkedGroups.getLastGroup(lock);
+        KU_ASSERT(StorageConfig::CHUNKED_NODE_GROUP_CAPACITY >= lastChunkedGroup->getNumRows());
+        auto numToCopyIntoChunk =
+            StorageConfig::CHUNKED_NODE_GROUP_CAPACITY - lastChunkedGroup->getNumRows();
+        const auto numToAppendInChunk =
+            std::min(numRowsToAppend - numRowsAppended, numToCopyIntoChunk);
+        lastChunkedGroup->append(transaction, columnIDs, chunkedGroup,
+            numRowsAppended + startRowIdx, numToAppendInChunk);
+        numRowsAppended += numToAppendInChunk;
+    }
+    numRows += numRowsAppended;
+    return numRowsBeforeAppend;
+}
+
+row_idx_t NodeGroup::append(const Transaction* transaction,
+    const std::vector<column_id_t>& columnIDs, std::span<const ColumnChunk*> chunkedGroup,
     row_idx_t startRowIdx, row_idx_t numRowsToAppend) {
     const auto lock = chunkedGroups.lock();
     const auto numRowsBeforeAppend = getNumRows();
@@ -382,9 +426,8 @@ void NodeGroup::checkpoint(MemoryManager& memoryManager, NodeGroupCheckpointStat
         numRows - firstGroup->getStartRowIdx()) {
         reclaimStorage(state.pageAllocator, lock);
         checkpointedChunkedGroup =
-            std::make_unique<ChunkedNodeGroup>(memoryManager, dataTypes, enableCompression,
-                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, ResidencyState::IN_MEMORY);
-        checkpointedChunkedGroup->flush(state.pageAllocator);
+            ChunkedNodeGroup::flushEmpty(memoryManager, dataTypes, enableCompression,
+                StorageConfig::CHUNKED_NODE_GROUP_CAPACITY, numRows, state.pageAllocator);
     } else {
         if (hasPersistentData) {
             checkpointedChunkedGroup = checkpointInMemAndOnDisk(memoryManager, lock, state);
@@ -435,17 +478,15 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
             const auto updateChunk = scanAllInsertedAndVersions<ResidencyState::ON_DISK>(
                 memoryManager, lock, {columnID}, {state.columns[columnID]});
             KU_ASSERT(updateChunk->getNumRows() == numPersistentRows);
-            chunkCheckpointStates.push_back(ChunkCheckpointState{
-                updateChunk->getColumnChunk(0).moveData(), 0, updateChunk->getNumRows()});
+            chunkCheckpointStates.push_back(ChunkCheckpointState{updateChunk->moveColumnChunk(0), 0,
+                updateChunk->getNumRows()});
         }
         if (numInsertedRows > 0) {
-            chunkCheckpointStates.push_back(
-                ChunkCheckpointState{insertChunkedGroup->getColumnChunk(columnID).moveData(),
-                    numPersistentRows, numInsertedRows});
+            chunkCheckpointStates.push_back(ChunkCheckpointState{
+                insertChunkedGroup->moveColumnChunk(columnID), numPersistentRows, numInsertedRows});
         }
-        ColumnCheckpointState columnCheckpointState(firstGroup->getColumnChunk(columnID).getData(),
-            std::move(chunkCheckpointStates));
-        state.columns[i]->checkpointColumnChunk(columnCheckpointState, state.pageAllocator);
+        firstGroup->getColumnChunk(columnID).checkpoint(*state.columns[i],
+            std::move(chunkCheckpointStates), state.pageAllocator);
     }
     auto checkpointedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(*chunkedGroups.getGroup(lock, 0), state.columnIDs);
@@ -469,8 +510,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemOnly(MemoryManager& 
     }
     auto insertChunkedGroup = scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(memoryManager,
         lock, state.columnIDs, columnPtrs);
-    insertChunkedGroup->flush(state.pageAllocator);
-    return insertChunkedGroup;
+    return insertChunkedGroup->flush(&DUMMY_CHECKPOINT_TRANSACTION, state.pageAllocator);
 }
 
 std::unique_ptr<VersionInfo> NodeGroup::checkpointVersionInfo(const UniqLock& lock,
@@ -614,7 +654,7 @@ row_idx_t NodeGroup::getNumResidentRows(const UniqLock& lock) const {
 }
 
 template<ResidencyState RESIDENCY_STATE>
-std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
+std::unique_ptr<InMemChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     MemoryManager& memoryManager, const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
     const std::vector<const Column*>& columns) const {
     auto numResidentRows = getNumResidentRows<RESIDENCY_STATE>(lock);
@@ -622,9 +662,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     for (const auto* column : columns) {
         columnTypes.push_back(column->getDataType().copy());
     }
-    auto mergedInMemGroup = std::make_unique<ChunkedNodeGroup>(memoryManager, columnTypes,
-        enableCompression, numResidentRows, chunkedGroups.getFirstGroup(lock)->getStartRowIdx(),
-        ResidencyState::IN_MEMORY);
+    auto mergedInMemGroup = std::make_unique<InMemChunkedNodeGroup>(memoryManager, columnTypes,
+        enableCompression, numResidentRows, chunkedGroups.getFirstGroup(lock)->getStartRowIdx());
     auto scanState = std::make_unique<TableScanState>(columnIDs, columns);
     scanState->nodeGroupScanState = std::make_unique<NodeGroupScanState>(columnIDs.size());
     initializeScanState(&DUMMY_CHECKPOINT_TRANSACTION, lock, *scanState);
@@ -641,11 +680,11 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::scanAllInsertedAndVersions(
     return mergedInMemGroup;
 }
 
-template std::unique_ptr<ChunkedNodeGroup>
+template std::unique_ptr<InMemChunkedNodeGroup>
 NodeGroup::scanAllInsertedAndVersions<ResidencyState::ON_DISK>(MemoryManager& memoryManager,
     const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
     const std::vector<const Column*>& columns) const;
-template std::unique_ptr<ChunkedNodeGroup>
+template std::unique_ptr<InMemChunkedNodeGroup>
 NodeGroup::scanAllInsertedAndVersions<ResidencyState::IN_MEMORY>(MemoryManager& memoryManager,
     const UniqLock& lock, const std::vector<column_id_t>& columnIDs,
     const std::vector<const Column*>& columns) const;
