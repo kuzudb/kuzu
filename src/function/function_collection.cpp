@@ -177,7 +177,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Struct functions
         SCALAR_FUNCTION(StructPackFunctions), SCALAR_FUNCTION(StructExtractFunctions),
-        REWRITE_FUNCTION(KeysFunctions),
+        REWRITE_FUNCTION(KeysFunctions), SCALAR_FUNCTION(StructPropertiesFunctions),
 
         // Map functions
         SCALAR_FUNCTION(MapCreationFunctions), SCALAR_FUNCTION(MapExtractFunctions),
