@@ -11,6 +11,35 @@ struct LazySegmentScanner : public ColumnChunkScanner {
         : numValues(0), mm(mm), columnType(std::move(columnType)),
           enableCompression(enableCompression) {}
 
+    struct Iterator {
+        common::offset_t segmentIdx;
+        common::offset_t offsetInSegment;
+        LazySegmentScanner& segmentScanner;
+
+        void advance(common::offset_t n) {
+            segmentScanner.rangeSegments(*this, n,
+                [this](auto& segmentData, auto, auto lengthInSegment, auto) {
+                    KU_ASSERT(segmentData.length > offsetInSegment);
+                    if (segmentData.length - offsetInSegment == lengthInSegment) {
+                        ++segmentIdx;
+                        offsetInSegment = 0;
+                    } else {
+                        offsetInSegment += lengthInSegment;
+                    }
+                });
+        }
+
+        void operator++() { advance(1); }
+
+        ColumnChunkScanner::SegmentData& operator*() const {
+            KU_ASSERT(segmentIdx < segmentScanner.segments.size() &&
+                      offsetInSegment < segmentScanner.segments[segmentIdx].length);
+            return segmentScanner.segments[segmentIdx];
+        }
+
+        ColumnChunkScanner::SegmentData* operator->() const { return &*(*this); }
+    };
+
     void scanSegment(common::offset_t offsetInSegment, common::offset_t segmentLength,
         scan_func_t newScanFunc) override {
         segments.emplace_back(nullptr, offsetInSegment, segmentLength, std::move(newScanFunc));
@@ -39,9 +68,18 @@ struct LazySegmentScanner : public ColumnChunkScanner {
                 ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(), enableCompression,
                     currentSegment.length, ResidencyState::IN_MEMORY);
 
-            currentSegment.scanFunc(*currentSegment.segmentData, currentSegment.offsetInSegment,
-                currentSegment.length);
+            currentSegment.scanFunc(*currentSegment.segmentData,
+                currentSegment.startOffsetInSegment, currentSegment.length);
         }
+    }
+
+    template<std::invocable<SegmentData&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+            Func>
+    void rangeSegments(Iterator startIt, common::length_t length, Func func) const {
+        auto segmentSpan = std::span(segments);
+        genericRangeSegmentsFromIt(segmentSpan, segmentSpan.begin() + startIt.segmentIdx,
+            startIt.offsetInSegment, length, func);
     }
 
     std::vector<SegmentData> segments;
