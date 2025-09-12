@@ -10,6 +10,7 @@
 #include "common/types/ku_string.h"
 #include "common/types/timestamp_t.h"
 #include "common/types/types.h"
+#include "common/types/uint128_t.h"
 #include "common/types/uuid.h"
 #include "common/vector/value_vector.h"
 
@@ -287,6 +288,8 @@ public:
 // Forward declaration of template specializations.
 template<>
 std::string TypeUtils::toString(const int128_t& val, void* valueVector);
+template<>
+std::string TypeUtils::toString(const uint128_t& val, void* valueVector);
 template<>
 std::string TypeUtils::toString(const bool& val, void* valueVector);
 template<>

@@ -7,6 +7,7 @@
 #include "common/types/int128_t.h"
 #include "common/types/timestamp_t.h"
 #include "common/types/types.h"
+#include "common/types/uint128_t.h"
 #include "fast_float.h"
 #include "function/cast/functions/numeric_limits.h"
 
@@ -125,7 +126,7 @@ struct Int128CastData {
             if (digits > DECIMAL_PRECISION_LIMIT) {
                 return false;
             }
-            if (!Int128_t::tryMultiply(result, Int128_t::powerOf10[digits], result)) {
+            if (!Int128_t::tryMultiply(result, (int128_t)UInt128_t::powerOf10[digits], result)) {
                 return false;
             }
         }
