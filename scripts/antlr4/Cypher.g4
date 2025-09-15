@@ -783,7 +783,7 @@ oC_UnaryAddSubtractOrFactorialExpression
     : ( MINUS SP? )* oC_PropertyOrLabelsExpression (SP? FACTORIAL)? ;
 
 oC_PropertyOrLabelsExpression
-    : oC_Atom ( SP? oC_PropertyLookup )* ;
+    : oC_Atom ( ( SP? oC_PropertyLookup )* | ( SP? oC_NodeLabels ) ) ;
 
 oC_Atom
     : oC_Literal
