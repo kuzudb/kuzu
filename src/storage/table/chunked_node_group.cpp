@@ -436,30 +436,37 @@ row_idx_t ChunkedNodeGroup::getNumDeletions(const Transaction* transaction, row_
     return 0;
 }
 
+std::unique_ptr<ColumnChunk> InMemChunkedNodeGroup::flushInternal(ColumnChunkData& chunk,
+    PageAllocator& pageAllocator) {
+    // Finalize is necessary prior to splitting for strings and lists so that pruned values
+    // don't have an impact on the number/size of segments It should not be necessary after
+    // splitting since the function is used to prune unused values (or duplicated dictionary
+    // entries in the case of strings) and those will never be introduced when splitting.
+    chunk.finalize();
+    if (chunk.shouldSplit()) {
+        auto splitSegments = chunk.split(true /*new segments are always the max size if possible*/);
+        std::vector<std::unique_ptr<ColumnChunkData>> flushedSegments;
+        flushedSegments.reserve(splitSegments.size());
+        for (auto& segment : splitSegments) {
+            // TODO(bmwinger): This should be removed when splitting works predictively instead of
+            // backtracking if we copy too many values
+            // It's only needed to prune values from string/list chunks which were truncated
+            segment->finalize();
+            flushedSegments.push_back(Column::flushChunkData(*segment, pageAllocator));
+        }
+        return std::make_unique<ColumnChunk>(chunk.isCompressionEnabled(),
+            std::move(flushedSegments));
+    } else {
+        return std::make_unique<ColumnChunk>(chunk.isCompressionEnabled(),
+            Column::flushChunkData(chunk, pageAllocator));
+    }
+}
+
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedNodeGroup::flush(Transaction* transaction,
     PageAllocator& pageAllocator) {
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        // Finalize is necessary prior to splitting for strings and lists so that pruned values
-        // don't have an impact on the number/size of segments It should not be necessary after
-        // splitting since the function is used to prune unused values (or duplicated dictionary
-        // entries in the case of strings) and those will never be introduced when splitting.
-        getColumnChunk(i).finalize();
-        if (getColumnChunk(i).shouldSplit()) {
-            auto splitSegments =
-                getColumnChunk(i).split(true /*new segments are always the max size if possible*/);
-            std::vector<std::unique_ptr<ColumnChunkData>> flushedSegments;
-            flushedSegments.reserve(splitSegments.size());
-            for (auto& segment : splitSegments) {
-                flushedSegments.push_back(Column::flushChunkData(*segment, pageAllocator));
-            }
-            flushedChunks[i] = std::make_unique<ColumnChunk>(
-                getColumnChunk(i).isCompressionEnabled(), std::move(flushedSegments));
-        } else {
-            flushedChunks[i] =
-                std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-                    Column::flushChunkData(getColumnChunk(i), pageAllocator));
-        }
+        flushedChunks[i] = flushInternal(getColumnChunk(i), pageAllocator);
     }
     auto flushedChunkedGroup =
         std::make_unique<ChunkedNodeGroup>(std::move(flushedChunks), 0 /*startRowIdx*/);

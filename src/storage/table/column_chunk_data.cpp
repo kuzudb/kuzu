@@ -1057,6 +1057,12 @@ std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool target
             newSegment->append(this, pos, numValuesToAppendInChunk);
             pos += numValuesToAppendInChunk;
         }
+        if (pos < numValues && newSegment->getNumValues() > chunkSize) {
+            // Size exceeded target size, so we should drop the last batch added (unless they are
+            // the only values)
+            pos -= chunkSize;
+            newSegment->truncate(newSegment->getNumValues() - chunkSize);
+        }
         newSegments.push_back(std::move(newSegment));
     }
     return newSegments;

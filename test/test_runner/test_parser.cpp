@@ -136,6 +136,11 @@ bool TestParser::shouldSkip(TokenType type) {
             return true;
         }
     } break;
+    case TokenType::SKIP_SEGMENT_SIZE_TESTS: {
+        if constexpr (StorageConfig::MAX_SEGMENT_SIZE_LOG2 != STANDARD_MAX_SEGMENT_SIZE_LOG_2) {
+            return true;
+        }
+    } break;
     case TokenType::SKIP_STATIC_LINK: {
 #ifdef __STATIC_LINK_EXTENSION_TEST__
         return true;
@@ -177,6 +182,7 @@ void TestParser::parseHeader() {
         case TokenType::SKIP_IN_MEM:
         case TokenType::SKIP_VECTOR_CAPACITY_TESTS:
         case TokenType::SKIP_NODE_GROUP_SIZE_TESTS:
+        case TokenType::SKIP_SEGMENT_SIZE_TESTS:
         case TokenType::SKIP_PAGE_SIZE_TESTS:
         case TokenType::SKIP_STATIC_LINK: {
             if (shouldSkip(currentToken.type)) {

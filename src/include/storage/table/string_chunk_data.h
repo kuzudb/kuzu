@@ -89,6 +89,7 @@ private:
     void setNumValues(uint64_t numValues) override {
         ColumnChunkData::setNumValues(numValues);
         indexColumnChunk->setNumValues(numValues);
+        needFinalize = true;
     }
 
 private:

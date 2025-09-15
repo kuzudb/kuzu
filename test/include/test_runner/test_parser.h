@@ -26,6 +26,7 @@ enum class TokenType {
     SKIP_VECTOR_CAPACITY_TESTS,
     SKIP_NODE_GROUP_SIZE_TESTS,
     SKIP_PAGE_SIZE_TESTS,
+    SKIP_SEGMENT_SIZE_TESTS,
     TEST_FWD_ONLY_REL,
 
     // Test case statements
@@ -77,6 +78,7 @@ const std::unordered_map<std::string, TokenType> TOKEN_MAP = {{"-DATASET", Token
     {"-SKIP_VECTOR_CAPACITY_TESTS", TokenType::SKIP_VECTOR_CAPACITY_TESTS},
     {"-SKIP_NODE_GROUP_SIZE_TESTS", TokenType::SKIP_NODE_GROUP_SIZE_TESTS},
     {"-SKIP_PAGE_SIZE_TESTS", TokenType::SKIP_PAGE_SIZE_TESTS},
+    {"-SKIP_SEGMENT_SIZE_TESTS", TokenType::SKIP_SEGMENT_SIZE_TESTS},
     {"-TEST_FWD_ONLY_REL", TokenType::TEST_FWD_ONLY_REL}, {"-STATEMENT", TokenType::STATEMENT},
     {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
     {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE},
@@ -106,6 +108,7 @@ public:
     static constexpr uint64_t STANDARD_VECTOR_CAPACITY_LOG_2 = 11;
     static constexpr uint64_t STANDARD_NODE_GROUP_SIZE_LOG_2 = 17;
     static constexpr uint64_t STANDARD_PAGE_SIZE_LOG_2 = 12;
+    static constexpr uint64_t STANDARD_MAX_SEGMENT_SIZE_LOG_2 = 18;
 
     explicit TestParser(std::string path);
     std::unique_ptr<TestGroup> parseTestFile();

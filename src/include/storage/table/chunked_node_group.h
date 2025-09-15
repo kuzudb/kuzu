@@ -104,6 +104,10 @@ public:
         PageAllocator& pageAllocator);
 
 protected:
+    std::unique_ptr<ColumnChunk> flushInternal(ColumnChunkData& chunk,
+        PageAllocator& pageAllocator);
+
+protected:
     common::row_idx_t startRowIdx;
     std::atomic<common::row_idx_t> numRows;
     uint64_t capacity;

@@ -208,17 +208,14 @@ length_t ChunkedCSRHeader::computeGapFromLength(length_t length) {
 
 std::unique_ptr<ChunkedNodeGroup> InMemChunkedCSRNodeGroup::flush(
     transaction::Transaction* transaction, PageAllocator& pageAllocator) {
-    auto csrOffset = Column::flushChunkData(*csrHeader.offset, pageAllocator);
-    auto csrLength = Column::flushChunkData(*csrHeader.length, pageAllocator);
+    auto csrOffset = flushInternal(*csrHeader.offset, pageAllocator);
+    auto csrLength = flushInternal(*csrHeader.length, pageAllocator);
     std::vector<std::unique_ptr<ColumnChunk>> flushedChunks(getNumColumns());
     for (auto i = 0u; i < getNumColumns(); i++) {
-        getColumnChunk(i).finalize();
-        flushedChunks[i] = std::make_unique<ColumnChunk>(getColumnChunk(i).isCompressionEnabled(),
-            Column::flushChunkData(getColumnChunk(i), pageAllocator));
+        flushedChunks[i] = flushInternal(getColumnChunk(i), pageAllocator);
     }
-    InMemChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
-    auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(
-        ChunkedCSRHeader(newCSRHeader.offset->isCompressionEnabled(), std::move(newCSRHeader)),
+    ChunkedCSRHeader newCSRHeader{std::move(csrOffset), std::move(csrLength)};
+    auto flushedChunkedGroup = std::make_unique<ChunkedCSRNodeGroup>(std::move(newCSRHeader),
         std::move(flushedChunks), 0 /*startRowIdx*/);
     flushedChunkedGroup->versionInfo = std::make_unique<VersionInfo>();
     KU_ASSERT(numRows == flushedChunkedGroup->getNumRows());
