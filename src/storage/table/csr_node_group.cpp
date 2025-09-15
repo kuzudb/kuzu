@@ -4,7 +4,7 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
-#include "storage/table/combined_segment_scanner.h"
+#include "storage/table/combined_chunk_scanner.h"
 #include "storage/table/csr_chunked_node_group.h"
 #include "storage/table/lazy_segment_scanner.h"
 #include "storage/table/rel_table.h"
@@ -615,7 +615,7 @@ void CSRNodeGroup::checkpointColumn(const UniqLock& lock, column_id_t columnID,
 
 struct SegmentCursor {
     SegmentCursor(LazySegmentScanner& scanner, offset_t leftCSROffset)
-        : scanner(scanner), it(0, 0, scanner), curCSROffset(leftCSROffset) {}
+        : scanner(scanner), it(scanner.begin()), curCSROffset(leftCSROffset) {}
 
     void advance(offset_t n) {
         curCSROffset += n;
@@ -643,7 +643,7 @@ struct CheckpointReadCursor {
 
     std::pair<ColumnChunkData*, offset_t> getDataToRead() {
         if (cursor.it->segmentData == nullptr) {
-            cursor.scanner.initScannedSegmentIfNeeded(cursor.it.segmentIdx);
+            cursor.scanner.scanSegmentIfNeeded(cursor.it.segmentIdx);
         }
         return {cursor.it->segmentData.get(), cursor.it.offsetInSegment};
     }

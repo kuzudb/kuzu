@@ -12,9 +12,9 @@
 #include "storage/table/column.h"
 #include "storage/table/column_chunk.h"
 #include "storage/table/column_chunk_data.h"
-#include "storage/table/combined_segment_scanner.h"
+#include "storage/table/column_chunk_scanner.h"
+#include "storage/table/combined_chunk_scanner.h"
 #include "storage/table/node_table.h"
-#include "storage/table/segment_scanner.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
