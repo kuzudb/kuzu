@@ -65,11 +65,11 @@ struct NodeLabelFilterInfo {
     }
 };
 
-class NodeLabelFiler final : public PhysicalOperator, public SelVectorOverWriter {
+class NodeLabelFilter final : public PhysicalOperator, public SelVectorOverWriter {
     static constexpr PhysicalOperatorType type_ = PhysicalOperatorType::FILTER;
 
 public:
-    NodeLabelFiler(std::unique_ptr<NodeLabelFilterInfo> info,
+    NodeLabelFilter(std::unique_ptr<NodeLabelFilterInfo> info,
         std::unique_ptr<PhysicalOperator> child, uint32_t id,
         std::unique_ptr<OPPrintInfo> printInfo)
         : PhysicalOperator{type_, std::move(child), id, std::move(printInfo)},
@@ -80,7 +80,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> copy() final {
-        return std::make_unique<NodeLabelFiler>(info->copy(), children[0]->copy(), id,
+        return std::make_unique<NodeLabelFilter>(info->copy(), children[0]->copy(), id,
             printInfo->copy());
     }
 

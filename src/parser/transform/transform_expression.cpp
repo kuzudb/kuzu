@@ -371,9 +371,6 @@ std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpressi
         }
         return result;
     }
-    if (!ctx.oC_NodeLabels()) {
-        return transformNodeLabels(*ctx.oC_NodeLabels());
-    }
     return atom;
 }
 

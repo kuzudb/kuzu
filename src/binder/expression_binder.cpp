@@ -21,7 +21,7 @@ namespace binder {
 
 std::shared_ptr<Expression> ExpressionBinder::bindExpression(
     const ParsedExpression& parsedExpression) {
-    // Normally u can only reference an existing expression through alias which is a parsed
+    // Normally you can only reference an existing expression through alias which is a parsed
     // VARIABLE expression.
     // An exception is order by binding, e.g. RETURN a, COUNT(*) ORDER BY COUNT(*)
     // the later COUNT(*) should reference the one in projection list. So we need to explicitly

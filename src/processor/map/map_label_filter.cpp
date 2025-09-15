@@ -16,7 +16,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapNodeLabelFilter(
     auto filterInfo =
         std::make_unique<NodeLabelFilterInfo>(nbrNodeVectorPos, logicalLabelFilter.getTableIDSet());
     auto printInfo = std::make_unique<OPPrintInfo>();
-    return std::make_unique<NodeLabelFiler>(std::move(filterInfo), std::move(prevOperator),
+    return std::make_unique<NodeLabelFilter>(std::move(filterInfo), std::move(prevOperator),
         getOperatorID(), std::move(printInfo));
 }
 

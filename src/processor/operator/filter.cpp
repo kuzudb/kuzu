@@ -38,12 +38,12 @@ bool Filter::getNextTuplesInternal(ExecutionContext* context) {
     return true;
 }
 
-void NodeLabelFiler::initLocalStateInternal(ResultSet* /*resultSet_*/,
+void NodeLabelFilter::initLocalStateInternal(ResultSet* /*resultSet_*/,
     ExecutionContext* /*context*/) {
     nodeIDVector = resultSet->getValueVector(info->nodeVectorPos).get();
 }
 
-bool NodeLabelFiler::getNextTuplesInternal(ExecutionContext* context) {
+bool NodeLabelFilter::getNextTuplesInternal(ExecutionContext* context) {
     sel_t numSelectValue = 0;
     do {
         restoreSelVector(*nodeIDVector->state);
