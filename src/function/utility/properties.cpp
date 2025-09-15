@@ -1,6 +1,4 @@
-#include "binder/expression/expression_util.h"
 #include "binder/expression/literal_expression.h"
-#include "binder/expression/scalar_function_expression.h"
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
