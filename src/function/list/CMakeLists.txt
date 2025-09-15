@@ -7,6 +7,7 @@ add_library(kuzu_list_function
         list_append_function.cpp
         list_concat_function.cpp
         list_contains_function.cpp
+        list_cosine_similarity.cpp
         list_creation.cpp
         list_distinct_function.cpp
         list_extract_function.cpp
