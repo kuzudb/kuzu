@@ -177,13 +177,12 @@ void ListColumn::lookupInternal(const SegmentState& state, offset_t nodeOffset,
     const auto listEndOffset = readOffset(state, offsetInChunk);
     const auto size = readSize(state, offsetInChunk);
     const auto listStartOffset = listEndOffset - size;
-    const auto offsetInVector =
-        posInVector == 0 ? 0 : resultVector->getValue<offset_t>(posInVector - 1);
-    resultVector->setValue(posInVector, list_entry_t{offsetInVector, size});
-    ListVector::resizeDataVector(resultVector, offsetInVector + size);
-    const auto dataVector = ListVector::getDataVector(resultVector);
+    auto dataVector = ListVector::getDataVector(resultVector);
+    auto currentListDataSize = ListVector::getDataVectorSize(resultVector);
+    ListVector::resizeDataVector(resultVector, currentListDataSize + size);
     dataColumn->scanSegment(state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-        listStartOffset, listEndOffset - listStartOffset, dataVector, offsetInVector);
+        listStartOffset, listEndOffset - listStartOffset, dataVector, currentListDataSize);
+    resultVector->setValue(posInVector, list_entry_t{currentListDataSize, size});
 }
 
 void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVector,
