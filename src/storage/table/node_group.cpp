@@ -453,6 +453,29 @@ void NodeGroup::checkpointDataTypesNoLock(const NodeGroupCheckpointState& state)
     dataTypes = std::move(checkpointedTypes);
 }
 
+void NodeGroup::scanCommittedUpdatesForColumn(
+    std::vector<ChunkCheckpointState>& chunkCheckpointStates, MemoryManager& memoryManager,
+    const UniqLock& lock, column_id_t columnID, const Column* column) const {
+    auto updateSegmentScanner =
+        LazySegmentScanner(memoryManager, column->getDataType().copy(), enableCompression);
+    ChunkState chunkState;
+    auto& firstColumnChunk = chunkedGroups.getFirstGroup(lock)->getColumnChunk(columnID);
+    const auto numPersistentRows = firstColumnChunk.getNumValues();
+    firstColumnChunk.initializeScanState(chunkState, column);
+    for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
+        chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::ON_DISK>(
+            &DUMMY_CHECKPOINT_TRANSACTION, chunkState, updateSegmentScanner);
+    }
+    KU_ASSERT(updateSegmentScanner.getNumValues() == numPersistentRows);
+    updateSegmentScanner.rangeSegments(updateSegmentScanner.begin(), numPersistentRows,
+        [&chunkCheckpointStates](auto& segment, auto, auto segmentLength, auto offsetInChunk) {
+            if (segment.segmentData) {
+                chunkCheckpointStates.emplace_back(std::move(segment.segmentData), offsetInChunk,
+                    segmentLength);
+            }
+        });
+}
+
 std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryManager& memoryManager,
     const UniqLock& lock, NodeGroupCheckpointState& state) const {
     const auto firstGroup = chunkedGroups.getFirstGroup(lock);
@@ -476,24 +499,8 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
         }
         std::vector<ChunkCheckpointState> chunkCheckpointStates;
         if (columnHasUpdates) {
-            auto updateSegmentScanner = LazySegmentScanner(memoryManager,
-                state.columns[columnID]->getDataType().copy(), enableCompression);
-            ChunkState chunkState;
-            firstGroup->getColumnChunk(columnID).initializeScanState(chunkState,
+            scanCommittedUpdatesForColumn(chunkCheckpointStates, memoryManager, lock, columnID,
                 state.columns[columnID]);
-            for (auto& chunkedGroup : chunkedGroups.getAllGroups(lock)) {
-                chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::ON_DISK>(
-                    &DUMMY_CHECKPOINT_TRANSACTION, chunkState, updateSegmentScanner);
-            }
-            KU_ASSERT(updateSegmentScanner.getNumValues() == numPersistentRows);
-            updateSegmentScanner.rangeSegments(updateSegmentScanner.begin(), numPersistentRows,
-                [&chunkCheckpointStates](auto& segment, auto, auto segmentLength,
-                    auto offsetInChunk) {
-                    if (segment.segmentData) {
-                        chunkCheckpointStates.emplace_back(std::move(segment.segmentData),
-                            offsetInChunk, segmentLength);
-                    }
-                });
         }
         if (numInsertedRows > 0) {
             chunkCheckpointStates.emplace_back(insertChunkedGroup->moveColumnChunk(columnID),
@@ -510,7 +517,7 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
     // The first chunked group is the only persistent one
     // The checkpointed columns have been moved to the checkpointedChunkedGroup, the
     // remaining must have been dropped
-    chunkedGroups.getGroup(lock, 0)->reclaimStorage(state.pageAllocator);
+    firstGroup->reclaimStorage(state.pageAllocator);
     return checkpointedChunkedGroup;
 }
 
