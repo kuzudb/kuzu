@@ -212,5 +212,11 @@ struct ListHasAllFunction {
     static function_set getFunctionSet();
 };
 
+struct ListConsineSimilarityFunction {
+    static constexpr const char* name = "LIST_COSINE_SIMILARITY";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
