@@ -30,7 +30,7 @@
 ---- 1
 0
 # Make second copy larger so its guaranteed to result in more than 3 segments
--STATEMENT COPY nums from (UNWIND range(64000, 131072) as num RETURN num * 1000);
+-STATEMENT COPY nums from (UNWIND range(64000, 131072) as num RETURN num * 1000000000);
 ---- ok
 -STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*) > 3;
 ---- 1
