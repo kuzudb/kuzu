@@ -12,7 +12,7 @@
 #include "storage/page_allocator.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_data.h"
-#include "storage/table/segment_scanner.h"
+#include "storage/table/column_chunk_scanner.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -126,15 +126,13 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     }
     const auto residencyState = getResidencyState();
     if (SCAN_RESIDENCY_STATE == residencyState) {
-        const auto numValuesBeforeScan = output.getNumValues();
         if constexpr (SCAN_RESIDENCY_STATE == ResidencyState::ON_DISK) {
             scanPersistentSegments(chunkState, output, startRow, numRows);
         } else {
             static_assert(SCAN_RESIDENCY_STATE == ResidencyState::IN_MEMORY);
             scanInMemSegments(output, startRow, numRows);
         }
-        // TODO pass in iterator
-        updateInfo.scanCommitted(transaction, output, numValuesBeforeScan, startRow, numRows);
+        output.applyCommittedUpdates(updateInfo, transaction, startRow, numRows);
     }
 }
 

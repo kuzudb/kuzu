@@ -8,11 +8,11 @@
 #include "storage/storage_utils.h"
 #include "storage/table/chunked_node_group.h"
 #include "storage/table/column_chunk.h"
+#include "storage/table/column_chunk_scanner.h"
 #include "storage/table/csr_chunked_node_group.h"
 #include "storage/table/csr_node_group.h"
 #include "storage/table/lazy_segment_scanner.h"
 #include "storage/table/node_table.h"
-#include "storage/table/segment_scanner.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -485,15 +485,15 @@ std::unique_ptr<ChunkedNodeGroup> NodeGroup::checkpointInMemAndOnDisk(MemoryMana
                 chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::ON_DISK>(
                     &DUMMY_CHECKPOINT_TRANSACTION, chunkState, updateSegmentScanner);
             }
-            KU_ASSERT(updateSegmentScanner.getNumValues() <= numPersistentRows);
-            auto offsetInChunk = 0;
-            for (auto& segment : updateSegmentScanner.segments) {
-                if (segment.segmentData) {
-                    chunkCheckpointStates.emplace_back(std::move(segment.segmentData),
-                        offsetInChunk, segment.length);
-                }
-                offsetInChunk += segment.length;
-            }
+            KU_ASSERT(updateSegmentScanner.getNumValues() == numPersistentRows);
+            updateSegmentScanner.rangeSegments(updateSegmentScanner.begin(), numPersistentRows,
+                [&chunkCheckpointStates](auto& segment, auto, auto segmentLength,
+                    auto offsetInChunk) {
+                    if (segment.segmentData) {
+                        chunkCheckpointStates.emplace_back(std::move(segment.segmentData),
+                            offsetInChunk, segmentLength);
+                    }
+                });
         }
         if (numInsertedRows > 0) {
             chunkCheckpointStates.emplace_back(insertChunkedGroup->moveColumnChunk(columnID),

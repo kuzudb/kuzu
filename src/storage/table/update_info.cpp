@@ -6,7 +6,6 @@
 #include "common/vector/value_vector.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
-#include "storage/table/segment_scanner.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::transaction;
@@ -104,11 +103,11 @@ void UpdateInfo::lookup(const Transaction* transaction, offset_t rowInChunk, Val
     });
 }
 
-void UpdateInfo::scanCommitted(const Transaction* transaction, ColumnChunkScanner& output,
+void UpdateInfo::scanCommitted(const Transaction* transaction, ColumnChunkData& output,
     offset_t startOffsetInOutput, row_idx_t startRowScanned, row_idx_t numRows) const {
     iterateScan(transaction, startRowScanned, numRows, startOffsetInOutput,
         [&](const VectorUpdateInfo& vecUpdateInfo, uint64_t i, uint64_t posInOutput) -> void {
-            output.updateScannedValue   (*vecUpdateInfo.data, i, posInOutput);
+            output.write(vecUpdateInfo.data.get(), i, posInOutput, 1);
         });
 }
 

@@ -4,29 +4,23 @@
 
 #include "common/types/types.h"
 namespace kuzu {
+namespace transaction {
+class Transaction;
+}
 namespace storage {
 class ColumnChunkData;
+class UpdateInfo;
 
 struct ColumnChunkScanner {
     using scan_func_t = std::function<void(ColumnChunkData& /*outputChunk*/,
         common::offset_t /*offsetInSegment*/, common::offset_t /*length*/)>;
 
-    struct SegmentData {
-        std::unique_ptr<ColumnChunkData> segmentData;
-        common::offset_t startOffsetInSegment;
-        common::offset_t length;
-        scan_func_t scanFunc;
-
-        // Used for genericRangeSegments()
-        const SegmentData& operator*() const { return *this; }
-        common::offset_t getNumValues() const { return length; }
-    };
-
     virtual ~ColumnChunkScanner() {};
     virtual void scanSegment(common::offset_t offsetInSegment, common::offset_t segmentLength,
         scan_func_t scanFunc) = 0;
-    virtual void updateScannedValue(ColumnChunkData& data, common::offset_t srcOffset,
-        common::offset_t dstOffset) = 0;
+    virtual void applyCommittedUpdates(const UpdateInfo& updateInfo,
+        const transaction::Transaction* transaction, common::offset_t startRow,
+        common::offset_t numRows) = 0;
     virtual uint64_t getNumValues() = 0;
 };
 } // namespace storage
