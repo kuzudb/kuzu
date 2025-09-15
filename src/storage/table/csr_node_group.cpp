@@ -658,6 +658,14 @@ struct CheckpointReadCursor {
     SegmentCursor cursor;
 };
 
+/**
+ * Writes output into multiple "segments"
+ * Note that the segments in the output won't necessarily match the segments being read from the
+ * column chunk
+ * Lazy writes are supported:
+ * - when the cursor is advanced and we haven't written to the current position a "gap" is left
+ * - if there is currently a gap and we perform a write we start a new segment to be written to
+ */
 class CheckpointWriteCursor {
 public:
     CheckpointWriteCursor(offset_t leftCSROffset, MemoryManager& memoryManager,
@@ -678,7 +686,6 @@ public:
     }
 
     ColumnChunkData& getCurrentSegmentForWrite(offset_t numValuesToWrite) {
-        // Init startSegmentOffset if we haven't written to the current segment yet
         if (segmentStartOffset + currentOutputSegment->getNumValues() < curCSROffset) {
             startNewSegment();
         }
@@ -688,6 +695,11 @@ public:
                 std::bit_ceil(currentOutputSegment->getNumValues() + numValuesToWrite));
         }
         return *currentOutputSegment;
+    }
+
+    void appendToCurrentSegment(ColumnChunkData* data, offset_t srcOffset,
+        offset_t numValuesToAppend) {
+        getCurrentSegmentForWrite(numValuesToAppend).append(data, srcOffset, numValuesToAppend);
     }
 
 private:
@@ -724,20 +736,85 @@ static bool canSkipWrite(CheckpointReadCursor& readCursor, CheckpointWriteCursor
     return readCursor.getCSROffset() == writeCursor.getCSROffset() && readCursor.canSkipRead();
 }
 
+static ChunkState scanCommittedUpdates(ColumnChunk& persistentChunk, Column* column,
+    LazySegmentScanner& scanner, offset_t startCSROffset, offset_t numRowsToScan) {
+    ChunkState chunkState;
+    persistentChunk.initializeScanState(chunkState, column);
+    persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
+        chunkState, scanner, startCSROffset, numRowsToScan);
+    return chunkState;
+}
+
+static void writeCSRListNoPersistentDeletions(CheckpointReadCursor& readCursor,
+    CheckpointWriteCursor& writeCursor, offset_t oldCSRLength) {
+    readCursor.rangeSegments(oldCSRLength,
+        [&](auto& segmentData, auto offsetInSegment, auto lengthInSegment, auto) {
+            if (!canSkipWrite(readCursor, writeCursor)) {
+                [[maybe_unused]] auto [readSegmentData, readOffsetInSegment] =
+                    readCursor.getDataToRead();
+                KU_ASSERT(readSegmentData == segmentData.segmentData.get() &&
+                          readOffsetInSegment == offsetInSegment);
+                writeCursor.appendToCurrentSegment(segmentData.segmentData.get(), offsetInSegment,
+                    lengthInSegment);
+            }
+            readCursor.advance(lengthInSegment);
+            writeCursor.advance(lengthInSegment);
+        });
+}
+
+static void writeCSRListWithPersistentDeletions(CheckpointReadCursor& readCursor,
+    CheckpointWriteCursor& writeCursor, offset_t oldCSRLength,
+    const ChunkedNodeGroup& persistentChunkGroup) {
+    // TODO(Guodong): Optimize the for loop away by appending in batch
+    for (auto i = 0u; i < oldCSRLength; i++) {
+        if (!persistentChunkGroup.isDeleted(&DUMMY_CHECKPOINT_TRANSACTION,
+                readCursor.getCSROffset())) {
+            if (!canSkipWrite(readCursor, writeCursor)) {
+                auto [segmentData, offsetInSegment] = readCursor.getDataToRead();
+                writeCursor.appendToCurrentSegment(segmentData, offsetInSegment, 1);
+            }
+            ++writeCursor;
+        }
+        ++readCursor;
+    }
+}
+
+static void writeInMemoryCSRInsertion(CheckpointWriteCursor& writeCursor,
+    const ChunkedNodeGroup& chunkedGroup, row_idx_t rowInChunk, column_id_t columnID,
+    ChunkState& chunkState) {
+    KU_ASSERT(!chunkedGroup.isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk));
+    CombinedChunkScanner appendScanner{writeCursor.getCurrentSegmentForWrite(1)};
+    chunkedGroup.getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
+        &DUMMY_CHECKPOINT_TRANSACTION, chunkState, appendScanner, rowInChunk, 1);
+    ++writeCursor;
+}
+
+static void fillNewCSRGaps(CheckpointWriteCursor& writeCursor, ColumnChunkData* dummyChunkForNulls,
+    length_t numGaps) {
+    auto numGapsRemaining = numGaps;
+    while (numGapsRemaining > 0) {
+        const auto numGapsToFill =
+            std::min(numGapsRemaining, static_cast<length_t>(DEFAULT_VECTOR_CAPACITY));
+        dummyChunkForNulls->setNumValues(numGapsToFill);
+        writeCursor.appendToCurrentSegment(dummyChunkForNulls, 0, numGapsToFill);
+        writeCursor.advance(numGapsToFill);
+        numGapsRemaining -= numGapsToFill;
+    }
+}
+
 std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock,
     column_id_t columnID, const CSRNodeGroupCheckpointState& csrState,
     const CSRRegion& region) const {
     const auto leftCSROffset = csrState.oldHeader->getStartCSROffset(region.leftNodeOffset);
+    KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
     const auto rightCSROffset = csrState.oldHeader->getEndCSROffset(region.rightNodeOffset);
     const auto numOldRowsInRegion = rightCSROffset - leftCSROffset;
-    LazySegmentScanner oldChunkScanner{*csrState.mm,
-        csrState.columns[columnID]->getDataType().copy(), enableCompression};
-    ChunkState chunkState;
-    const auto& persistentChunk = persistentChunkGroup->getColumnChunk(columnID);
-    persistentChunk.initializeScanState(chunkState, csrState.columns[columnID]);
-    persistentChunk.scanCommitted<ResidencyState::ON_DISK>(&DUMMY_CHECKPOINT_TRANSACTION,
-        chunkState, oldChunkScanner, leftCSROffset, numOldRowsInRegion);
-    KU_ASSERT(leftCSROffset == csrState.newHeader->getStartCSROffset(region.leftNodeOffset));
+
+    Column* column = csrState.columns[columnID];
+    LazySegmentScanner oldChunkScanner{*csrState.mm, column->getDataType().copy(),
+        enableCompression};
+    auto chunkState = scanCommittedUpdates(persistentChunkGroup->getColumnChunk(columnID), column,
+        oldChunkScanner, leftCSROffset, numOldRowsInRegion);
 
     const auto dummyChunkForNulls = ColumnChunkFactory::createColumnChunkData(*csrState.mm,
         dataTypes[columnID].copy(), false, DEFAULT_VECTOR_CAPACITY, ResidencyState::IN_MEMORY);
@@ -745,13 +822,8 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
 
     std::vector<ChunkCheckpointState> ret;
 
-    // TODO update comment
-    // We maintain the same segment structure in the new CSR chunk as the old one
-    // If the new CSR chunks has more values, they are all appended to the last segment and
-    // splitting is handled when we checkpoint the persistent CSR chunk
     CheckpointReadCursor readCursor{oldChunkScanner, leftCSROffset};
-    CheckpointWriteCursor writeCursor{leftCSROffset, *csrState.mm,
-        csrState.columns[columnID]->getDataType(), ret};
+    CheckpointWriteCursor writeCursor{leftCSROffset, *csrState.mm, column->getDataType(), ret};
 
     // Copy per csr list from old chunk and merge with new insertions into the newChunkData.
     for (auto nodeOffset = region.leftNodeOffset; nodeOffset <= region.rightNodeOffset;
@@ -764,33 +836,13 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
 
         // Copy old csr list with updates into the new chunk.
         if (!region.hasPersistentDeletions) {
-            readCursor.rangeSegments(oldCSRLength, [&](auto& segmentData, auto offsetInSegment,
-                                                       auto lengthInSegment, auto) {
-                if (!canSkipWrite(readCursor, writeCursor)) {
-                    readCursor.getDataToRead(); // Also scans segment data if needed
-                    writeCursor.getCurrentSegmentForWrite(lengthInSegment)
-                        .append(segmentData.segmentData.get(), offsetInSegment, lengthInSegment);
-                }
-                readCursor.advance(lengthInSegment);
-                writeCursor.advance(lengthInSegment);
-            });
+            writeCSRListNoPersistentDeletions(readCursor, writeCursor, oldCSRLength);
         } else {
-            // TODO(Guodong): Optimize the for loop away by appending in batch
             KU_ASSERT(
                 csrState.newHeader->getStartCSROffset(nodeOffset) == writeCursor.getCSROffset());
-            for (auto i = 0u; i < oldCSRLength; i++) {
-                if (!persistentChunkGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION,
-                        readCursor.getCSROffset())) {
-                    if (!canSkipWrite(readCursor, writeCursor)) {
-                        auto [segmentData, offsetInSegment] = readCursor.getDataToRead();
-                        KU_ASSERT(oldStartCSROffset + i == readCursor.cursor.curCSROffset);
-                        writeCursor.getCurrentSegmentForWrite(1).append(segmentData,
-                            offsetInSegment, 1);
-                    }
-                    ++writeCursor;
-                }
-                ++readCursor;
-            }
+            KU_ASSERT(oldStartCSROffset == readCursor.cursor.curCSROffset);
+            writeCSRListWithPersistentDeletions(readCursor, writeCursor, oldCSRLength,
+                *persistentChunkGroup);
         }
         // Merge in-memory insertions into the new chunk.
         if (csrIndex) {
@@ -804,27 +856,16 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
                 auto [chunkIdx, rowInChunk] = StorageUtils::getQuotientRemainder(row,
                     StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
                 const auto chunkedGroup = chunkedGroups.getGroup(lock, chunkIdx);
-                KU_ASSERT(!chunkedGroup->isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk));
-                CombinedChunkScanner tmpScanner{writeCursor.getCurrentSegmentForWrite(1)};
-                chunkedGroup->getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
-                    &DUMMY_CHECKPOINT_TRANSACTION, chunkState, tmpScanner, rowInChunk, 1);
-                ++writeCursor;
+                writeInMemoryCSRInsertion(writeCursor, *chunkedGroup, rowInChunk, columnID,
+                    chunkState);
             }
         }
-        // Fill gaps if any.
-        int64_t numGaps = csrState.newHeader->getGapSize(nodeOffset);
-        while (numGaps > 0) {
-            // Gaps should only happen at the end of the CSR region.
-            KU_ASSERT((nodeOffset == region.rightNodeOffset - 1) ||
-                      (nodeOffset + 1) % StorageConfig::CSR_LEAF_REGION_SIZE == 0);
-            const auto numGapsToFill =
-                std::min(numGaps, static_cast<int64_t>(DEFAULT_VECTOR_CAPACITY));
-            dummyChunkForNulls->setNumValues(numGapsToFill);
-            writeCursor.getCurrentSegmentForWrite(numGapsToFill)
-                .append(dummyChunkForNulls.get(), 0, numGapsToFill);
-            writeCursor.advance(numGapsToFill);
-            numGaps -= numGapsToFill;
-        }
+
+        const length_t numGaps = csrState.newHeader->getGapSize(nodeOffset);
+        // Gaps should only happen at the end of the CSR region.
+        KU_ASSERT(numGaps == 0 || (nodeOffset == region.rightNodeOffset - 1) ||
+                  (nodeOffset + 1) % StorageConfig::CSR_LEAF_REGION_SIZE == 0);
+        fillNewCSRGaps(writeCursor, dummyChunkForNulls.get(), numGaps);
     }
     writeCursor.finalize();
     return ret;
