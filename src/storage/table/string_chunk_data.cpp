@@ -269,7 +269,8 @@ uint64_t StringChunkData::getSizeOnDisk() const {
 }
 
 uint64_t StringChunkData::getSizeOnDiskInMemoryStats() const {
-    return ColumnChunkData::getSizeOnDiskInMemoryStats() + indexColumnChunk->getSizeOnDiskInMemoryStats() +
+    return ColumnChunkData::getSizeOnDiskInMemoryStats() +
+           indexColumnChunk->getSizeOnDiskInMemoryStats() +
            dictionaryChunk->getOffsetChunk()->getSizeOnDiskInMemoryStats() +
            dictionaryChunk->getStringDataChunk()->getSizeOnDiskInMemoryStats();
 }

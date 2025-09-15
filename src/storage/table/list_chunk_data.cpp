@@ -451,8 +451,10 @@ uint64_t ListChunkData::getSizeOnDisk() const {
 }
 
 uint64_t ListChunkData::getSizeOnDiskInMemoryStats() const {
-    return ColumnChunkData::getSizeOnDiskInMemoryStats() + sizeColumnChunk->getSizeOnDiskInMemoryStats() +
-           dataColumnChunk->getSizeOnDiskInMemoryStats() + offsetColumnChunk->getSizeOnDiskInMemoryStats();
+    return ColumnChunkData::getSizeOnDiskInMemoryStats() +
+           sizeColumnChunk->getSizeOnDiskInMemoryStats() +
+           dataColumnChunk->getSizeOnDiskInMemoryStats() +
+           offsetColumnChunk->getSizeOnDiskInMemoryStats();
 }
 
 } // namespace storage
