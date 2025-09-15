@@ -316,6 +316,11 @@ static std::vector<SegmentCheckpointState> createListDataChunkCheckpointStates(
         offset_t currentSegmentStartOffset = INVALID_OFFSET;
         offset_t currentSegmentNumRows = 0;
         for (offset_t i = 0; i < segmentCheckpointState.numRows; i++) {
+            if (listChunk.isNull(segmentCheckpointState.startRowInData + i)) {
+                // Nulls will have 0 length and start at pos 0, which will work with the logic
+                // below, but may create more checkpoint states than necessary
+                continue;
+            }
             const auto currentListStartOffset =
                 listChunk.getListStartOffset(segmentCheckpointState.startRowInData + i);
             const auto currentListLength =
