@@ -177,7 +177,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Struct functions
         SCALAR_FUNCTION(StructPackFunctions), SCALAR_FUNCTION(StructExtractFunctions),
-        REWRITE_FUNCTION(KeysFunctions), SCALAR_FUNCTION(StructPropertiesFunctions),
+        REWRITE_FUNCTION(KeysFunctions),
 
         // Map functions
         SCALAR_FUNCTION(MapCreationFunctions), SCALAR_FUNCTION(MapExtractFunctions),
@@ -196,7 +196,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
-        SCALAR_FUNCTION_ALIAS(RelationshipsFunction), SCALAR_FUNCTION(PropertiesFunction),
+        SCALAR_FUNCTION_ALIAS(RelationshipsFunction),
         SCALAR_FUNCTION(IsTrailFunction), SCALAR_FUNCTION(IsACyclicFunction),
         REWRITE_FUNCTION(LengthFunction),
 
@@ -208,7 +208,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(CoalesceFunction), SCALAR_FUNCTION(IfNullFunction),
         SCALAR_FUNCTION(ConstantOrNullFunction), SCALAR_FUNCTION(CountIfFunction),
         SCALAR_FUNCTION(ErrorFunction), REWRITE_FUNCTION(NullIfFunction),
-        SCALAR_FUNCTION(TypeOfFunction),
+        SCALAR_FUNCTION(TypeOfFunction), SCALAR_FUNCTION(PropertiesFunctions),
 
         // Sequence functions
         SCALAR_FUNCTION(CurrValFunction), SCALAR_FUNCTION(NextValFunction),

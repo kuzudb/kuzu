@@ -35,7 +35,7 @@ C
 [name,length,note,description,content,audience,grade]
 
 -LOG PropertiesSingleNodeLabel
--STATEMENT MATCH (p:movies) RETURN struct_properties(p)
+-STATEMENT MATCH (p:movies) RETURN PROPERTIES(p)
 ---- 3
 {name: Roma, length: 298, note: the movie is very interesting and funny, description: {rating: 1223.000000, stars: 100, views: 10003, release: 2011-02-11 16:44:22, release_ns: 2011-02-11 16:44:22.123456, release_ms: 2011-02-11 16:44:22.123, release_sec: 2011-02-11 16:44:22, release_tz: 2011-02-11 16:44:22.123456+00, film: 2013-02-22, u8: 1, u16: 15, u32: 200, u64: 4, hugedata: -15}, content: pure ascii characters, audience: {}, grade: 254.000000}
 {name: Sóló cón tu párejâ, length: 126, note:  this is a very very good movie, description: {rating: 5.300000, stars: 2, views: 152, release: 2011-08-20 11:25:30, release_ns: 2011-08-20 11:25:30.123456, release_ms: 2011-08-20 11:25:30.123, release_sec: 2011-08-20 11:25:30, release_tz: 2011-08-20 11:25:30.123456+00, film: 2012-05-11, u8: 220, u16: 20, u32: 1, u64: 180, hugedata: 1844674407370955161811111111}, content: \xAA\xABinteresting\x0B, audience: {audience1=52, audience53=42}, grade: True}
@@ -57,7 +57,7 @@ C
 [ID,fName,gender,isStudent,isWorker,age,eyeSight,birthdate,registerTime,lastJobDuration,workedHours,usedNames,courseScoresPerTerm,grades,height,u,name,orgCode,mark,score,history,licenseValidInterval,rating,state,info]
 
 -LOG PropertiesMultiNodeLabel
--STATEMENT MATCH (p:person:organisation) RETURN struct_properties(p)
+-STATEMENT MATCH (p:person:organisation) RETURN PROPERTIES(p)
 ---- 11
 {ID: 0, fName: Alice, gender: 1, isStudent: True, isWorker: False, age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], height: 1.731000, u: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11, name: , orgCode: , mark: , score: , history: , licenseValidInterval: , rating: , state: , info: }
 {ID: 1, fName: , gender: , isStudent: , isWorker: , age: , eyeSight: , birthdate: , registerTime: , lastJobDuration: , workedHours: , usedNames: , courseScoresPerTerm: , grades: , height: , u: , name: ABFsUni, orgCode: 325, mark: 3.700000, score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years 5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto','montr,eal'], stock: {price: [96,56], volume: 1000}}, info: 3.120000}
@@ -90,7 +90,7 @@ C
 [date,meetTime,validInterval,comments,summary,notes,someMap]
 
 -LOG PropertiesSingleRelLabel
--STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN struct_properties(e)
+-STATEMENT MATCH (p:person)-[e:knows]->(:person) RETURN PROPERTIES(e)
 ---- 14
 {date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1, someMap: {a=b}}
 {date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10, someMap: {c=d, e=f, 1=2}}
@@ -133,7 +133,7 @@ C
 [date,meetTime,validInterval,comments,summary,notes,someMap,location,times,data]
 
 -LOG PropertiesMultiRelLabel
--STATEMENT MATCH (p:person)-[e:knows|:meets]->(:person) RETURN struct_properties(e)
+-STATEMENT MATCH (p:person)-[e:knows|:meets]->(:person) RETURN PROPERTIES(e)
 ---- 21
 {date: 2021-06-30, meetTime: 1986-10-21 21:08:31.521, validInterval: 10 years 5 months 13:00:00.000024, comments: [rnme,m8sihsdnf2990nfiwf], summary: {locations: ['toronto','waterloo'], transfer: {day: 2021-01-02, amount: [100,200]}}, notes: 1, someMap: {a=b}, location: , times: , data: }
 {date: 2021-06-30, meetTime: 1946-08-25 19:07:22, validInterval: 20 years 30 days 48:00:00, comments: [njnojppo9u0jkmf,fjiojioh9h9h89hph], summary: {locations: , transfer: }, notes: 2020-10-10, someMap: {c=d, e=f, 1=2}, location: , times: , data: }
@@ -158,7 +158,7 @@ C
 {date: , meetTime: , validInterval: , comments: , summary: , notes: , someMap: , location: [3.500000,1.100000], times: 13, data: :\xA3}
 
 -LOG PropertiesStruct
--STATEMENT RETURN STRUCT_PROPERTIES({name: "alice", age: 9, nullvar: null})
+-STATEMENT RETURN PROPERTIES({name: "alice", age: 9, nullvar: null})
 ---- 1
 {name: alice, age: 9, nullvar: }
 

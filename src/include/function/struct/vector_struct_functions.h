@@ -55,27 +55,5 @@ struct KeysFunctions {
     static function_set getFunctionSet();
 };
 
-struct StructPropertiesBindData : public FunctionBindData {
-    std::vector<common::idx_t> childIdxs;
-
-    StructPropertiesBindData(common::LogicalType dataType, std::vector<common::idx_t> childIdxs)
-        : FunctionBindData{std::move(dataType)}, childIdxs{std::move(childIdxs)} {}
-
-    std::unique_ptr<FunctionBindData> copy() const override {
-        return std::make_unique<StructPropertiesBindData>(resultType.copy(), childIdxs);
-    }
-};
-
-struct StructPropertiesFunctions {
-    static constexpr const char* name = "STRUCT_PROPERTIES";
-
-    static function_set getFunctionSet();
-
-    static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input);
-    static void compileFunc(FunctionBindData* bindData,
-        const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        std::shared_ptr<common::ValueVector>& result);
-};
-
 } // namespace function
 } // namespace kuzu
