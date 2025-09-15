@@ -196,9 +196,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
-        SCALAR_FUNCTION_ALIAS(RelationshipsFunction),
-        SCALAR_FUNCTION(IsTrailFunction), SCALAR_FUNCTION(IsACyclicFunction),
-        REWRITE_FUNCTION(LengthFunction),
+        SCALAR_FUNCTION_ALIAS(RelationshipsFunction), SCALAR_FUNCTION(IsTrailFunction),
+        SCALAR_FUNCTION(IsACyclicFunction), REWRITE_FUNCTION(LengthFunction),
 
         // Hash functions
         SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),

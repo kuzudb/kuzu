@@ -4,9 +4,9 @@
 #include "binder/expression_binder.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "common/vector/value_vector.h"
 #include "function/scalar_function.h"
 #include "function/utility/vector_utility_functions.h"
-#include "common/vector/value_vector.h"
 
 using namespace kuzu::common;
 using namespace kuzu::binder;
@@ -15,8 +15,7 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace function {
 
-static std::unique_ptr<FunctionBindData> bindStructFunc(
-    const ScalarBindFuncInput& input) {
+static std::unique_ptr<FunctionBindData> bindStructFunc(const ScalarBindFuncInput& input) {
     std::vector<StructField> fields;
     const auto& structType = input.arguments[0]->getDataType();
     auto keys = StructType::getFieldNames(structType);
@@ -111,7 +110,7 @@ function_set PropertiesFunctions::getFunctionSet() {
     function_set functions;
     auto inputTypeIDs = // PROPERTIES(STRUCT)
         std::vector<LogicalTypeID>{LogicalTypeID::STRUCT, LogicalTypeID::NODE, LogicalTypeID::REL};
-    for (auto inputTypeID : inputTypeIDs) { 
+    for (auto inputTypeID : inputTypeIDs) {
         functions.push_back(getStructPropertiesFunction(inputTypeID));
     }
     auto function = std::make_unique<ScalarFunction>(name, // PROPERTIES(PATH)
