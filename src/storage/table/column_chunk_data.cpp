@@ -1020,6 +1020,19 @@ uint64_t ColumnChunkData::getSizeOnDisk() const {
     return metadata.getNumDataPages(dataType.getPhysicalType()) * common::KUZU_PAGE_SIZE + nullSize;
 }
 
+uint64_t ColumnChunkData::getSizeOnDiskInMemoryStats() const {
+    // Probably could just return the actual size from the metadata if it's on-disk, but it's not
+    // currently needed for on-disk segments
+    KU_ASSERT(ResidencyState::IN_MEMORY == residencyState);
+    uint64_t nullSize = 0;
+    if (nullData) {
+        nullSize = nullData->getSizeOnDiskInMemoryStats();
+    }
+    auto metadata = getMetadataFunction(buffer->getBuffer(), numValues,
+        inMemoryStats.min.value_or(StorageValue{}), inMemoryStats.max.value_or(StorageValue{}));
+    return metadata.getNumDataPages(dataType.getPhysicalType()) * common::KUZU_PAGE_SIZE + nullSize;
+}
+
 std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool targetMaxSize) const {
     // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
     // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
@@ -1036,7 +1049,7 @@ std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool target
             ColumnChunkFactory::createColumnChunkData(getMemoryManager(), getDataType().copy(),
                 isCompressionEnabled(), initialCapacity, ResidencyState::IN_MEMORY, hasNullData());
 
-        while (pos < numValues && newSegment->getSizeOnDisk() < targetSize) {
+        while (pos < numValues && newSegment->getSizeOnDiskInMemoryStats() < targetSize) {
             if (newSegment->getNumValues() == newSegment->getCapacity()) {
                 newSegment->resize(newSegment->getCapacity() * 2);
             }

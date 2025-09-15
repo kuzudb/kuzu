@@ -450,5 +450,10 @@ uint64_t ListChunkData::getSizeOnDisk() const {
            dataColumnChunk->getSizeOnDisk() + offsetColumnChunk->getSizeOnDisk();
 }
 
+uint64_t ListChunkData::getSizeOnDiskInMemoryStats() const {
+    return ColumnChunkData::getSizeOnDiskInMemoryStats() + sizeColumnChunk->getSizeOnDiskInMemoryStats() +
+           dataColumnChunk->getSizeOnDiskInMemoryStats() + offsetColumnChunk->getSizeOnDiskInMemoryStats();
+}
+
 } // namespace storage
 } // namespace kuzu

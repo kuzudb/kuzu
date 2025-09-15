@@ -102,6 +102,14 @@ uint64_t StructChunkData::getSizeOnDisk() const {
     return size;
 }
 
+uint64_t StructChunkData::getSizeOnDiskInMemoryStats() const {
+    uint64_t size = ColumnChunkData::getSizeOnDiskInMemoryStats();
+    for (const auto& childChunk : childChunks) {
+        size += childChunk->getSizeOnDiskInMemoryStats();
+    }
+    return size;
+}
+
 void StructChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);

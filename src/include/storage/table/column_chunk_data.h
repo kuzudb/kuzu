@@ -232,8 +232,11 @@ public:
         // all functions update them
         return numValues > 1 && getSizeOnDisk() > common::StorageConfig::MAX_SEGMENT_SIZE;
     }
+    const ColumnChunkStats &getInMemoryStats() const;
 
     virtual uint64_t getSizeOnDisk() const;
+    // Not guaranteed to be accurate; not all functions keep the in memory statistics up to date!
+    virtual uint64_t getSizeOnDiskInMemoryStats() const;
 
     virtual void serialize(common::Serializer& serializer) const;
     static std::unique_ptr<ColumnChunkData> deserialize(MemoryManager& mm,
