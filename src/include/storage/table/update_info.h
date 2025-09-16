@@ -118,11 +118,10 @@ public:
     void iterateScan(const transaction::Transaction* transaction, uint64_t startOffsetToScan,
         uint64_t numRowsToScan, uint64_t startPosInOutput,
         const iterate_read_from_row_func_t& readFromRowFunc) const;
-private:
 
+private:
     UpdateNode& getUpdateNode(common::idx_t vectorIdx);
     UpdateNode& getOrCreateUpdateNode(common::idx_t vectorIdx);
-
 
 private:
     mutable std::shared_mutex mtx;
