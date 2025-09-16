@@ -27,13 +27,16 @@ void LazySegmentScanner::applyCommittedUpdates(const UpdateInfo& updateInfo,
     rangeSegments(begin(), numRows,
         [&](auto& segment, common::offset_t, common::offset_t lengthInSegment,
             common::offset_t offsetInChunk) {
-            scanSegmentIfNeeded(segment);
-            updateInfo.scanCommitted(transaction, *segment.segmentData, 0, startRow + offsetInChunk,
-                lengthInSegment);
+            updateInfo.iterateScan(transaction, startRow + offsetInChunk, lengthInSegment, 0,
+                [&](const VectorUpdateInfo& vecUpdateInfo, uint64_t i,
+                    uint64_t posInOutput) -> void {
+                    scanSegmentIfNeeded(segment);
+                    segment.segmentData->write(vecUpdateInfo.data.get(), i, posInOutput, 1);
+                });
         });
 }
 
-void LazySegmentScanner::scanSegmentIfNeeded(SegmentData& segment) {
+void LazySegmentScanner::scanSegmentIfNeeded(LazySegmentData& segment) {
     if (segment.segmentData == nullptr) {
         segment.segmentData = ColumnChunkFactory::createColumnChunkData(mm, columnType.copy(),
             enableCompression, segment.length, ResidencyState::IN_MEMORY);
