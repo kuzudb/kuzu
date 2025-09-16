@@ -188,6 +188,9 @@ ColumnChunkMetadata Column::flushData(const ColumnChunkData& chunkData,
 
 void Column::scan(const ChunkState& state, offset_t startOffsetInChunk, offset_t length,
     ValueVector* resultVector, uint64_t offsetInVector) const {
+    if (length == 0) {
+        return;
+    }
     // Selection vector must be ordered, and values must be within the range of [0, length)
     RUNTIME_CHECK(if (resultVector->state) {
         sel_t prevValue = 0;
