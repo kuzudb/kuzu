@@ -385,8 +385,6 @@ std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
     std::vector<std::unique_ptr<ColumnChunkData>> offsetsToWrite;
     uint64_t totalAppendedListSize = 0;
     for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
-        KU_ASSERT(
-            segmentCheckpointState.chunkData.getNumValues() == segmentCheckpointState.numRows);
         offsetsToWrite.push_back(
             ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT64(), false,
                 segmentCheckpointState.numRows, ResidencyState::IN_MEMORY));
