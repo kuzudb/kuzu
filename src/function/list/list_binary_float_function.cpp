@@ -19,6 +19,10 @@ struct ListCosineSimilarity {
         common::ValueVector& rightVector, common::ValueVector& /*resultVector*/) {
         auto leftElements = (T*)common::ListVector::getListValues(&leftVector, left);
         auto rightElements = (T*)common::ListVector::getListValues(&rightVector, right);
+        if (left.size!=right.size) {
+            throw BinderException(stringFormat("LIST_COSINE_SIMILARITY requires both arguments to be in same size: left : {} ; right : {}"
+                ,left.size, right.size));
+        }
         KU_ASSERT(left.size == right.size);
         simsimd_distance_t tmpResult = 0.0;
         static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>);
@@ -28,6 +32,50 @@ struct ListCosineSimilarity {
             simsimd_cos_f64(leftElements, rightElements, left.size, &tmpResult);
         }
         result = 1.0 - tmpResult;
+    }
+};
+
+struct ListCosineDistance {
+    template <std::floating_point T>
+    static void operation(common::list_entry_t& left, common::list_entry_t& right, T& result, common::ValueVector& leftVector,
+        common::ValueVector& rightVector, common::ValueVector& /*resultVector*/) {
+        auto leftElements = (T*)common::ListVector::getListValues(&leftVector, left);
+        auto rightElements = (T*)common::ListVector::getListValues(&rightVector, right);
+        if (left.size!=right.size) {
+            throw BinderException(stringFormat("LIST_COSINE_DISTANCE requires both arguments to be in same size: left : {} ; right : {}"
+                ,left.size, right.size));
+        }
+        KU_ASSERT(left.size == right.size);
+        simsimd_distance_t tmpResult = 0.0;
+        static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>);
+        if constexpr (std::is_same_v<T, float>) {
+            simsimd_cos_f32(leftElements, rightElements, left.size, &tmpResult);
+        } else {
+            simsimd_cos_f64(leftElements, rightElements, left.size, &tmpResult);
+        }
+        result = tmpResult;
+    }
+};
+
+struct ListDistance {
+    template <std::floating_point T>
+    static void operation(common::list_entry_t& left, common::list_entry_t& right, T& result, common::ValueVector& leftVector,
+        common::ValueVector& rightVector, common::ValueVector& /*resultVector*/) {
+        auto leftElements = (T*)common::ListVector::getListValues(&leftVector, left);
+        auto rightElements = (T*)common::ListVector::getListValues(&rightVector, right);
+        if (left.size!=right.size) {
+            throw BinderException(stringFormat("LIST_DISTANCE requires both arguments to be in same size: left : {} ; right : {}"
+                ,left.size, right.size));
+        }
+        KU_ASSERT(left.size == right.size);
+        simsimd_distance_t tmpResult = 0.0;
+        static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>);
+        if constexpr (std::is_same_v<T, float>) {
+            simsimd_l2sq_f32(leftElements, rightElements, left.size, &tmpResult);
+        } else {
+            simsimd_l2sq_f64(leftElements, rightElements, left.size, &tmpResult);
+        }
+        result = std::sqrt(tmpResult);
     }
 };
 
@@ -81,14 +129,13 @@ scalar_func_exec_t getScalarExecFunc(LogicalType type) {
     return execFunc;
 }
 
+template <typename OPERATION>
 static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& input) {
     std::vector<LogicalType> types;
-    //auto scalarFunction = input.definition->ptrCast<ScalarFunction>();
     types.push_back(input.arguments[0]->getDataType().copy());
     types.push_back(input.arguments[1]->getDataType().copy());
     auto paramType = validateListFunctionParameters(types[0], types[1], input.definition->name);
-    //const auto& resultType = ListType::getChildType(input.arguments[0]->dataType);
-    input.definition->ptrCast<ScalarFunction>()->execFunc = std::move(getScalarExecFunc<ListCosineSimilarity>(paramType.copy()));
+    input.definition->ptrCast<ScalarFunction>()->execFunc = std::move(getScalarExecFunc<OPERATION>(paramType.copy()));
     auto bindData = std::make_unique<FunctionBindData>(ListType::getChildType(paramType).copy());
     std::vector<LogicalType> paramTypes;
     for (auto& _ : input.arguments) {
@@ -97,15 +144,26 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     }
     return bindData;
 }
-
-function_set ListConsineSimilarityFunction::getFunctionSet() {
+template <typename OPERATION>
+function_set templateGetFunctionSet(const std::string& name) {
     function_set result;
-    //auto execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t, float, ListCosineSimilarity>;
     auto function = std::make_unique<ScalarFunction>(name, 
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::ANY);
-    function->bindFunc = bindFunc;
+    function->bindFunc = bindFunc<OPERATION>;
     result.push_back(std::move(function));
     return result;
+}
+
+function_set ListCosineSimilarityFunction::getFunctionSet() {
+    return templateGetFunctionSet<ListCosineSimilarity>(name);
+}
+
+function_set ListCosineDistanceFunction::getFunctionSet() {
+    return templateGetFunctionSet<ListCosineDistance>(name);
+}
+
+function_set ListDistanceFunction::getFunctionSet() {
+    return templateGetFunctionSet<ListDistance>(name);
 }
 
 } // namespace function
