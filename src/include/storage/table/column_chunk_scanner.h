@@ -15,7 +15,7 @@ struct ColumnChunkScanner {
     using scan_func_t = std::function<void(ColumnChunkData& /*outputChunk*/,
         common::offset_t /*offsetInSegment*/, common::offset_t /*length*/)>;
 
-    virtual ~ColumnChunkScanner() {};
+    virtual ~ColumnChunkScanner(){};
     virtual void scanSegment(common::offset_t offsetInSegment, common::offset_t segmentLength,
         scan_func_t scanFunc) = 0;
     virtual void applyCommittedUpdates(const UpdateInfo& updateInfo,
