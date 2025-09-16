@@ -39,7 +39,16 @@ True
 -STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" and num_pages > 64 RETURN COUNT(*);
 ---- 1
 0
-# TODO: single copy that requires multiple segments
+
+-CASE SingleCopyMultiSegmentTest
+-STATEMENT CREATE NODE TABLE nums(num UINT64, ID SERIAL PRIMARY KEY);
+---- ok
+# Should require two segments
+-STATEMENT COPY nums from (UNWIND range(1, 131072) as num RETURN num);
+---- ok
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*);
+---- 1
+2
 
 -CASE CopyRelSegmentTest
 -STATEMENT CREATE NODE TABLE nums(num UINT64, ID SERIAL PRIMARY KEY);
