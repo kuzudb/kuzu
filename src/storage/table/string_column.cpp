@@ -172,7 +172,8 @@ void StringColumn::scanSegment(const SegmentState& state, ColumnChunkData* resul
                 auto index = indexChunk->getValue<string_index_t>(startOffsetInResult + i);
                 auto element = indexMap.find(index);
                 if (element == indexMap.end()) {
-                    indexMap.insert(std::make_pair(index, startOffsetInResult + i));
+                    indexMap.insert(
+                        std::make_pair(index, startOffsetInResult + offsetsToScan.size()));
                     indexChunk->setValue<string_index_t>(startOffsetInResult + offsetsToScan.size(),
                         startOffsetInResult + i);
                     offsetsToScan.emplace_back(index, startOffsetInResult + offsetsToScan.size());

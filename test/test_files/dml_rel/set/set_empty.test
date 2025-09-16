@@ -1,0 +1,22 @@
+-DATASET CSV empty
+-TEST_FWD_ONLY_REL
+--
+
+-CASE SetRelStringColumnHighDuplication
+-STATEMENT create node table nodes (id int64 primary key);
+---- ok
+-STATEMENT create rel table rels(from nodes to nodes, str string)
+---- ok
+-STATEMENT COPY nodes FROM (unwind range(1, 200000) as i return i);
+---- ok
+# copy rels in two batches to recompute CSR regions
+-STATEMENT copy rels from (unwind range(1, 100000) as i return i, i + 1, concat("a somewhat long string", cast((i / 100) as string)))
+---- ok
+-STATEMENT copy rels from (unwind range(100001, 200000 - 1) as i return i, i + 1, concat("a somewhat long string", cast((i / 100) as string)))
+---- ok
+-STATEMENT match (:nodes)-[r:rels]->(p:nodes) where p.id = 150000 set r.str = "someotherstr"
+---- ok
+-STATEMENT match (:nodes)-[r:rels]->(p:nodes) where p.id = 150000 or p.id = 150001 return p.id, r.str
+---- 2
+150000|someotherstr
+150001|a somewhat long string1500
