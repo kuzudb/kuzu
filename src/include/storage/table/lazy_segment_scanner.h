@@ -4,14 +4,14 @@
 #include "storage/table/column_chunk_scanner.h"
 namespace kuzu {
 namespace storage {
-struct SegmentData {
+struct LazySegmentData {
     std::unique_ptr<ColumnChunkData> segmentData;
     common::offset_t startOffsetInSegment;
     common::offset_t length;
     ColumnChunkScanner::scan_func_t scanFunc;
 
     // Used for genericRangeSegments()
-    const SegmentData& operator*() const { return *this; }
+    const LazySegmentData& operator*() const { return *this; }
     common::offset_t getNumValues() const { return length; }
 };
 
@@ -30,8 +30,8 @@ public:
 
         void advance(common::offset_t n);
         void operator++() { advance(1); }
-        SegmentData& operator*() const;
-        SegmentData* operator->() const { return &*(*this); }
+        LazySegmentData& operator*() const;
+        LazySegmentData* operator->() const { return &*(*this); }
     };
 
     Iterator begin() { return Iterator{0, 0, *this}; }
@@ -48,18 +48,18 @@ public:
 
     uint64_t getNumValues() override { return numValues; }
 
-    void scanSegmentIfNeeded(SegmentData& segment);
+    void scanSegmentIfNeeded(LazySegmentData& segment);
     void scanSegmentIfNeeded(common::idx_t segmentIdx) {
         scanSegmentIfNeeded(segments[segmentIdx]);
     }
 
-    template<std::invocable<SegmentData&, common::offset_t /*offsetInSegment*/,
+    template<std::invocable<LazySegmentData&, common::offset_t /*offsetInSegment*/,
         common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
             Func>
     void rangeSegments(Iterator startIt, common::length_t length, Func func);
 
 private:
-    std::vector<SegmentData> segments;
+    std::vector<LazySegmentData> segments;
 
     uint64_t numValues;
 
@@ -68,13 +68,14 @@ private:
     bool enableCompression;
 };
 
-inline SegmentData& LazySegmentScanner::Iterator::operator*() const {
+inline LazySegmentData& LazySegmentScanner::Iterator::operator*() const {
     KU_ASSERT(segmentIdx < segmentScanner.segments.size() &&
               offsetInSegment < segmentScanner.segments[segmentIdx].length);
     return segmentScanner.segments[segmentIdx];
 }
 
-template<std::invocable<SegmentData&, common::offset_t, common::offset_t, common::offset_t> Func>
+template<
+    std::invocable<LazySegmentData&, common::offset_t, common::offset_t, common::offset_t> Func>
 void LazySegmentScanner::rangeSegments(Iterator startIt, common::length_t length, Func func) {
     auto segmentSpan = std::span(segments);
     genericRangeSegmentsFromIt(segmentSpan, segmentSpan.begin() + startIt.segmentIdx,
