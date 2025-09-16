@@ -212,8 +212,20 @@ struct ListHasAllFunction {
     static function_set getFunctionSet();
 };
 
-struct ListConsineSimilarityFunction {
+struct ListCosineSimilarityFunction {
     static constexpr const char* name = "LIST_COSINE_SIMILARITY";
+
+    static function_set getFunctionSet();
+};
+
+struct ListCosineDistanceFunction {
+    static constexpr const char* name = "LIST_COSINE_DISTANCE";
+
+    static function_set getFunctionSet();
+};
+
+struct ListDistanceFunction {
+    static constexpr const char* name = "LIST_DISTANCE";
 
     static function_set getFunctionSet();
 };
