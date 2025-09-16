@@ -868,9 +868,9 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
         fillCSRGaps(readCursor, writeCursor, dummyChunkForNulls.get(), numOldGaps, numGaps);
     }
     writeCursor.finalize();
-    KU_ASSERT(readCursor.getCSROffset() == numOldRowsInRegion);
-    KU_ASSERT(writeCursor.getCSROffset() ==
-              csrState.newHeader->getEndCSROffset(region.rightNodeOffset) - leftCSROffset);
+    KU_ASSERT(readCursor.getCSROffset() - leftCSROffset == numOldRowsInRegion);
+    KU_ASSERT(
+        writeCursor.getCSROffset() == csrState.newHeader->getEndCSROffset(region.rightNodeOffset));
     return ret;
 }
 
