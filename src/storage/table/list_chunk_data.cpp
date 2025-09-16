@@ -156,9 +156,6 @@ void ListChunkData::append(ValueVector* vector, const SelectionView& selView) {
     }
     dataColumnChunk->resize(nextListOffsetInChunk);
     auto dataVector = ListVector::getDataVector(vector);
-    // TODO(Guodong): we should not set vector to a new state.
-    dataVector->setState(std::make_unique<DataChunkState>());
-    dataVector->state->getSelVectorUnsafe().setToFiltered();
     for (auto i = 0u; i < selView.getSelSize(); i++) {
         auto pos = selView[i];
         if (vector->isNull(pos)) {
@@ -280,10 +277,7 @@ void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     auto isNull = vector->isNull(offsetInVector);
     nullData->setNull(offsetInChunk, isNull);
     if (!isNull) {
-        // TODO(Guodong): Do not set vector to a new state.
         auto dataVector = ListVector::getDataVector(vector);
-        dataVector->setState(std::make_unique<DataChunkState>());
-        dataVector->state->getSelVectorUnsafe().setToFiltered();
         copyListValues(vector->getValue<list_entry_t>(offsetInVector), dataVector);
 
         sizeColumnChunk->setValue<list_size_t>(appendSize, offsetInChunk);
@@ -320,14 +314,17 @@ void ListChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInC
 void ListChunkData::copyListValues(const list_entry_t& entry, ValueVector* dataVector) {
     auto numListValuesToCopy = entry.size;
     auto numListValuesCopied = 0u;
+
+    SelectionVector selVector;
+    selVector.setToFiltered();
     while (numListValuesCopied < numListValuesToCopy) {
         auto numListValuesToCopyInBatch =
             std::min<uint64_t>(numListValuesToCopy - numListValuesCopied, DEFAULT_VECTOR_CAPACITY);
-        dataVector->state->getSelVectorUnsafe().setSelSize(numListValuesToCopyInBatch);
+        selVector.setSelSize(numListValuesToCopyInBatch);
         for (auto j = 0u; j < numListValuesToCopyInBatch; j++) {
-            dataVector->state->getSelVectorUnsafe()[j] = entry.offset + numListValuesCopied + j;
+            selVector[j] = entry.offset + numListValuesCopied + j;
         }
-        dataColumnChunk->append(dataVector, dataVector->state->getSelVector());
+        dataColumnChunk->append(dataVector, selVector);
         numListValuesCopied += numListValuesToCopyInBatch;
     }
 }

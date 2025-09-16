@@ -228,7 +228,17 @@ void ColumnChunkData::updateStats(const ValueVector* vector, const SelectionView
         TypeUtils::visit(
             getDataType().getPhysicalType(),
             [&]<StorageValueType T>(T) {
-                auto firstValue = vector->firstNonNull<T>();
+                std::optional<T> firstValue;
+                // ValueVector::firstNonNull uses the vector's builtin selection vector, not the one
+                // passed as an argument
+                selView.forEachBreakWhenFalse([&](auto i) {
+                    if (vector->isNull(i)) {
+                        return true;
+                    } else {
+                        firstValue = vector->getValue<T>(i);
+                        return false;
+                    }
+                });
                 if (!firstValue) {
                     return;
                 }
