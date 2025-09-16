@@ -121,6 +121,14 @@ bool TestParser::shouldSkip(TokenType type) {
             }
         }
     } break;
+    case TokenType::SKIP_COMPRESSION_DISABLED: {
+        auto env = TestHelper::getSystemEnv("ENABLE_COMPRESSION");
+        if (!env.empty()) {
+            if (env == "false") {
+                return true;
+            }
+        }
+    } break;
     case TokenType::SKIP_VECTOR_CAPACITY_TESTS: {
         if constexpr (VECTOR_CAPACITY_LOG_2 != STANDARD_VECTOR_CAPACITY_LOG_2) {
             return true;
@@ -183,6 +191,7 @@ void TestParser::parseHeader() {
         case TokenType::SKIP_VECTOR_CAPACITY_TESTS:
         case TokenType::SKIP_NODE_GROUP_SIZE_TESTS:
         case TokenType::SKIP_SEGMENT_SIZE_TESTS:
+        case TokenType::SKIP_COMPRESSION_DISABLED:
         case TokenType::SKIP_PAGE_SIZE_TESTS:
         case TokenType::SKIP_STATIC_LINK: {
             if (shouldSkip(currentToken.type)) {
@@ -624,6 +633,7 @@ void TestParser::parseBody() {
         case TokenType::SKIP_VECTOR_CAPACITY_TESTS:
         case TokenType::SKIP_NODE_GROUP_SIZE_TESTS:
         case TokenType::SKIP_PAGE_SIZE_TESTS:
+        case TokenType::SKIP_COMPRESSION_DISABLED:
         case TokenType::SKIP_STATIC_LINK: {
             if (shouldSkip(currentToken.type)) {
                 testCaseName = "DISABLED_" + testCaseName;
