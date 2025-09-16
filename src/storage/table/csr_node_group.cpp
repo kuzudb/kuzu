@@ -785,11 +785,13 @@ static void writeInMemoryCSRInsertion(CheckpointWriteCursor& writeCursor,
 }
 
 static void fillCSRGaps(CheckpointReadCursor& readCursor, CheckpointWriteCursor& writeCursor,
-    ColumnChunkData* dummyChunkForNulls, length_t numOldGaps, length_t numGaps) {
+    ColumnChunkData* dummyChunkForNulls, length_t numOldGaps, length_t numGaps,
+    length_t numMustWriteGaps) {
+    KU_ASSERT(numMustWriteGaps <= numGaps);
     auto numGapsRemaining = numGaps;
 
     // We can skip writes for any new gaps whose CSR offset also corresponds to an old gap
-    auto numSkippableGaps = std::min(numGapsRemaining, numOldGaps);
+    auto numSkippableGaps = std::min(numGapsRemaining - numMustWriteGaps, numOldGaps);
     numGapsRemaining -= numSkippableGaps;
     writeCursor.advance(numSkippableGaps);
 
@@ -865,12 +867,21 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
         // Gaps should only happen at the end of the CSR region.
         KU_ASSERT(numGaps == 0 || (nodeOffset == region.rightNodeOffset - 1) ||
                   (nodeOffset + 1) % StorageConfig::CSR_LEAF_REGION_SIZE == 0);
-        fillCSRGaps(readCursor, writeCursor, dummyChunkForNulls.get(), numOldGaps, numGaps);
+        // We must write gaps if they are appends (their CSR offsets are past the old end offset for
+        // the region)
+        const auto numMustWriteGaps =
+            std::max(writeCursor.getCSROffset() + numGaps, rightCSROffset) -
+            std::max(rightCSROffset, writeCursor.getCSROffset());
+        fillCSRGaps(readCursor, writeCursor, dummyChunkForNulls.get(), numOldGaps, numGaps,
+            numMustWriteGaps);
     }
     writeCursor.finalize();
     KU_ASSERT(readCursor.getCSROffset() - leftCSROffset == numOldRowsInRegion);
     KU_ASSERT(
         writeCursor.getCSROffset() == csrState.newHeader->getEndCSROffset(region.rightNodeOffset));
+    // We can't skip writing appends as they need to be flushed to disk
+    KU_ASSERT(readCursor.getCSROffset() == writeCursor.getCSROffset() || ret.empty() ||
+              ret.back().startRow + ret.back().numRows == writeCursor.getCSROffset());
     return ret;
 }
 
