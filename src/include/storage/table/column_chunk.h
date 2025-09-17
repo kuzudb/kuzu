@@ -154,6 +154,10 @@ public:
     void scanCommitted(const transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunkScanner& output, common::row_idx_t startRow = 0,
         common::row_idx_t numRows = common::INVALID_ROW_IDX) const;
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    void scanCommitted(const transaction::Transaction* transaction, ChunkState& chunkState,
+        ColumnChunkData& output, common::row_idx_t startRow = 0,
+        common::row_idx_t numRows = common::INVALID_ROW_IDX) const;
     void lookup(const transaction::Transaction* transaction, const ChunkState& state,
         common::offset_t rowInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const;

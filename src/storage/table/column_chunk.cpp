@@ -13,6 +13,7 @@
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_data.h"
 #include "storage/table/column_chunk_scanner.h"
+#include "storage/table/combined_chunk_scanner.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -142,6 +143,18 @@ template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transact
 template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transaction* transaction,
     ChunkState& chunkState, ColumnChunkScanner& output, row_idx_t startRow,
     row_idx_t numRows) const;
+
+template<ResidencyState SCAN_RESIDENCY_STATE>
+void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
+    ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const {
+    CombinedChunkScanner scanner{output};
+    scanCommitted<SCAN_RESIDENCY_STATE>(transaction, chunkState, scanner, startRow, numRows);
+}
+
+template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transaction* transaction,
+    ChunkState& chunkState, ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const;
+template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transaction* transaction,
+    ChunkState& chunkState, ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const;
 
 bool ColumnChunk::hasUpdates(const Transaction* transaction, row_idx_t startRow,
     length_t numRows) const {

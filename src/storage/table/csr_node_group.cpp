@@ -111,28 +111,16 @@ void CSRNodeGroup::initScanForCommittedPersistent(const Transaction* transaction
         auto nodeOffset = relScanState.nodeIDVector->readNodeOffset(pos);
         auto offsetInGroup = nodeOffset % StorageConfig::NODE_GROUP_SIZE;
         auto offsetToScanFrom = offsetInGroup == 0 ? 0 : offsetInGroup - 1;
-        {
-            CombinedChunkScanner scanner{*nodeGroupScanState.header->offset};
-            csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
-                scanner, offsetToScanFrom, 1);
-        }
-        {
-            CombinedChunkScanner scanner{*nodeGroupScanState.header->length};
-            csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
-                scanner, offsetInGroup, 1);
-        }
+        csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
+            *nodeGroupScanState.header->offset, offsetToScanFrom, 1);
+        csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
+            *nodeGroupScanState.header->length, offsetInGroup, 1);
     } else {
         auto numBoundNodes = csrHeader.offset->getNumValues();
-        {
-            CombinedChunkScanner scanner{*nodeGroupScanState.header->offset};
-            csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
-                scanner);
-        }
-        {
-            CombinedChunkScanner scanner{*nodeGroupScanState.header->length};
-            csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
-                scanner);
-        }
+        csrHeader.offset->scanCommitted<ResidencyState::ON_DISK>(transaction, offsetState,
+            *nodeGroupScanState.header->offset);
+        csrHeader.length->scanCommitted<ResidencyState::ON_DISK>(transaction, lengthState,
+            *nodeGroupScanState.header->length);
         nodeGroupScanState.numTotalRows =
             nodeGroupScanState.header->getStartCSROffset(numBoundNodes);
     }
@@ -778,9 +766,9 @@ static void writeInMemoryCSRInsertion(CheckpointWriteCursor& writeCursor,
     const ChunkedNodeGroup& chunkedGroup, row_idx_t rowInChunk, column_id_t columnID,
     ChunkState& chunkState) {
     KU_ASSERT(!chunkedGroup.isDeleted(&DUMMY_CHECKPOINT_TRANSACTION, rowInChunk));
-    CombinedChunkScanner appendScanner{writeCursor.getCurrentSegmentForWrite(1)};
     chunkedGroup.getColumnChunk(columnID).scanCommitted<ResidencyState::IN_MEMORY>(
-        &DUMMY_CHECKPOINT_TRANSACTION, chunkState, appendScanner, rowInChunk, 1);
+        &DUMMY_CHECKPOINT_TRANSACTION, chunkState, writeCursor.getCurrentSegmentForWrite(1),
+        rowInChunk, 1);
     ++writeCursor;
 }
 
