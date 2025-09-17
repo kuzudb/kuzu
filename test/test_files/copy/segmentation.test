@@ -24,9 +24,9 @@
 -STATEMENT CHECKPOINT;
 ---- ok
 # There could be either two or three segments depending on the internal id of the value being set to be large
--STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*);
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*) >= 2;
 ---- 1
-2
+True
 -STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" and num_pages > 64 RETURN COUNT(*);
 ---- 1
 0
