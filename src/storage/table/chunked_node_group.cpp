@@ -337,9 +337,8 @@ void ChunkedNodeGroup::scanCommitted(Transaction* transaction, TableScanState& s
     }
     for (auto i = 0u; i < scanState.columnIDs.size(); i++) {
         const auto columnID = scanState.columnIDs[i];
-        auto segmentScanner = CombinedChunkScanner{output.getColumnChunk(i)};
         chunks[columnID]->scanCommitted<SCAN_RESIDENCY_STATE>(transaction,
-            scanState.nodeGroupScanState->chunkStates[i], segmentScanner);
+            scanState.nodeGroupScanState->chunkStates[i], output.getColumnChunk(i));
     }
 }
 
