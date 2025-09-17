@@ -236,7 +236,7 @@ struct ListDistanceFunction {
     static function_set getFunctionSet();
 };
 
-struct ListIntersectFunction { 
+struct ListIntersectFunction {
     static constexpr const char* name = "LIST_INTERSECT";
 
     static function_set getFunctionSet();
