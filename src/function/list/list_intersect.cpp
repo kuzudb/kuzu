@@ -17,9 +17,6 @@ struct ListIntersect {
         common::list_entry_t& result, common::ValueVector& leftVector, common::ValueVector& rightVector,
         common::ValueVector& resultVector) {
         int64_t pos = 0;
-        result = common::ListVector::addList(&resultVector, left.size>right.size? left.size:right.size);
-        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
-        auto resultPos = result.offset;
         auto rightDataVector = common::ListVector::getDataVector(&rightVector);
         auto rightPos = right.offset;
         std::vector<offset_t> rightOffsets;
@@ -34,7 +31,6 @@ struct ListIntersect {
                         leftVector, *ListVector::getDataVector(&rightVector), resultVector);
                 });
             if (pos !=0) {
-                //resultDataVector->copyFromVectorData(resultPos++, rightDataVector, rightPos+i);
                 rightOffsets.push_back(rightPos+i);
             }
         }
@@ -47,7 +43,7 @@ struct ListIntersect {
         }
         auto numUniqueValues = ListUnique::appendListElementsToValueSet(temp, tempVec);
         result = common::ListVector::addList(&resultVector, numUniqueValues);
-        resultDataVector = common::ListVector::getDataVector(&resultVector);
+        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         auto resultDataVectorBuffer =
             common::ListVector::getListValuesWithOffset(&resultVector, result, 0 /* offset */);
         ListUnique::appendListElementsToValueSet(temp, tempVec, nullptr,
