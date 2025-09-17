@@ -479,11 +479,11 @@ uint64_t ExpressionUtil::evaluateAsVariableLengthRelBound(const Expression& expr
         value.getDataType(),
         [&]<IntegerTypes T>(T) {
             if (value.getValue<T>() < 0) {
-                throw RuntimeException{errorMsg};
+                throw BinderException{errorMsg};
             }
             number = (uint64_t)value.getValue<T>();
         },
-        [&](auto) { throw RuntimeException{errorMsg}; });
+        [&](auto) { throw BinderException{errorMsg}; });
     return number;
 }
 
