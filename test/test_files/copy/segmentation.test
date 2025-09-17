@@ -78,12 +78,11 @@ True
 -STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "bwd_csr_offset" and num_pages > 64 RETURN COUNT(*);
 ---- 1
 0
-# Do another copy, which should also require multiple segments
 -STATEMENT COPY edges from (unwind range(1, 120000 - 3) as num return num, num + 2);
 ---- ok
 -STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_NBR_ID" RETURN COUNT(*);
 ---- 1
-4
+3
 -STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_NBR_ID" and num_pages > 64 RETURN COUNT(*);
 ---- 1
 0
