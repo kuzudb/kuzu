@@ -236,5 +236,11 @@ struct ListDistanceFunction {
     static function_set getFunctionSet();
 };
 
+struct ListIntersectFunction { 
+    static constexpr const char* name = "LIST_INTERSECT";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
