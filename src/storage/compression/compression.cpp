@@ -248,7 +248,7 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
             [&]<std::floating_point T>(T) {
                 auto values = std::span<const T>(reinterpret_cast<const T*>(data) + pos, numValues);
                 return FloatCompression<T>::canUpdateInPlace(values, *this, localUpdateState,
-                    std::move(nullMask));
+                    std::move(nullMask), pos);
             },
             [&](auto) {
                 throw common::StorageException("Attempted to read from a column chunk which "
@@ -264,13 +264,14 @@ bool CompressionMetadata::canUpdateInPlace(const uint8_t* data, uint32_t pos, ui
             physicalType,
             [&]<IntegerBitpackingType T>(T) {
                 auto values = std::span<T>(reinterpret_cast<T*>(cdata) + pos, numValues);
-                return IntegerBitpacking<T>::canUpdateInPlace(values, *this, std::move(nullMask));
+                return IntegerBitpacking<T>::canUpdateInPlace(values, *this, std::move(nullMask),
+                    pos);
             },
             [&](internalID_t) {
                 auto values =
                     std::span<uint64_t>(reinterpret_cast<uint64_t*>(cdata) + pos, numValues);
                 return IntegerBitpacking<uint64_t>::canUpdateInPlace(values, *this,
-                    std::move(nullMask));
+                    std::move(nullMask), pos);
             },
             [&](auto) {
                 throw common::StorageException("Attempted to read from a column chunk which "
