@@ -1,5 +1,6 @@
 #include "common/assert.h"
 #include "parser/query/graph_pattern/pattern_element.h"
+#include "parser/expression/parsed_literal_expression.h"
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
@@ -126,23 +127,23 @@ RelPattern Transformer::transformRelationshipPattern(
             relType = QueryRelType::VARIABLE_LENGTH_WALK;
         }
         // Parse lower, upper bound
-        auto lowerBound = std::string("1");
-        auto upperBound = std::string("");
+        std::unique_ptr<ParsedExpression> lowerBound = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
+        std::unique_ptr<ParsedExpression> upperBound = nullptr;
         auto range = recursiveDetail->oC_RangeLiteral();
         if (range) {
-            if (range->oC_IntegerLiteral()) {
-                lowerBound = range->oC_IntegerLiteral()->getText();
-                upperBound = lowerBound;
+            if (range->oC_Expression()) {
+                lowerBound = transformExpression(*range->oC_Expression());
+                upperBound = lowerBound->copy();
             }
             if (range->oC_LowerBound()) {
-                lowerBound = range->oC_LowerBound()->getText();
+                lowerBound = transformExpression(*range->oC_LowerBound()->oC_Expression());
             }
             if (range->oC_UpperBound()) {
-                upperBound = range->oC_UpperBound()->getText();
+                upperBound = transformExpression(*range->oC_UpperBound()->oC_Expression());
             }
         }
-        recursiveInfo.lowerBound = lowerBound;
-        recursiveInfo.upperBound = upperBound;
+        recursiveInfo.lowerBound = std::move(lowerBound);
+        recursiveInfo.upperBound = std::move(upperBound);
         // Parse recursive comprehension
         auto comprehension = recursiveDetail->kU_RecursiveComprehension();
         if (comprehension) {

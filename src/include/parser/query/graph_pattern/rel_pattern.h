@@ -10,8 +10,8 @@ namespace parser {
 enum class ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1, BOTH = 2 };
 
 struct RecursiveRelPatternInfo {
-    std::string lowerBound;
-    std::string upperBound;
+    std::unique_ptr<ParsedExpression> lowerBound = nullptr;
+    std::unique_ptr<ParsedExpression> upperBound = nullptr;
     std::string weightPropertyName;
     std::string relName;
     std::string nodeName;

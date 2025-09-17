@@ -471,6 +471,22 @@ uint64_t ExpressionUtil::evaluateAsSkipLimit(const Expression& expr) {
     return number;
 }
 
+uint64_t ExpressionUtil::evaluateAsVariableLengthRelBound(const Expression& expr) {
+    auto value = evaluateAsLiteralValue(expr);
+    auto errorMsg = "Rel range upper/lower bound must be a non-negative integer.";
+    uint64_t number = INVALID_RELBOUND;
+    TypeUtils::visit(
+        value.getDataType(),
+        [&]<IntegerTypes T>(T) {
+            if (value.getValue<T>() < 0) {
+                throw RuntimeException{errorMsg};
+            }
+            number = (uint64_t)value.getValue<T>();
+        },
+        [&](auto) { throw RuntimeException{errorMsg}; });
+    return number;
+}
+
 template<typename T>
 T ExpressionUtil::getExpressionVal(const Expression& expr, const Value& value,
     const LogicalType& targetType, validate_param_func<T> validateParamFunc) {

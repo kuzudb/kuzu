@@ -526,15 +526,23 @@ expression_vector Binder::bindRecursivePatternRelProjectionList(const RecursiveR
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(const RelPattern& relPattern) {
     auto recursiveInfo = relPattern.getRecursiveInfo();
     uint32_t lowerBound = 0;
-    function::CastString::operation(
-        ku_string_t{recursiveInfo->lowerBound.c_str(), recursiveInfo->lowerBound.length()},
-        lowerBound);
+    auto boundLowerExpression = expressionBinder.bindExpression(*recursiveInfo->lowerBound);
+    if (boundLowerExpression->expressionType != ExpressionType::LITERAL &&
+        boundLowerExpression->expressionType != ExpressionType::PARAMETER) {
+        throw BinderException(
+            "Rel range lower bound must be a parameter/literal expression.");
+    }
+    lowerBound = ExpressionUtil::evaluateAsVariableLengthRelBound(*boundLowerExpression);
     auto maxDepth = clientContext->getClientConfig()->varLengthMaxDepth;
     auto upperBound = maxDepth;
-    if (!recursiveInfo->upperBound.empty()) {
-        function::CastString::operation(
-            ku_string_t{recursiveInfo->upperBound.c_str(), recursiveInfo->upperBound.length()},
-            upperBound);
+    if (recursiveInfo->upperBound.get()) {
+        auto boundUpperExpression = expressionBinder.bindExpression(*recursiveInfo->upperBound);
+        if (boundUpperExpression->expressionType != ExpressionType::LITERAL &&
+            boundUpperExpression->expressionType != ExpressionType::PARAMETER) {
+            throw BinderException(
+                "Rel range upper bound must be a parameter/literal expression.");
+        }
+        upperBound = ExpressionUtil::evaluateAsVariableLengthRelBound(*boundUpperExpression);
     }
     if (lowerBound > upperBound) {
         throw BinderException(stringFormat("Lower bound of rel {} is greater than upperBound.",
