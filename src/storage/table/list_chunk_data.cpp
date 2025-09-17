@@ -446,6 +446,10 @@ uint64_t ListChunkData::getSizeOnDisk() const {
     return ColumnChunkData::getSizeOnDisk() + sizeColumnChunk->getSizeOnDisk() +
            dataColumnChunk->getSizeOnDisk() + offsetColumnChunk->getSizeOnDisk();
 }
+uint64_t ListChunkData::getMinimumSizeOnDisk() const {
+    return ColumnChunkData::getMinimumSizeOnDisk() + sizeColumnChunk->getMinimumSizeOnDisk() +
+           dataColumnChunk->getMinimumSizeOnDisk() + offsetColumnChunk->getMinimumSizeOnDisk();
+}
 
 uint64_t ListChunkData::getSizeOnDiskInMemoryStats() const {
     return ColumnChunkData::getSizeOnDiskInMemoryStats() +

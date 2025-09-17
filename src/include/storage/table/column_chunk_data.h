@@ -230,10 +230,22 @@ public:
     bool shouldSplit() const {
         // TODO(bmwinger): this should use the inMemoryStats to avoid scanning the data, however not
         // all functions update them
-        return numValues > 1 && getSizeOnDisk() > common::StorageConfig::MAX_SEGMENT_SIZE;
+        return numValues > 1 && getSizeOnDisk() > std::max(getMinimumSizeOnDisk(),
+                                                      common::StorageConfig::MAX_SEGMENT_SIZE);
     }
     const ColumnChunkStats& getInMemoryStats() const;
 
+    // The minimum size is a function of the type's complexity and the page size
+    // If the page size is large, or the type is very complex, this could be larger than the max
+    // segment size (in which case we will treat the minimum size as the max segment size) E.g. if
+    // KUZU_PAGE_SIZE == MAX_SEGMENT_SIZE, even a normal column with non-constant-compressed nulls
+    // would have two pages and be detected as needing to split, even if the pages are nowhere near
+    // full.
+    //
+    // TODO(bmwinger): This was added to work around the issue of complex nested types having a
+    // larger initial size than the max segment size
+    // It should ideally be removed
+    virtual uint64_t getMinimumSizeOnDisk() const;
     virtual uint64_t getSizeOnDisk() const;
     // Not guaranteed to be accurate; not all functions keep the in memory statistics up to date!
     virtual uint64_t getSizeOnDiskInMemoryStats() const;

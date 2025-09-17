@@ -102,6 +102,14 @@ uint64_t StructChunkData::getSizeOnDisk() const {
     return size;
 }
 
+uint64_t StructChunkData::getMinimumSizeOnDisk() const {
+    uint64_t size = ColumnChunkData::getMinimumSizeOnDisk();
+    for (const auto& childChunk : childChunks) {
+        size += childChunk->getMinimumSizeOnDisk();
+    }
+    return size;
+}
+
 uint64_t StructChunkData::getSizeOnDiskInMemoryStats() const {
     uint64_t size = ColumnChunkData::getSizeOnDiskInMemoryStats();
     for (const auto& childChunk : childChunks) {

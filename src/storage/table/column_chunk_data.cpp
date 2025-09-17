@@ -1047,9 +1047,9 @@ std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool target
     // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
     // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
     // MAX_SEGMENT_SIZE
-    auto targetSize = targetMaxSize ?
-                          common::StorageConfig::MAX_SEGMENT_SIZE :
-                          std::min(getSizeOnDisk() / 2, common::StorageConfig::MAX_SEGMENT_SIZE);
+    auto maxSegmentSize = std::max(getMinimumSizeOnDisk(), common::StorageConfig::MAX_SEGMENT_SIZE);
+    auto targetSize =
+        targetMaxSize ? maxSegmentSize : std::min(getSizeOnDisk() / 2, maxSegmentSize);
     std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
     uint64_t pos = 0;
     const uint64_t chunkSize = 64;
@@ -1059,7 +1059,7 @@ std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool target
             ColumnChunkFactory::createColumnChunkData(getMemoryManager(), getDataType().copy(),
                 isCompressionEnabled(), initialCapacity, ResidencyState::IN_MEMORY, hasNullData());
 
-        while (pos < numValues && newSegment->getSizeOnDiskInMemoryStats() < targetSize) {
+        while (pos < numValues && newSegment->getSizeOnDiskInMemoryStats() <= targetSize) {
             if (newSegment->getNumValues() == newSegment->getCapacity()) {
                 newSegment->resize(newSegment->getCapacity() * 2);
             }
@@ -1079,6 +1079,13 @@ std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool target
 }
 
 ColumnChunkData::~ColumnChunkData() = default;
+
+uint64_t ColumnChunkData::getMinimumSizeOnDisk() const {
+    if (hasNullData() && nullData->getSizeOnDisk() > 0) {
+        return 2 * KUZU_PAGE_SIZE;
+    }
+    return KUZU_PAGE_SIZE;
+}
 
 } // namespace storage
 } // namespace kuzu

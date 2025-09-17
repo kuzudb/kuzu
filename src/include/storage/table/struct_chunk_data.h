@@ -50,6 +50,7 @@ public:
 
     void flush(PageAllocator& pageAllocator) override;
     uint64_t getSizeOnDisk() const override;
+    uint64_t getMinimumSizeOnDisk() const override;
     uint64_t getSizeOnDiskInMemoryStats() const override;
     void reclaimStorage(PageAllocator& pageAllocator) override;
 
