@@ -10,7 +10,6 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/utils.h"
-#include "function/cast/functions/cast_from_string_functions.h"
 #include "function/gds/rec_joins.h"
 #include "function/rewrite_function.h"
 #include "function/schema/vector_node_rel_functions.h"
