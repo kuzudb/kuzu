@@ -1,6 +1,6 @@
 #include "common/assert.h"
-#include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/expression/parsed_literal_expression.h"
+#include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/transformer.h"
 
 using namespace kuzu::common;
@@ -127,7 +127,8 @@ RelPattern Transformer::transformRelationshipPattern(
             relType = QueryRelType::VARIABLE_LENGTH_WALK;
         }
         // Parse lower, upper bound
-        std::unique_ptr<ParsedExpression> lowerBound = std::make_unique<ParsedLiteralExpression>(Value(1), "1");
+        std::unique_ptr<ParsedExpression> lowerBound =
+            std::make_unique<ParsedLiteralExpression>(Value(1), "1");
         std::unique_ptr<ParsedExpression> upperBound = nullptr;
         auto range = recursiveDetail->oC_RangeLiteral();
         if (range) {

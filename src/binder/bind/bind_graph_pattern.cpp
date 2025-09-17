@@ -529,8 +529,7 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(const RelPatter
     auto boundLowerExpression = expressionBinder.bindExpression(*recursiveInfo->lowerBound);
     if (boundLowerExpression->expressionType != ExpressionType::LITERAL &&
         boundLowerExpression->expressionType != ExpressionType::PARAMETER) {
-        throw BinderException(
-            "Rel range lower bound must be a parameter/literal expression.");
+        throw BinderException("Rel range lower bound must be a parameter/literal expression.");
     }
     lowerBound = ExpressionUtil::evaluateAsVariableLengthRelBound(*boundLowerExpression);
     auto maxDepth = clientContext->getClientConfig()->varLengthMaxDepth;
@@ -539,8 +538,7 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(const RelPatter
         auto boundUpperExpression = expressionBinder.bindExpression(*recursiveInfo->upperBound);
         if (boundUpperExpression->expressionType != ExpressionType::LITERAL &&
             boundUpperExpression->expressionType != ExpressionType::PARAMETER) {
-            throw BinderException(
-                "Rel range upper bound must be a parameter/literal expression.");
+            throw BinderException("Rel range upper bound must be a parameter/literal expression.");
         }
         upperBound = ExpressionUtil::evaluateAsVariableLengthRelBound(*boundUpperExpression);
     }
