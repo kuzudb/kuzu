@@ -419,7 +419,9 @@ void Column::checkpointColumnChunkInPlace(SegmentState& state,
             segmentCheckpointState.offsetInSegment, segmentCheckpointState.chunkData,
             segmentCheckpointState.startRowInData, segmentCheckpointState.numRows);
     }
-    // FIXME(bmwinger): Why?
+    // writeSegment doesn't update numValues, just the metadata
+    // TODO(bmwinger): either have all writes update numValues, or have writeSegment update it
+    // directly
     checkpointState.persistentData.resetNumValuesFromMetadata();
     if (nullColumn) {
         checkpointNullData(checkpointState, pageAllocator);
