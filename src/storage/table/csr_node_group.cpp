@@ -785,15 +785,23 @@ static void writeInMemoryCSRInsertion(CheckpointWriteCursor& writeCursor,
 }
 
 static void fillCSRGaps(CheckpointReadCursor& readCursor, CheckpointWriteCursor& writeCursor,
-    ColumnChunkData* dummyChunkForNulls, length_t numOldGaps, length_t numGaps,
-    length_t numMustWriteGaps) {
-    KU_ASSERT(numMustWriteGaps <= numGaps);
+    ColumnChunkData* dummyChunkForNulls, length_t numOldGaps, length_t numGaps) {
+    auto numOldGapsRemaining = numOldGaps;
     auto numGapsRemaining = numGaps;
+    if (readCursor.getCSROffset() < writeCursor.getCSROffset()) {
+        // Try to advance read cursor to write cursor (if num old gaps is large enough)
+        const auto numGapsToAdvance =
+            std::min(numOldGapsRemaining, writeCursor.getCSROffset() - readCursor.getCSROffset());
+        readCursor.advance(numGapsToAdvance);
+        numOldGapsRemaining -= numGapsToAdvance;
+    }
 
     // We can skip writes for any new gaps whose CSR offset also corresponds to an old gap
-    auto numSkippableGaps = std::min(numGapsRemaining - numMustWriteGaps, numOldGaps);
-    numGapsRemaining -= numSkippableGaps;
-    writeCursor.advance(numSkippableGaps);
+    if (readCursor.getCSROffset() == writeCursor.getCSROffset()) {
+        auto numSkippableGaps = std::min(numGapsRemaining, numOldGapsRemaining);
+        numGapsRemaining -= numSkippableGaps;
+        writeCursor.advance(numSkippableGaps);
+    }
 
     while (numGapsRemaining > 0) {
         const auto numGapsToFill =
@@ -804,7 +812,7 @@ static void fillCSRGaps(CheckpointReadCursor& readCursor, CheckpointWriteCursor&
         numGapsRemaining -= numGapsToFill;
     }
 
-    readCursor.advance(numOldGaps);
+    readCursor.advance(numOldGapsRemaining);
 }
 
 std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const UniqLock& lock,
@@ -867,13 +875,7 @@ std::vector<ChunkCheckpointState> CSRNodeGroup::checkpointColumnInRegion(const U
         // Gaps should only happen at the end of the CSR region.
         KU_ASSERT(numGaps == 0 || (nodeOffset == region.rightNodeOffset - 1) ||
                   (nodeOffset + 1) % StorageConfig::CSR_LEAF_REGION_SIZE == 0);
-        // We must write gaps if they are appends (their CSR offsets are past the old end offset for
-        // the region)
-        const auto numMustWriteGaps =
-            std::max(writeCursor.getCSROffset() + numGaps, rightCSROffset) -
-            std::max(rightCSROffset, writeCursor.getCSROffset());
-        fillCSRGaps(readCursor, writeCursor, dummyChunkForNulls.get(), numOldGaps, numGaps,
-            numMustWriteGaps);
+        fillCSRGaps(readCursor, writeCursor, dummyChunkForNulls.get(), numOldGaps, numGaps);
     }
     writeCursor.finalize();
     KU_ASSERT(readCursor.getCSROffset() - leftCSROffset == numOldRowsInRegion);
