@@ -271,33 +271,67 @@ void ColumnChunk::write(Column& column, ChunkState& state, offset_t dstOffset,
     }
 }
 
+struct SortedChunkManager {
+    explicit SortedChunkManager(std::vector<ChunkCheckpointState>&& chunkCheckpointStates)
+        : chunkCheckpointStates(std::move(chunkCheckpointStates)), startStateIdx(0),
+          endStateIdx(0) {
+        KU_ASSERT(std::ranges::is_sorted(chunkCheckpointStates.begin(), chunkCheckpointStates.end(),
+            [](const auto& a, const auto& b) { return a.startRow < b.startRow; }));
+    }
+
+    void advanceTo(offset_t segmentStart, offset_t segmentEnd) {
+        while (startStateIdx < chunkCheckpointStates.size() &&
+               chunkCheckpointStates[startStateIdx].startRow +
+                       chunkCheckpointStates[startStateIdx].numRows <=
+                   segmentStart) {
+            ++startStateIdx;
+        }
+        while (endStateIdx < chunkCheckpointStates.size() &&
+               chunkCheckpointStates[endStateIdx].startRow < segmentEnd) {
+            ++endStateIdx;
+        }
+    }
+
+    std::vector<ChunkCheckpointState> chunkCheckpointStates;
+
+    // 2 pointers to keep track of start/end chunk checkpoint states that overlap with the current
+    // segment
+    size_t startStateIdx;
+    size_t endStateIdx;
+};
+
 void ColumnChunk::checkpoint(Column& column,
     std::vector<ChunkCheckpointState>&& chunkCheckpointStates, PageAllocator& pageAllocator) {
+    SortedChunkManager chunkManager{std::move(chunkCheckpointStates)};
     offset_t segmentStart = 0;
     for (size_t i = 0; i < data.size(); i++) {
         std::vector<SegmentCheckpointState> segmentCheckpointStates;
         auto& segment = data[i];
         KU_ASSERT(segment->getResidencyState() == ResidencyState::ON_DISK);
-        for (auto& state : chunkCheckpointStates) {
-            const bool isLastSegment = (i == data.size() - 1);
-            if (state.startRow + state.numRows > segmentStart &&
-                (isLastSegment || state.startRow < segmentStart + segment->getNumValues())) {
-                const auto startOffset = std::max(state.startRow, segmentStart);
-                // Generally, we only want to checkpoint the overlapping parts of the old segment
-                // and the new chunk. This is to prevent having duplicate segments. However, for the
-                // last old segment we allow extending it to account for any insertions we have made
-                // in the current checkpoint.
-                const auto endOffset = isLastSegment ? state.startRow + state.numRows :
-                                                       std::min(state.startRow + state.numRows,
-                                                           segmentStart + segment->getNumValues());
+        const auto segmentEnd = segmentStart + segment->getNumValues();
 
-                const auto startOffsetInSegment = startOffset - segmentStart;
-                const auto startRowInChunk = startOffset - state.startRow;
-                segmentCheckpointStates.push_back({*state.chunkData, startRowInChunk,
-                    startOffsetInSegment, endOffset - startOffset});
-            }
+        const bool isLastSegment = (i == data.size() - 1);
+        chunkManager.advanceTo(segmentStart, isLastSegment ? INVALID_OFFSET : segmentEnd);
+        for (auto chunkIdx = chunkManager.startStateIdx; chunkIdx < chunkManager.endStateIdx;
+            ++chunkIdx) {
+            const auto& state = chunkManager.chunkCheckpointStates[chunkIdx];
+            KU_ASSERT(state.startRow + state.numRows > segmentStart &&
+                      (isLastSegment || state.startRow < segmentStart + segment->getNumValues()));
+            const auto startOffset = std::max(state.startRow, segmentStart);
+            // Generally, we only want to checkpoint the overlapping parts of the old segment
+            // and the new chunk. This is to prevent having duplicate segments. However, for the
+            // last old segment we allow extending it to account for any insertions we have made
+            // in the current checkpoint.
+            const auto endOffset = isLastSegment ? state.startRow + state.numRows :
+                                                   std::min(state.startRow + state.numRows,
+                                                       segmentStart + segment->getNumValues());
+
+            const auto startOffsetInSegment = startOffset - segmentStart;
+            const auto startRowInChunk = startOffset - state.startRow;
+            segmentCheckpointStates.push_back(
+                {*state.chunkData, startRowInChunk, startOffsetInSegment, endOffset - startOffset});
         }
-        auto segmentEnd = segmentStart + segment->getNumValues();
+
         // If the segment was split during checkpointing we need to insert the new segments into the
         // ColumnChunk
         auto newSegments = column.checkpointSegment(
