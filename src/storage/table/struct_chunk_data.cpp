@@ -94,7 +94,31 @@ void StructChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     }
 }
 
-void StructChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+uint64_t StructChunkData::getSizeOnDisk() const {
+    uint64_t size = ColumnChunkData::getSizeOnDisk();
+    for (const auto& childChunk : childChunks) {
+        size += childChunk->getSizeOnDisk();
+    }
+    return size;
+}
+
+uint64_t StructChunkData::getMinimumSizeOnDisk() const {
+    uint64_t size = ColumnChunkData::getMinimumSizeOnDisk();
+    for (const auto& childChunk : childChunks) {
+        size += childChunk->getMinimumSizeOnDisk();
+    }
+    return size;
+}
+
+uint64_t StructChunkData::getSizeOnDiskInMemoryStats() const {
+    uint64_t size = ColumnChunkData::getSizeOnDiskInMemoryStats();
+    for (const auto& childChunk : childChunks) {
+        size += childChunk->getSizeOnDiskInMemoryStats();
+    }
+    return size;
+}
+
+void StructChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     const auto& otherStructChunk = other->cast<StructChunkData>();
@@ -142,7 +166,7 @@ void StructChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     }
 }
 
-void StructChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void StructChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* structColumn = ku_dynamic_cast<const StructColumn*>(column);
@@ -211,7 +235,7 @@ void StructChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     }
 }
 
-void StructChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void StructChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRUCT);
     const auto& srcStructChunk = srcChunk->cast<StructChunkData>();

@@ -68,7 +68,7 @@ std::unique_ptr<processor::RelBatchInsertExecutionState> HNSWRelBatchInsert::ini
 }
 
 void HNSWRelBatchInsert::populateCSRLengths(processor::RelBatchInsertExecutionState& executionState,
-    storage::ChunkedCSRHeader& csrHeader, common::offset_t numNodes,
+    storage::InMemChunkedCSRHeader& csrHeader, common::offset_t numNodes,
     const processor::RelBatchInsertInfo&) {
     KU_ASSERT(numNodes == csrHeader.length->getNumValues() &&
               numNodes == csrHeader.offset->getNumValues());
@@ -76,8 +76,7 @@ void HNSWRelBatchInsert::populateCSRLengths(processor::RelBatchInsertExecutionSt
     const auto& graph = hnswExecutionState.graph;
     const auto startNodeInGraph = hnswExecutionState.startNodeInGraph;
     const auto endNodeInGraph = hnswExecutionState.endNodeInGraph;
-    const auto lengthData =
-        reinterpret_cast<common::length_t*>(csrHeader.length->getData().getData());
+    const auto lengthData = reinterpret_cast<common::length_t*>(csrHeader.length->getData());
     std::fill(lengthData, lengthData + numNodes, 0);
     for (common::offset_t graphOffset = startNodeInGraph; graphOffset < endNodeInGraph;
          ++graphOffset) {
@@ -97,7 +96,7 @@ static common::offset_t getNumRelsInGraph(const InMemHNSWGraph& graph,
 }
 
 void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& executionState,
-    const storage::ChunkedCSRHeader& csrHeader,
+    const storage::InMemChunkedCSRHeader& csrHeader,
     const processor::RelBatchInsertLocalState& localState,
     processor::BatchInsertSharedState& sharedState, const processor::RelBatchInsertInfo&) {
     const auto& hnswExecutionState = executionState.constCast<HNSWRelBatchInsertExecutionState>();
@@ -114,8 +113,8 @@ void HNSWRelBatchInsert::writeToTable(processor::RelBatchInsertExecutionState& e
     // Write the rel data of the HNSW index directly to the local chunked group
     static constexpr auto neighbourOffsetColumn = 0;
     static constexpr auto rowIdxColumn = 1;
-    auto& neighbourChunk = localState.chunkedGroup->getColumnChunk(neighbourOffsetColumn).getData();
-    auto& relIDChunk = localState.chunkedGroup->getColumnChunk(rowIdxColumn).getData();
+    auto& neighbourChunk = localState.chunkedGroup->getColumnChunk(neighbourOffsetColumn);
+    auto& relIDChunk = localState.chunkedGroup->getColumnChunk(rowIdxColumn);
     auto numRelsWritten = 0;
     for (common::offset_t nodeInGraph = startNodeInGraph; nodeInGraph < endNodeInGraph;
          ++nodeInGraph) {

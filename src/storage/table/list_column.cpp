@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "common/assert.h"
+#include "common/types/types.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
@@ -14,7 +15,6 @@
 #include <bit>
 
 using namespace kuzu::common;
-using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -99,59 +99,47 @@ std::unique_ptr<ColumnChunkData> ListColumn::flushChunkData(const ColumnChunkDat
     return flushedChunk;
 }
 
-void ListColumn::scan(const ChunkState& state, offset_t startOffsetInGroup,
-    offset_t endOffsetInGroup, ValueVector* resultVector, uint64_t offsetInVector) const {
-    nullColumn->scan(*state.nullState, startOffsetInGroup, endOffsetInGroup, resultVector,
-        offsetInVector);
-    auto listOffsetInfoInStorage =
-        getListOffsetSizeInfo(state, startOffsetInGroup, endOffsetInGroup);
-    offset_t listOffsetInVector =
-        offsetInVector == 0 ? 0 :
-                              resultVector->getValue<list_entry_t>(offsetInVector - 1).offset +
-                                  resultVector->getValue<list_entry_t>(offsetInVector - 1).size;
-    auto offsetToWriteListData = listOffsetInVector;
-    auto numValues = endOffsetInGroup - startOffsetInGroup;
-    numValues = std::min(numValues, listOffsetInfoInStorage.numTotal);
-    KU_ASSERT(endOffsetInGroup >= startOffsetInGroup);
-    for (auto i = 0u; i < numValues; i++) {
-        list_size_t size = listOffsetInfoInStorage.getListSize(i);
-        resultVector->setValue(i + offsetInVector, list_entry_t{listOffsetInVector, size});
-        listOffsetInVector += size;
+void ListColumn::scanSegment(const SegmentState& state, offset_t startOffsetInChunk,
+    row_idx_t numValuesToScan, ValueVector* resultVector, offset_t offsetInResult) const {
+    if (nullColumn) {
+        KU_ASSERT(state.nullState);
+        nullColumn->scanSegment(*state.nullState, startOffsetInChunk, numValuesToScan, resultVector,
+            offsetInResult);
     }
-    ListVector::resizeDataVector(resultVector, listOffsetInVector);
-    auto dataVector = ListVector::getDataVector(resultVector);
-    if (listOffsetInfoInStorage.isOffsetSortedAscending(0, numValues)) {
-        dataColumn->scan(state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-            listOffsetInfoInStorage.getListStartOffset(0),
-            listOffsetInfoInStorage.getListStartOffset(numValues), dataVector,
-            offsetToWriteListData);
+    auto listOffsetSizeInfo = getListOffsetSizeInfo(state, startOffsetInChunk, numValuesToScan);
+    if (!resultVector->state || resultVector->state->getSelVector().isUnfiltered()) {
+        scanUnfiltered(state, resultVector, numValuesToScan, listOffsetSizeInfo, offsetInResult);
     } else {
-        for (auto i = 0u; i < numValues; i++) {
-            offset_t startOffset = listOffsetInfoInStorage.getListStartOffset(i);
-            offset_t appendSize = listOffsetInfoInStorage.getListSize(i);
-            dataColumn->scan(state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-                startOffset, startOffset + appendSize, dataVector, offsetToWriteListData);
-            offsetToWriteListData += appendSize;
-        }
+        scanFiltered(state, startOffsetInChunk, resultVector, listOffsetSizeInfo, offsetInResult);
     }
 }
 
-void ListColumn::scan(const ChunkState& state, ColumnChunkData* columnChunk, offset_t startOffset,
-    offset_t endOffset) const {
-    Column::scan(state, columnChunk, startOffset, endOffset);
-    if (columnChunk->getNumValues() == 0) {
+void ListColumn::scanSegment(const SegmentState& state, ColumnChunkData* resultChunk,
+    common::offset_t startOffsetInSegment, common::row_idx_t numValuesToScan) const {
+    auto startOffsetInResult = resultChunk->getNumValues();
+    Column::scanSegment(state, resultChunk, startOffsetInSegment, numValuesToScan);
+    if (numValuesToScan == 0) {
         return;
     }
+    // Column::scanSegment above modifies the size of the offset/size chunks before we scan
+    // them
+    // Revert this so that they scan to the correct position
+    // FIXME(bmwinger): there should be a better solution to this, but it will probably be removed
+    // later anyway
+    auto& listColumnChunk = resultChunk->cast<ListChunkData>();
+    listColumnChunk.getOffsetColumnChunk()->setNumValues(startOffsetInResult);
+    listColumnChunk.getSizeColumnChunk()->setNumValues(startOffsetInResult);
 
-    auto& listColumnChunk = columnChunk->cast<ListChunkData>();
-    offsetColumn->scan(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        listColumnChunk.getOffsetColumnChunk(), startOffset, endOffset);
-    sizeColumn->scan(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
-        listColumnChunk.getSizeColumnChunk(), startOffset, endOffset);
+    offsetColumn->scanSegment(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        listColumnChunk.getOffsetColumnChunk(), startOffsetInSegment, numValuesToScan);
+    sizeColumn->scanSegment(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
+        listColumnChunk.getSizeColumnChunk(), startOffsetInSegment, numValuesToScan);
     auto resizeNumValues = listColumnChunk.getDataColumnChunk()->getNumValues();
     bool isOffsetSortedAscending = true;
-    offset_t prevOffset = listColumnChunk.getListStartOffset(0);
-    for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
+    KU_ASSERT(listColumnChunk.getSizeColumnChunk()->getNumValues() ==
+              startOffsetInResult + numValuesToScan);
+    offset_t prevOffset = listColumnChunk.getListStartOffset(startOffsetInResult);
+    for (auto i = startOffsetInResult; i < startOffsetInResult + numValuesToScan; i++) {
         auto currentEndOffset = listColumnChunk.getListEndOffset(i);
         auto appendSize = listColumnChunk.getListSize(i);
         prevOffset += appendSize;
@@ -162,45 +150,28 @@ void ListColumn::scan(const ChunkState& state, ColumnChunkData* columnChunk, off
     }
     if (isOffsetSortedAscending) {
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-        offset_t startListOffset = listColumnChunk.getListStartOffset(0);
-        offset_t endListOffset = listColumnChunk.getListStartOffset(columnChunk->getNumValues());
-        dataColumn->scan(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-            listColumnChunk.getDataColumnChunk(), startListOffset, endListOffset);
-        listColumnChunk.resetOffset();
+        offset_t startListOffset = listColumnChunk.getListStartOffset(startOffsetInResult);
+        offset_t endListOffset =
+            listColumnChunk.getListStartOffset(startOffsetInResult + numValuesToScan);
+        KU_ASSERT(endListOffset >= startListOffset);
+        dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+            listColumnChunk.getDataColumnChunk(), startListOffset, endListOffset - startListOffset);
     } else {
         listColumnChunk.resizeDataColumnChunk(std::bit_ceil(resizeNumValues));
-        auto tmpDataColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm,
-            ListType::getChildType(this->dataType).copy(), enableCompression,
-            std::bit_ceil(resizeNumValues), ResidencyState::IN_MEMORY);
-        auto* dataListColumnChunk = listColumnChunk.getDataColumnChunk();
-        for (auto i = 0u; i < columnChunk->getNumValues(); i++) {
+        for (auto i = startOffsetInResult; i < startOffsetInResult + numValuesToScan; i++) {
             offset_t startListOffset = listColumnChunk.getListStartOffset(i);
             offset_t endListOffset = listColumnChunk.getListEndOffset(i);
-            dataColumn->scan(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                tmpDataColumnChunk.get(), startListOffset, endListOffset);
-            KU_ASSERT(endListOffset - startListOffset == tmpDataColumnChunk->getNumValues());
-            dataListColumnChunk->append(tmpDataColumnChunk.get(), 0,
-                tmpDataColumnChunk->getNumValues());
+            dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                listColumnChunk.getDataColumnChunk(), startListOffset,
+                endListOffset - startListOffset);
         }
-        listColumnChunk.resetOffset();
     }
+    listColumnChunk.resetOffset();
 
     KU_ASSERT(listColumnChunk.sanityCheck());
 }
 
-void ListColumn::scanInternal(const ChunkState& state, offset_t startOffsetInChunk,
-    row_idx_t numValuesToScan, ValueVector* resultVector) const {
-    KU_ASSERT(resultVector->state);
-    auto listOffsetSizeInfo =
-        getListOffsetSizeInfo(state, startOffsetInChunk, startOffsetInChunk + numValuesToScan);
-    if (resultVector->state->getSelVector().isUnfiltered()) {
-        scanUnfiltered(state, resultVector, numValuesToScan, listOffsetSizeInfo);
-    } else {
-        scanFiltered(state, resultVector, listOffsetSizeInfo);
-    }
-}
-
-void ListColumn::lookupInternal(const ChunkState& state, offset_t nodeOffset,
+void ListColumn::lookupInternal(const SegmentState& state, offset_t nodeOffset,
     ValueVector* resultVector, uint32_t posInVector) const {
     auto [nodeGroupIdx, offsetInChunk] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(nodeOffset);
     const auto listEndOffset = readOffset(state, offsetInChunk);
@@ -209,73 +180,90 @@ void ListColumn::lookupInternal(const ChunkState& state, offset_t nodeOffset,
     auto dataVector = ListVector::getDataVector(resultVector);
     auto currentListDataSize = ListVector::getDataVectorSize(resultVector);
     ListVector::resizeDataVector(resultVector, currentListDataSize + size);
-    dataColumn->scan(state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-        listStartOffset, listEndOffset, dataVector, currentListDataSize);
+    dataColumn->scanSegment(state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+        listStartOffset, listEndOffset - listStartOffset, dataVector, currentListDataSize);
     resultVector->setValue(posInVector, list_entry_t{currentListDataSize, size});
 }
 
-void ListColumn::scanUnfiltered(const ChunkState& state, ValueVector* resultVector,
-    uint64_t numValuesToScan, const ListOffsetSizeInfo& listOffsetInfoInStorage) const {
+void ListColumn::scanUnfiltered(const SegmentState& state, ValueVector* resultVector,
+    uint64_t numValuesToScan, const ListOffsetSizeInfo& listOffsetInfoInStorage,
+    offset_t offsetInResult) const {
+    auto dataVector = ListVector::getDataVector(resultVector);
+    // Scans append to the end of the vector, so we need to start at the end of the last list
+    auto startOffsetInDataVector = ListVector::getDataVectorSize(resultVector);
+    auto offsetInDataVector = startOffsetInDataVector;
+
     numValuesToScan = std::min(numValuesToScan, listOffsetInfoInStorage.numTotal);
-    offset_t offsetInVector = 0;
     for (auto i = 0u; i < numValuesToScan; i++) {
         auto listLen = listOffsetInfoInStorage.getListSize(i);
-        resultVector->setValue(i, list_entry_t{offsetInVector, listLen});
-        offsetInVector += listLen;
+        resultVector->setValue(offsetInResult + i, list_entry_t{offsetInDataVector, listLen});
+        offsetInDataVector += listLen;
     }
-    ListVector::resizeDataVector(resultVector, offsetInVector);
-    auto dataVector = ListVector::getDataVector(resultVector);
-    offsetInVector = 0;
+    ListVector::resizeDataVector(resultVector, offsetInDataVector);
     const bool checkOffsetOrder =
         listOffsetInfoInStorage.isOffsetSortedAscending(0, numValuesToScan);
     if (checkOffsetOrder) {
         auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(0);
         numValuesToScan = numValuesToScan == 0 ? 0 : numValuesToScan - 1;
         auto endListOffsetInStorage = listOffsetInfoInStorage.getListEndOffset(numValuesToScan);
-        dataColumn->scan(state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-            startListOffsetInStorage, endListOffsetInStorage, dataVector, 0 /* offsetInVector */);
+        dataColumn->scanSegment(
+            state.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+            startListOffsetInStorage, endListOffsetInStorage - startListOffsetInStorage, dataVector,
+            static_cast<uint64_t>(startOffsetInDataVector /* offsetInVector */));
     } else {
+        offsetInDataVector = startOffsetInDataVector;
         for (auto i = 0u; i < numValuesToScan; i++) {
             // Nulls are scanned to the resultVector first
             if (!resultVector->isNull(i)) {
                 auto startListOffsetInStorage = listOffsetInfoInStorage.getListStartOffset(i);
                 auto appendSize = listOffsetInfoInStorage.getListSize(i);
-                dataColumn->scan(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                    startListOffsetInStorage, startListOffsetInStorage + appendSize, dataVector,
-                    offsetInVector);
-                offsetInVector += appendSize;
+                dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                    startListOffsetInStorage, appendSize, dataVector, offsetInDataVector);
+                offsetInDataVector += appendSize;
             }
         }
     }
 }
 
-void ListColumn::scanFiltered(const ChunkState& state, ValueVector* offsetVector,
-    const ListOffsetSizeInfo& listOffsetSizeInfo) const {
-    offset_t listOffset = 0;
-    for (auto i = 0u; i < offsetVector->state->getSelVector().getSelSize(); i++) {
-        auto pos = offsetVector->state->getSelVector()[i];
-        auto listSize = listOffsetSizeInfo.getListSize(pos);
-        offsetVector->setValue(pos, list_entry_t{(offset_t)listOffset, listSize});
-        listOffset += listSize;
+void ListColumn::scanFiltered(const SegmentState& state, offset_t startOffsetInSegment,
+    ValueVector* resultVector, const ListOffsetSizeInfo& listOffsetSizeInfo,
+    offset_t offsetInResult) const {
+    auto dataVector = ListVector::getDataVector(resultVector);
+    auto startOffsetInDataVector = ListVector::getDataVectorSize(resultVector);
+    auto offsetInDataVector = startOffsetInDataVector;
+
+    for (sel_t i = 0; i < resultVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = resultVector->state->getSelVector()[i];
+        if (startOffsetInSegment + pos - offsetInResult < state.metadata.numValues) {
+            // The listOffsetSizeInfo starts with the first value being scanned, so the
+            // startOffsetInSegment parameter is not needed here except for the bounds check
+            auto listSize = listOffsetSizeInfo.getListSize(pos - offsetInResult);
+            resultVector->setValue(pos, list_entry_t{(offset_t)offsetInDataVector, listSize});
+            offsetInDataVector += listSize;
+        }
     }
-    ListVector::resizeDataVector(offsetVector, listOffset);
-    listOffset = 0;
-    for (auto i = 0u; i < offsetVector->state->getSelVector().getSelSize(); i++) {
-        auto pos = offsetVector->state->getSelVector()[i];
+    ListVector::resizeDataVector(resultVector, offsetInDataVector);
+    offsetInDataVector = startOffsetInDataVector;
+    for (auto i = 0u; i < resultVector->state->getSelVector().getSelSize(); i++) {
+        auto pos = resultVector->state->getSelVector()[i];
         // Nulls are scanned to the resultVector first
-        if (!offsetVector->isNull(pos)) {
-            auto startOffsetInStorageToScan = listOffsetSizeInfo.getListStartOffset(pos);
-            auto appendSize = listOffsetSizeInfo.getListSize(pos);
-            auto dataVector = ListVector::getDataVector(offsetVector);
-            dataColumn->scan(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
-                startOffsetInStorageToScan, startOffsetInStorageToScan + appendSize, dataVector,
-                listOffset);
-            listOffset += offsetVector->getValue<list_entry_t>(pos).size;
+        if (pos >= offsetInResult &&
+            startOffsetInSegment + pos - offsetInResult < state.metadata.numValues &&
+            !resultVector->isNull(pos)) {
+            auto startOffsetInStorageToScan =
+                listOffsetSizeInfo.getListStartOffset(pos - offsetInResult);
+            auto appendSize = listOffsetSizeInfo.getListSize(pos - offsetInResult);
+            // If there is a selection vector for the dataVector, its selected positions are not
+            // being updated at all for this specific segment
+            KU_ASSERT(!dataVector->state || dataVector->state->getSelVector().isUnfiltered());
+            dataColumn->scanSegment(state.childrenStates[DATA_COLUMN_CHILD_READ_STATE_IDX],
+                startOffsetInStorageToScan, appendSize, dataVector, offsetInDataVector);
+            offsetInDataVector += resultVector->getValue<list_entry_t>(pos).size;
         }
     }
 }
 
-offset_t ListColumn::readOffset(const ChunkState& state, offset_t offsetInNodeGroup) const {
+offset_t ListColumn::readOffset(const SegmentState& state, offset_t offsetInNodeGroup) const {
     offset_t ret = INVALID_OFFSET;
     const auto& offsetState = state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX];
     offsetColumn->columnReadWriter->readCompressedValueToPage(offsetState, offsetInNodeGroup,
@@ -283,54 +271,91 @@ offset_t ListColumn::readOffset(const ChunkState& state, offset_t offsetInNodeGr
     return ret;
 }
 
-list_size_t ListColumn::readSize(const ChunkState& state, offset_t offsetInNodeGroup) const {
-    const auto& sizeState = state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
+list_size_t ListColumn::readSize(const SegmentState& readState, offset_t offsetInNodeGroup) const {
+    const auto& sizeState = readState.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX];
     offset_t value = INVALID_OFFSET;
     sizeColumn->columnReadWriter->readCompressedValueToPage(sizeState, offsetInNodeGroup,
         reinterpret_cast<uint8_t*>(&value), 0, sizeColumn->readToPageFunc);
     return value;
 }
 
-ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const ChunkState& state,
-    offset_t startOffsetInNodeGroup, offset_t endOffsetInNodeGroup) const {
-    const auto numOffsetsToRead = endOffsetInNodeGroup - startOffsetInNodeGroup;
+ListOffsetSizeInfo ListColumn::getListOffsetSizeInfo(const SegmentState& state,
+    offset_t startOffsetInSegment, offset_t numOffsetsToRead) const {
     auto offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::INT64(),
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
     auto sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT32(),
         enableCompression, numOffsetsToRead, ResidencyState::IN_MEMORY);
-    offsetColumn->scan(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
-        offsetColumnChunk.get(), startOffsetInNodeGroup, endOffsetInNodeGroup);
-    sizeColumn->scan(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX], sizeColumnChunk.get(),
-        startOffsetInNodeGroup, endOffsetInNodeGroup);
+    offsetColumn->scanSegment(state.childrenStates[OFFSET_COLUMN_CHILD_READ_STATE_IDX],
+        offsetColumnChunk.get(), startOffsetInSegment, numOffsetsToRead);
+    sizeColumn->scanSegment(state.childrenStates[SIZE_COLUMN_CHILD_READ_STATE_IDX],
+        sizeColumnChunk.get(), startOffsetInSegment, numOffsetsToRead);
     auto numValuesScan = offsetColumnChunk->getNumValues();
     return {numValuesScan, std::move(offsetColumnChunk), std::move(sizeColumnChunk)};
 }
 
-void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
-    PageAllocator& pageAllocator) {
-    auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
-    const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
-    // First, check if we can checkpoint list data chunk in place.
-    const auto persistentListDataSize = persistentDataChunk->getNumValues();
-    row_idx_t newListDataSize = persistentListDataSize;
+static void appendDataCheckpointState(
+    std::vector<SegmentCheckpointState>& listDataChunkCheckpointStates, ColumnChunkData& dataChunk,
+    offset_t inputOffset, offset_t& outputOffset, offset_t numRows) {
+    if (numRows > 0) {
+        listDataChunkCheckpointStates.push_back(
+            SegmentCheckpointState{dataChunk, inputOffset, outputOffset, numRows});
+        outputOffset += numRows;
+    }
+}
 
-    std::vector<const ChunkCheckpointState*> listDataNonEmptyChunkCheckpointStates;
-    std::vector<ChunkCheckpointState> listDataChunkCheckpointStates;
-    for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-        KU_ASSERT(chunkCheckpointState.chunkData->getNumValues() == chunkCheckpointState.numRows);
-        const auto chunkData =
-            chunkCheckpointState.chunkData->cast<ListChunkData>().getDataColumnChunk();
-        const row_idx_t listDataSizeToAppend = chunkData->getNumValues();
-        if (listDataSizeToAppend > 0) {
-            listDataNonEmptyChunkCheckpointStates.push_back(&chunkCheckpointState);
-            listDataChunkCheckpointStates.push_back(ChunkCheckpointState{
-                chunkCheckpointState.chunkData->cast<ListChunkData>().moveDataColumnChunk(),
-                newListDataSize, listDataSizeToAppend});
-            newListDataSize += listDataSizeToAppend;
+static std::vector<SegmentCheckpointState> createListDataChunkCheckpointStates(
+    ListChunkData& persistentListChunk, std::span<SegmentCheckpointState> segmentCheckpointStates) {
+    const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
+    row_idx_t newListDataSize = persistentDataChunk->getNumValues();
+
+    std::vector<SegmentCheckpointState> listDataChunkCheckpointStates;
+    for (const auto& segmentCheckpointState : segmentCheckpointStates) {
+        // We append the data for each list entry as separate segment checkpoint states
+        // List entries with adjacent data are commbined into a single segment checkpoint state
+        const auto& listChunk = segmentCheckpointState.chunkData.cast<ListChunkData>();
+        offset_t currentSegmentStartOffset = INVALID_OFFSET;
+        offset_t currentSegmentNumRows = 0;
+        for (offset_t i = 0; i < segmentCheckpointState.numRows; i++) {
+            if (listChunk.isNull(segmentCheckpointState.startRowInData + i)) {
+                // Nulls will have 0 length and start at pos 0, which will work with the logic
+                // below, but may create more checkpoint states than necessary
+                continue;
+            }
+            const auto currentListStartOffset =
+                listChunk.getListStartOffset(segmentCheckpointState.startRowInData + i);
+            const auto currentListLength =
+                listChunk.getListSize(segmentCheckpointState.startRowInData + i);
+            if (currentSegmentStartOffset + currentSegmentNumRows == currentListStartOffset) {
+                currentSegmentNumRows += currentListLength;
+            } else {
+                appendDataCheckpointState(listDataChunkCheckpointStates,
+                    *listChunk.getDataColumnChunk(), currentSegmentStartOffset, newListDataSize,
+                    currentSegmentNumRows);
+                currentSegmentStartOffset = currentListStartOffset;
+                currentSegmentNumRows = currentListLength;
+            }
         }
+        appendDataCheckpointState(listDataChunkCheckpointStates, *listChunk.getDataColumnChunk(),
+            currentSegmentStartOffset, newListDataSize, currentSegmentNumRows);
     }
 
-    ChunkState chunkState;
+    return listDataChunkCheckpointStates;
+}
+
+std::vector<std::unique_ptr<ColumnChunkData>> ListColumn::checkpointSegment(
+    ColumnCheckpointState&& checkpointState, PageAllocator& pageAllocator,
+    bool canSplitSegment) const {
+    if (checkpointState.segmentCheckpointStates.empty()) {
+        return {};
+    }
+    auto& persistentListChunk = checkpointState.persistentData.cast<ListChunkData>();
+    const auto persistentDataChunk = persistentListChunk.getDataColumnChunk();
+
+    auto listDataChunkCheckpointStates = createListDataChunkCheckpointStates(persistentListChunk,
+        checkpointState.segmentCheckpointStates);
+
+    // First, check if we can checkpoint list data chunk in place.
+    SegmentState chunkState;
     checkpointState.persistentData.initializeScanState(chunkState, this);
     ColumnCheckpointState listDataCheckpointState(*persistentDataChunk,
         std::move(listDataChunkCheckpointStates));
@@ -340,65 +365,70 @@ void ListColumn::checkpointColumnChunk(ColumnCheckpointState& checkpointState,
     if (!listDataCanCheckpointInPlace) {
         // If we cannot checkpoint list data chunk in place, we need to checkpoint the whole chunk
         // out of place.
-        // Move list data chunks back to the original chunk in checkpointState.
-        for (auto i = 0u; i < listDataNonEmptyChunkCheckpointStates.size(); i++) {
-            const auto* chunkCheckpointState = listDataNonEmptyChunkCheckpointStates[i];
-            chunkCheckpointState->chunkData->cast<ListChunkData>().setDataColumnChunk(
-                std::move(listDataCheckpointState.chunkCheckpointStates[i].chunkData));
-        }
-        checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator);
-    } else {
-        // In place checkpoint for list data.
-        dataColumn->checkpointColumnChunkInPlace(
-            chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
-            listDataCheckpointState, pageAllocator);
-
-        // Checkpoint offset data.
-        std::vector<ChunkCheckpointState> offsetChunkCheckpointStates;
-        std::vector<std::unique_ptr<ColumnChunk>> offsetChunks;
-
-        KU_ASSERT(std::is_sorted(checkpointState.chunkCheckpointStates.begin(),
-            checkpointState.chunkCheckpointStates.end(),
-            [](const auto& a, const auto& b) { return a.startRow < b.startRow; }));
-        for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-            KU_ASSERT(
-                chunkCheckpointState.chunkData->getNumValues() == chunkCheckpointState.numRows);
-            offsetChunks.push_back(std::make_unique<ColumnChunk>(*mm, LogicalType::UINT64(),
-                chunkCheckpointState.numRows, false, ResidencyState::IN_MEMORY));
-            const auto& offsetsToWrite = offsetChunks.back();
-            const auto& listChunk = chunkCheckpointState.chunkData->cast<ListChunkData>();
-            for (auto i = 0u; i < chunkCheckpointState.numRows; i++) {
-                offsetsToWrite->getData().setValue<offset_t>(
-                    persistentListDataSize + listChunk.getListEndOffset(i), i);
-            }
-            offsetChunkCheckpointStates.push_back(ChunkCheckpointState{offsetsToWrite->moveData(),
-                chunkCheckpointState.startRow, chunkCheckpointState.numRows});
-        }
-
-        ColumnCheckpointState offsetCheckpointState(*persistentListChunk.getOffsetColumnChunk(),
-            std::move(offsetChunkCheckpointStates));
-        offsetColumn->checkpointColumnChunk(offsetCheckpointState, pageAllocator);
-
-        // Checkpoint size data.
-        std::vector<ChunkCheckpointState> sizeChunkCheckpointStates;
-        for (const auto& chunkCheckpointState : checkpointState.chunkCheckpointStates) {
-            sizeChunkCheckpointStates.push_back(ChunkCheckpointState{
-                chunkCheckpointState.chunkData->cast<ListChunkData>().moveSizeColumnChunk(),
-                chunkCheckpointState.startRow, chunkCheckpointState.numRows});
-        }
-        ColumnCheckpointState sizeCheckpointState(*persistentListChunk.getSizeColumnChunk(),
-            std::move(sizeChunkCheckpointStates));
-        sizeColumn->checkpointColumnChunk(sizeCheckpointState, pageAllocator);
-        // Checkpoint null data.
-        Column::checkpointNullData(checkpointState, pageAllocator);
-
-        KU_ASSERT(persistentListChunk.getNullData()->getNumValues() ==
-                      persistentListChunk.getOffsetColumnChunk()->getNumValues() &&
-                  persistentListChunk.getNullData()->getNumValues() ==
-                      persistentListChunk.getSizeColumnChunk()->getNumValues());
-
-        persistentListChunk.syncNumValues();
+        return checkpointColumnChunkOutOfPlace(chunkState, checkpointState, pageAllocator,
+            canSplitSegment);
     }
+
+    const auto persistentListDataSize = persistentDataChunk->getNumValues();
+
+    // In place checkpoint for list data.
+    dataColumn->checkpointColumnChunkInPlace(
+        chunkState.childrenStates[ListChunkData::DATA_COLUMN_CHILD_READ_STATE_IDX],
+        listDataCheckpointState, pageAllocator);
+
+    // Checkpoint offset data.
+    std::vector<SegmentCheckpointState> offsetChunkCheckpointStates;
+
+    KU_ASSERT(std::is_sorted(checkpointState.segmentCheckpointStates.begin(),
+        checkpointState.segmentCheckpointStates.end(),
+        [](const auto& a, const auto& b) { return a.startRowInData < b.startRowInData; }));
+    std::vector<std::unique_ptr<ColumnChunkData>> offsetsToWrite;
+    uint64_t totalAppendedListSize = 0;
+    for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        offsetsToWrite.push_back(
+            ColumnChunkFactory::createColumnChunkData(*mm, LogicalType::UINT64(), false,
+                segmentCheckpointState.numRows, ResidencyState::IN_MEMORY));
+        const auto& listChunk = segmentCheckpointState.chunkData.cast<ListChunkData>();
+        for (auto i = 0u; i < segmentCheckpointState.numRows; i++) {
+            // When checkpointing the data chunks we append each list in the checkpoint state to the
+            // end of the data This loop processes the lists in the same order, so the offsets match
+            // the ones used by the data chunk checkpoint
+            totalAppendedListSize +=
+                listChunk.getListSize(segmentCheckpointState.startRowInData + i);
+            offsetsToWrite.back()->setValue<offset_t>(
+                persistentListDataSize + totalAppendedListSize, i);
+        }
+        offsetChunkCheckpointStates.push_back(SegmentCheckpointState{*offsetsToWrite.back(), 0,
+            segmentCheckpointState.offsetInSegment, segmentCheckpointState.numRows});
+    }
+
+    // We do not allow nested splitting of offset/size segments
+    offsetColumn->checkpointSegment(
+        ColumnCheckpointState(*persistentListChunk.getOffsetColumnChunk(),
+            std::move(offsetChunkCheckpointStates)),
+        pageAllocator, false);
+
+    // Checkpoint size data.
+    std::vector<SegmentCheckpointState> sizeChunkCheckpointStates;
+    for (const auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+        sizeChunkCheckpointStates.push_back(SegmentCheckpointState{
+            *segmentCheckpointState.chunkData.cast<ListChunkData>().getSizeColumnChunk(),
+            segmentCheckpointState.startRowInData, segmentCheckpointState.offsetInSegment,
+            segmentCheckpointState.numRows});
+    }
+    sizeColumn->checkpointSegment(ColumnCheckpointState(*persistentListChunk.getSizeColumnChunk(),
+                                      std::move(sizeChunkCheckpointStates)),
+        pageAllocator, false);
+    // Checkpoint null data.
+    Column::checkpointNullData(checkpointState, pageAllocator);
+
+    KU_ASSERT(persistentListChunk.getNullData()->getNumValues() ==
+                  persistentListChunk.getOffsetColumnChunk()->getNumValues() &&
+              persistentListChunk.getNullData()->getNumValues() ==
+                  persistentListChunk.getSizeColumnChunk()->getNumValues());
+
+    persistentListChunk.syncNumValues();
+    return {};
 }
 
 } // namespace storage

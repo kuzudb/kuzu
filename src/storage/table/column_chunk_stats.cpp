@@ -1,17 +1,29 @@
 #include "storage/table/column_chunk_stats.h"
 
 #include "common/type_utils.h"
+#include "common/types/types.h"
+#include "common/vector/value_vector.h"
+#include "storage/table/column_chunk_data.h"
 
 namespace kuzu {
 namespace storage {
 
-void ColumnChunkStats::update(uint8_t* data, uint64_t offset, uint64_t numValues,
-    const common::NullMask* nullMask, common::PhysicalTypeID physicalType) {
+void ColumnChunkStats::update(const ColumnChunkData& data, uint64_t offset, uint64_t numValues,
+    common::PhysicalTypeID physicalType) {
     const bool isStorageValueType =
         common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
-    if (isStorageValueType) {
-        auto [minVal, maxVal] =
-            getMinMaxStorageValue(data, offset, numValues, physicalType, nullMask);
+    if (isStorageValueType || physicalType == common::PhysicalTypeID::INTERNAL_ID) {
+        auto [minVal, maxVal] = getMinMaxStorageValue(data, offset, numValues, physicalType);
+        update(minVal, maxVal, physicalType);
+    }
+}
+
+void ColumnChunkStats::update(const common::ValueVector& data, uint64_t offset, uint64_t numValues,
+    common::PhysicalTypeID physicalType) {
+    const bool isStorageValueType =
+        common::TypeUtils::visit(physicalType, []<typename T>(T) { return StorageValueType<T>; });
+    if (isStorageValueType || physicalType == common::PhysicalTypeID::INTERNAL_ID) {
+        auto [minVal, maxVal] = getMinMaxStorageValue(data, offset, numValues, physicalType);
         update(minVal, maxVal, physicalType);
     }
 }

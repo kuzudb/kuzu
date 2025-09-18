@@ -18,6 +18,7 @@
 #include "storage/buffer_manager/spiller.h"
 #include "storage/compression/compression.h"
 #include "storage/compression/float_compression.h"
+#include "storage/enums/residency_state.h"
 #include "storage/stats/column_stats.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_metadata.h"
@@ -33,7 +34,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void ChunkState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
+void SegmentState::reclaimAllocatedPages(PageAllocator& pageAllocator) const {
     const auto& entry = metadata.pageRange;
     if (entry.startPageIdx != INVALID_PAGE_IDX) {
         pageAllocator.freePageRange(entry);
@@ -196,7 +197,7 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ValueVector& valu
     uint64_t offset = 0, uint64_t numValues = std::numeric_limits<uint64_t>::max()) {
     const auto physicalType = values.dataType.getPhysicalType();
     const auto numValuesToCheck = std::min(numValues, values.state->getSelSize());
-    stats.update(values.getData(), offset, numValuesToCheck, &values.getNullMask(), physicalType);
+    stats.update(values, offset, numValuesToCheck, physicalType);
 }
 
 static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* values,
@@ -204,8 +205,7 @@ static void updateInMemoryStats(ColumnChunkStats& stats, const ColumnChunkData* 
     const auto physicalType = values->getDataType().getPhysicalType();
     const auto numValuesToCheck = std::min(values->getNumValues(), numValues);
     const auto nullMask = values->getNullMask();
-    stats.update(values->getData(), offset, numValuesToCheck,
-        nullMask ? &nullMask.value() : nullptr, physicalType);
+    stats.update(*values, offset, numValuesToCheck, physicalType);
 }
 
 MergedColumnChunkStats ColumnChunkData::getMergedColumnChunkStats() const {
@@ -228,7 +228,17 @@ void ColumnChunkData::updateStats(const ValueVector* vector, const SelectionView
         TypeUtils::visit(
             getDataType().getPhysicalType(),
             [&]<StorageValueType T>(T) {
-                auto firstValue = vector->firstNonNull<T>();
+                std::optional<T> firstValue;
+                // ValueVector::firstNonNull uses the vector's builtin selection vector, not the one
+                // passed as an argument
+                selView.forEachBreakWhenFalse([&](auto i) {
+                    if (vector->isNull(i)) {
+                        return true;
+                    } else {
+                        firstValue = vector->getValue<T>(i);
+                        return false;
+                    }
+                });
                 if (!firstValue) {
                     return;
                 }
@@ -286,7 +296,7 @@ void ColumnChunkData::append(ValueVector* vector, const SelectionView& selView) 
     updateStats(vector, selView);
 }
 
-void ColumnChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void ColumnChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     KU_ASSERT(other->dataType.getPhysicalType() == dataType.getPhysicalType());
     if (nullData) {
@@ -346,7 +356,7 @@ uint64_t ColumnChunkData::getBufferSize(uint64_t capacity_) const {
     }
 }
 
-void ColumnChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ColumnChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     if (nullData) {
         KU_ASSERT(state.nullState);
         nullData->initializeScanState(*state.nullState, column->getNullColumn());
@@ -433,7 +443,7 @@ void ColumnChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     updateInMemoryStats(inMemoryStats, *vector, offsetInVector, numValuesToWrite);
 }
 
-void ColumnChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void ColumnChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->dataType.getPhysicalType() == dataType.getPhysicalType());
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
@@ -455,6 +465,8 @@ void ColumnChunkData::resetNumValuesFromMetadata() {
     numValues = metadata.numValues;
     if (nullData) {
         nullData->resetNumValuesFromMetadata();
+        // FIXME(bmwinger): not always working
+        // KU_ASSERT(numValues == nullData->numValues);
     }
 }
 
@@ -632,7 +644,7 @@ void BoolChunkData::append(ValueVector* vector, const SelectionView& selView) {
     updateStats(vector, selView);
 }
 
-void BoolChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void BoolChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     NullMask::copyNullMask(other->getData<uint64_t>(), startPosInOtherChunk, getData<uint64_t>(),
         numValues, numValuesToAppend);
@@ -696,7 +708,7 @@ void BoolChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     }
 }
 
-void BoolChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void BoolChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     if (nullData) {
         nullData->write(srcChunk->getNullData(), srcOffsetInChunk, dstOffsetInChunk,
@@ -720,22 +732,15 @@ void NullChunkData::setNull(offset_t pos, bool isNull) {
     setValue(isNull, pos);
     // TODO(Guodong): Better let NullChunkData also support `append` a
     // vector.
-    if (pos >= numValues) {
-        numValues = pos + 1;
-        KU_ASSERT(numValues <= capacity);
-    }
-    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
 }
 
 void NullChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     offset_t offsetInChunk) {
     const bool isNull = vector->isNull(offsetInVector);
-    setNull(offsetInChunk, isNull);
-    inMemoryStats.update(StorageValue{isNull}, dataType.getPhysicalType());
-    numValues = offsetInChunk >= numValues ? offsetInChunk + 1 : numValues;
+    setValue(isNull, offsetInChunk);
 }
 
-void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void NullChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     if (numValuesToCopy == 0) {
         return;
@@ -743,12 +748,9 @@ void NullChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     KU_ASSERT(srcChunk->getBufferSize() >= sizeof(uint64_t));
     copyFromBuffer(srcChunk->getData<uint64_t>(), srcOffsetInChunk, dstOffsetInChunk,
         numValuesToCopy);
-    if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
-        numValues = dstOffsetInChunk + numValuesToCopy;
-    }
 }
 
-void NullChunkData::append(ColumnChunkData* other, offset_t startOffsetInOtherChunk,
+void NullChunkData::append(const ColumnChunkData* other, offset_t startOffsetInOtherChunk,
     uint32_t numValuesToAppend) {
     write(other, startOffsetInOtherChunk, numValues, numValuesToAppend);
 }
@@ -786,7 +788,6 @@ void NullChunkData::appendNulls(const ValueVector* vector, const SelectionView& 
     offset_t startPosInChunk) {
     if (selView.isUnfiltered()) {
         copyFromBuffer(vector->getNullMask().getData(), 0, startPosInChunk, selView.getSelSize());
-        numValues += selView.getSelSize();
     } else {
         for (auto i = 0u; i < selView.getSelSize(); i++) {
             const auto pos = selView[i];
@@ -880,7 +881,7 @@ void InternalIDChunkData::write(const ValueVector* vector, offset_t offsetInVect
     }
 }
 
-void InternalIDChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void InternalIDChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     ColumnChunkData::append(other, startPosInOtherChunk, numValuesToAppend);
     commonTableID = other->cast<InternalIDChunkData>().commonTableID;
@@ -1017,7 +1018,74 @@ void ColumnChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     }
 }
 
+uint64_t ColumnChunkData::getSizeOnDisk() const {
+    // Probably could just return the actual size from the metadata if it's on-disk, but it's not
+    // currently needed for on-disk segments
+    KU_ASSERT(ResidencyState::IN_MEMORY == residencyState);
+    auto metadata = getMetadataToFlush();
+    uint64_t nullSize = 0;
+    if (nullData) {
+        nullSize = nullData->getSizeOnDisk();
+    }
+    return metadata.getNumDataPages(dataType.getPhysicalType()) * common::KUZU_PAGE_SIZE + nullSize;
+}
+
+uint64_t ColumnChunkData::getSizeOnDiskInMemoryStats() const {
+    // Probably could just return the actual size from the metadata if it's on-disk, but it's not
+    // currently needed for on-disk segments
+    KU_ASSERT(ResidencyState::IN_MEMORY == residencyState);
+    uint64_t nullSize = 0;
+    if (nullData) {
+        nullSize = nullData->getSizeOnDiskInMemoryStats();
+    }
+    auto metadata = getMetadataFunction(buffer->getBuffer(), numValues,
+        inMemoryStats.min.value_or(StorageValue{}), inMemoryStats.max.value_or(StorageValue{}));
+    return metadata.getNumDataPages(dataType.getPhysicalType()) * common::KUZU_PAGE_SIZE + nullSize;
+}
+
+std::vector<std::unique_ptr<ColumnChunkData>> ColumnChunkData::split(bool targetMaxSize) const {
+    // FIXME(bmwinger): we either need to split recursively, or detect individual values which bring
+    // the size above MAX_SEGMENT_SIZE, since this will still sometimes produce segments larger than
+    // MAX_SEGMENT_SIZE
+    auto maxSegmentSize = std::max(getMinimumSizeOnDisk(), common::StorageConfig::MAX_SEGMENT_SIZE);
+    auto targetSize =
+        targetMaxSize ? maxSegmentSize : std::min(getSizeOnDisk() / 2, maxSegmentSize);
+    std::vector<std::unique_ptr<ColumnChunkData>> newSegments;
+    uint64_t pos = 0;
+    const uint64_t chunkSize = 64;
+    uint64_t initialCapacity = std::min(chunkSize, numValues);
+    while (pos < numValues) {
+        std::unique_ptr<ColumnChunkData> newSegment =
+            ColumnChunkFactory::createColumnChunkData(getMemoryManager(), getDataType().copy(),
+                isCompressionEnabled(), initialCapacity, ResidencyState::IN_MEMORY, hasNullData());
+
+        while (pos < numValues && newSegment->getSizeOnDiskInMemoryStats() <= targetSize) {
+            if (newSegment->getNumValues() == newSegment->getCapacity()) {
+                newSegment->resize(newSegment->getCapacity() * 2);
+            }
+            auto numValuesToAppendInChunk = std::min(numValues - pos, chunkSize);
+            newSegment->append(this, pos, numValuesToAppendInChunk);
+            pos += numValuesToAppendInChunk;
+        }
+        if (pos < numValues && newSegment->getNumValues() > chunkSize) {
+            // Size exceeded target size, so we should drop the last batch added (unless they are
+            // the only values)
+            pos -= chunkSize;
+            newSegment->truncate(newSegment->getNumValues() - chunkSize);
+        }
+        newSegments.push_back(std::move(newSegment));
+    }
+    return newSegments;
+}
+
 ColumnChunkData::~ColumnChunkData() = default;
+
+uint64_t ColumnChunkData::getMinimumSizeOnDisk() const {
+    if (hasNullData() && nullData->getSizeOnDisk() > 0) {
+        return 2 * KUZU_PAGE_SIZE;
+    }
+    return KUZU_PAGE_SIZE;
+}
 
 } // namespace storage
 } // namespace kuzu

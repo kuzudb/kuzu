@@ -20,16 +20,15 @@ public:
     StringChunkData(MemoryManager& mm, common::LogicalType dataType, uint64_t capacity,
         bool enableCompression, ResidencyState residencyState);
     StringChunkData(MemoryManager& mm, bool enableCompression, const ColumnChunkMetadata& metadata);
-
     void resetToEmpty() override;
 
     void append(common::ValueVector* vector, const common::SelectionView& selView) override;
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     ColumnChunkData* getIndexColumnChunk();
     const ColumnChunkData* getIndexColumnChunk() const;
 
-    void initializeScanState(ChunkState& state, const Column* column) const override;
+    void initializeScanState(SegmentState& state, const Column* column) const override;
     void scan(common::ValueVector& output, common::offset_t offset, common::length_t length,
         common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
@@ -39,7 +38,7 @@ public:
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     template<typename T>
@@ -61,6 +60,9 @@ public:
     void finalize() override;
 
     void flush(PageAllocator& pageAllocator) override;
+    uint64_t getSizeOnDisk() const override;
+    uint64_t getMinimumSizeOnDisk() const override;
+    uint64_t getSizeOnDiskInMemoryStats() const override;
     void reclaimStorage(PageAllocator& pageAllocator) override;
 
     void resetNumValuesFromMetadata() override;
@@ -78,8 +80,8 @@ public:
     static void deserialize(common::Deserializer& deSer, ColumnChunkData& chunkData);
 
 private:
-    void appendStringColumnChunk(StringChunkData* other, common::offset_t startPosInOtherChunk,
-        uint32_t numValuesToAppend);
+    void appendStringColumnChunk(const StringChunkData* other,
+        common::offset_t startPosInOtherChunk, uint32_t numValuesToAppend);
 
     void setValueFromString(std::string_view value, uint64_t pos);
 
@@ -88,6 +90,7 @@ private:
     void setNumValues(uint64_t numValues) override {
         ColumnChunkData::setNumValues(numValues);
         indexColumnChunk->setNumValues(numValues);
+        needFinalize = true;
     }
 
 private:

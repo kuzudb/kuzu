@@ -86,9 +86,9 @@ void StringChunkData::append(ValueVector* vector, const SelectionView& selView) 
     });
 }
 
-void StringChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void StringChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
-    auto& otherChunk = other->cast<StringChunkData>();
+    const auto& otherChunk = other->cast<StringChunkData>();
     nullData->append(otherChunk.getNullData(), startPosInOtherChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BLOB:
@@ -131,7 +131,7 @@ void StringChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<std::string_view>(posInOutputVector, str);
 }
 
-void StringChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void StringChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* stringColumn = ku_dynamic_cast<const StringColumn*>(column);
@@ -183,7 +183,7 @@ void StringChunkData::write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
     }
 }
 
-void StringChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void StringChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::STRING);
     if ((dstOffsetInChunk + numValuesToCopy) >= numValues) {
@@ -202,8 +202,8 @@ void StringChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk
     }
 }
 
-void StringChunkData::appendStringColumnChunk(StringChunkData* other, offset_t startPosInOtherChunk,
-    uint32_t numValuesToAppend) {
+void StringChunkData::appendStringColumnChunk(const StringChunkData* other,
+    offset_t startPosInOtherChunk, uint32_t numValuesToAppend) {
     for (auto i = 0u; i < numValuesToAppend; i++) {
         auto posInChunk = numValues;
         auto posInOtherChunk = i + startPosInOtherChunk;
@@ -260,6 +260,24 @@ void StringChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     indexColumnChunk->reclaimStorage(pageAllocator);
     dictionaryChunk->getOffsetChunk()->reclaimStorage(pageAllocator);
     dictionaryChunk->getStringDataChunk()->reclaimStorage(pageAllocator);
+}
+
+uint64_t StringChunkData::getSizeOnDisk() const {
+    return ColumnChunkData::getSizeOnDisk() + indexColumnChunk->getSizeOnDisk() +
+           dictionaryChunk->getOffsetChunk()->getSizeOnDisk() +
+           dictionaryChunk->getStringDataChunk()->getSizeOnDisk();
+}
+uint64_t StringChunkData::getMinimumSizeOnDisk() const {
+    return ColumnChunkData::getMinimumSizeOnDisk() + indexColumnChunk->getMinimumSizeOnDisk() +
+           dictionaryChunk->getOffsetChunk()->getMinimumSizeOnDisk() +
+           dictionaryChunk->getStringDataChunk()->getMinimumSizeOnDisk();
+}
+
+uint64_t StringChunkData::getSizeOnDiskInMemoryStats() const {
+    return ColumnChunkData::getSizeOnDiskInMemoryStats() +
+           indexColumnChunk->getSizeOnDiskInMemoryStats() +
+           dictionaryChunk->getOffsetChunk()->getSizeOnDiskInMemoryStats() +
+           dictionaryChunk->getStringDataChunk()->getSizeOnDiskInMemoryStats();
 }
 
 uint64_t StringChunkData::getEstimatedMemoryUsage() const {

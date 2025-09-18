@@ -3,6 +3,7 @@
 
 -CASE DictionaryCompression
 -SKIP_IN_MEM
+-SKIP_COMPRESSION_DISABLED
 -STATEMENT create node table tab(id serial, primary key (id))
 ---- ok
 -STATEMENT create rel table edge(from tab to tab, value string)
@@ -13,10 +14,8 @@
 ---- ok
 -STATEMENT copy edge from (unwind range (0, 149998) as i return i, i + 1, 'hello')
 ---- ok
--STATEMENT call storage_info('edge') where compression <> 'UNCOMPRESSED' and compression <> 'BOOLEAN_BITPACKING' and compression <> 'CONSTANT' with count(*) as num_compressed_cols
-           call storage_info('edge') where (column_name = 'fwd_value_data' or column_name = 'bwd_value_data') and node_group_id = 0 return num_pages = 1 or num_compressed_cols = 0
----- 2
-True
+-STATEMENT call storage_info('edge') where (column_name = 'fwd_value_data' or column_name = 'bwd_value_data') and node_group_id = 0 and num_pages > 1 return COUNT(*) = 0
+---- 1
 True
 
 -CASE CallStorageInfo

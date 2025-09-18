@@ -20,18 +20,16 @@ ListChunkData::ListChunkData(MemoryManager& memoryManager, LogicalType dataType,
     bool enableCompression, ResidencyState residencyState)
     : ColumnChunkData{memoryManager, std::move(dataType), capacity, enableCompression,
           residencyState, true /*hasNullData*/} {
-    offsetColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT64(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
-    sizeColumnChunk =
-        ColumnChunkFactory::createColumnChunkData(memoryManager, LogicalType::UINT32(),
-            enableCompression, capacity, ResidencyState::IN_MEMORY, false /*hasNull*/);
+    offsetColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT64(), enableCompression, capacity, residencyState, false /*hasNull*/);
+    sizeColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
+        LogicalType::UINT32(), enableCompression, capacity, residencyState, false /*hasNull*/);
     if (ListColumn::disableCompressionOnData(this->dataType)) {
         enableCompression = false;
     }
     dataColumnChunk = ColumnChunkFactory::createColumnChunkData(memoryManager,
         ListType::getChildType(this->dataType).copy(), enableCompression, 0 /* capacity */,
-        ResidencyState::IN_MEMORY);
+        residencyState);
     checkOffsetSortedAsc = false;
     KU_ASSERT(this->dataType.getPhysicalType() == PhysicalTypeID::LIST ||
               this->dataType.getPhysicalType() == PhysicalTypeID::ARRAY);
@@ -100,7 +98,7 @@ void ListChunkData::setOffsetChunkValue(offset_t val, offset_t pos) {
     numValues = offsetColumnChunk->getNumValues();
 }
 
-void ListChunkData::append(ColumnChunkData* other, offset_t startPosInOtherChunk,
+void ListChunkData::append(const ColumnChunkData* other, offset_t startPosInOtherChunk,
     uint32_t numValuesToAppend) {
     checkOffsetSortedAsc = true;
     auto& otherListChunk = other->cast<ListChunkData>();
@@ -158,9 +156,6 @@ void ListChunkData::append(ValueVector* vector, const SelectionView& selView) {
     }
     dataColumnChunk->resize(nextListOffsetInChunk);
     auto dataVector = ListVector::getDataVector(vector);
-    // TODO(Guodong): we should not set vector to a new state.
-    dataVector->setState(std::make_unique<DataChunkState>());
-    dataVector->state->getSelVectorUnsafe().setToFiltered();
     for (auto i = 0u; i < selView.getSelSize(); i++) {
         auto pos = selView[i];
         if (vector->isNull(pos)) {
@@ -225,7 +220,7 @@ void ListChunkData::lookup(offset_t offsetInChunk, ValueVector& output,
     output.setValue<list_entry_t>(posInOutputVector, list_entry_t{currentListDataSize, listSize});
 }
 
-void ListChunkData::initializeScanState(ChunkState& state, const Column* column) const {
+void ListChunkData::initializeScanState(SegmentState& state, const Column* column) const {
     ColumnChunkData::initializeScanState(state, column);
 
     auto* listColumn = ku_dynamic_cast<const ListColumn*>(column);
@@ -282,10 +277,7 @@ void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     auto isNull = vector->isNull(offsetInVector);
     nullData->setNull(offsetInChunk, isNull);
     if (!isNull) {
-        // TODO(Guodong): Do not set vector to a new state.
         auto dataVector = ListVector::getDataVector(vector);
-        dataVector->setState(std::make_unique<DataChunkState>());
-        dataVector->state->getSelVectorUnsafe().setToFiltered();
         copyListValues(vector->getValue<list_entry_t>(offsetInVector), dataVector);
 
         sizeColumnChunk->setValue<list_size_t>(appendSize, offsetInChunk);
@@ -294,7 +286,7 @@ void ListChunkData::write(const ValueVector* vector, offset_t offsetInVector,
     KU_ASSERT(sanityCheck());
 }
 
-void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
+void ListChunkData::write(const ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
     offset_t dstOffsetInChunk, offset_t numValuesToCopy) {
     KU_ASSERT(srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::LIST ||
               srcChunk->getDataType().getPhysicalType() == PhysicalTypeID::ARRAY);
@@ -322,14 +314,17 @@ void ListChunkData::write(ColumnChunkData* srcChunk, offset_t srcOffsetInChunk,
 void ListChunkData::copyListValues(const list_entry_t& entry, ValueVector* dataVector) {
     auto numListValuesToCopy = entry.size;
     auto numListValuesCopied = 0u;
+
+    SelectionVector selVector;
+    selVector.setToFiltered();
     while (numListValuesCopied < numListValuesToCopy) {
         auto numListValuesToCopyInBatch =
             std::min<uint64_t>(numListValuesToCopy - numListValuesCopied, DEFAULT_VECTOR_CAPACITY);
-        dataVector->state->getSelVectorUnsafe().setSelSize(numListValuesToCopyInBatch);
+        selVector.setSelSize(numListValuesToCopyInBatch);
         for (auto j = 0u; j < numListValuesToCopyInBatch; j++) {
-            dataVector->state->getSelVectorUnsafe()[j] = entry.offset + numListValuesCopied + j;
+            selVector[j] = entry.offset + numListValuesCopied + j;
         }
-        dataColumnChunk->append(dataVector, dataVector->state->getSelVector());
+        dataColumnChunk->append(dataVector, selVector);
         numListValuesCopied += numListValuesToCopyInBatch;
     }
 }
@@ -446,6 +441,21 @@ void ListChunkData::reclaimStorage(PageAllocator& pageAllocator) {
     sizeColumnChunk->reclaimStorage(pageAllocator);
     dataColumnChunk->reclaimStorage(pageAllocator);
     offsetColumnChunk->reclaimStorage(pageAllocator);
+}
+uint64_t ListChunkData::getSizeOnDisk() const {
+    return ColumnChunkData::getSizeOnDisk() + sizeColumnChunk->getSizeOnDisk() +
+           dataColumnChunk->getSizeOnDisk() + offsetColumnChunk->getSizeOnDisk();
+}
+uint64_t ListChunkData::getMinimumSizeOnDisk() const {
+    return ColumnChunkData::getMinimumSizeOnDisk() + sizeColumnChunk->getMinimumSizeOnDisk() +
+           dataColumnChunk->getMinimumSizeOnDisk() + offsetColumnChunk->getMinimumSizeOnDisk();
+}
+
+uint64_t ListChunkData::getSizeOnDiskInMemoryStats() const {
+    return ColumnChunkData::getSizeOnDiskInMemoryStats() +
+           sizeColumnChunk->getSizeOnDiskInMemoryStats() +
+           dataColumnChunk->getSizeOnDiskInMemoryStats() +
+           offsetColumnChunk->getSizeOnDiskInMemoryStats();
 }
 
 } // namespace storage

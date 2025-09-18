@@ -289,7 +289,12 @@ TEST_F(CopyTest, RelCopyBMExceptionRecoverySameConnection) {
                 // there are many allocations in the partitioning phase
                 // we scale the failure frequency linearly so that we trigger at least one
                 // allocation failure in the batch insert phase
-                failureFrequency = 512 * (i + 15);
+                static constexpr auto failureFrequencyMultiplier =
+                    512 * ((common::StorageConfig::MAX_SEGMENT_SIZE_LOG2 ==
+                               TestParser::STANDARD_MAX_SEGMENT_SIZE_LOG_2) ?
+                                  1 :
+                                  (1 << 10));
+                failureFrequency = failureFrequencyMultiplier * (i + 15);
 
                 return conn->query(common::stringFormat(
                     "COPY follows FROM '{}/dataset/snap/twitter/csv/twitter-edges.csv' (DELIM=' ')",

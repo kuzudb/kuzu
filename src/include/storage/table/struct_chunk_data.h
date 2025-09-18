@@ -49,10 +49,13 @@ public:
     }
 
     void flush(PageAllocator& pageAllocator) override;
+    uint64_t getSizeOnDisk() const override;
+    uint64_t getMinimumSizeOnDisk() const override;
+    uint64_t getSizeOnDiskInMemoryStats() const override;
     void reclaimStorage(PageAllocator& pageAllocator) override;
 
 protected:
-    void append(ColumnChunkData* other, common::offset_t startPosInOtherChunk,
+    void append(const ColumnChunkData* other, common::offset_t startPosInOtherChunk,
         uint32_t numValuesToAppend) override;
     void append(common::ValueVector* vector, const common::SelectionView& selView) override;
 
@@ -60,13 +63,13 @@ protected:
         common::sel_t posInOutputVector = 0) const override;
     void lookup(common::offset_t offsetInChunk, common::ValueVector& output,
         common::sel_t posInOutputVector) const override;
-    void initializeScanState(ChunkState& state, const Column* column) const override;
+    void initializeScanState(SegmentState& state, const Column* column) const override;
 
     void write(const common::ValueVector* vector, common::offset_t offsetInVector,
         common::offset_t offsetInChunk) override;
     void write(ColumnChunkData* chunk, ColumnChunkData* dstOffsets,
         common::RelMultiplicity multiplicity) override;
-    void write(ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
+    void write(const ColumnChunkData* srcChunk, common::offset_t srcOffsetInChunk,
         common::offset_t dstOffsetInChunk, common::offset_t numValuesToCopy) override;
 
     void setToInMemory() override;

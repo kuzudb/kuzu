@@ -21,10 +21,10 @@ public:
             rowIdx % common::StorageConfig::CHUNKED_NODE_GROUP_CAPACITY);
     }
 
-    const std::vector<std::unique_ptr<ChunkedNodeGroup>>& getChunkedGroups() {
+    const std::vector<std::unique_ptr<InMemChunkedNodeGroup>>& getChunkedGroups() {
         return chunkedGroups;
     }
-    ChunkedNodeGroup& getChunkedGroup(common::node_group_idx_t groupIdx) const {
+    InMemChunkedNodeGroup& getChunkedGroup(common::node_group_idx_t groupIdx) const {
         KU_ASSERT(groupIdx < chunkedGroups.size());
         return *chunkedGroups[groupIdx];
     }
@@ -34,7 +34,7 @@ public:
         common::row_idx_t startRowInVectors, common::row_idx_t numRowsToAppend);
 
     // `merge` are directly moving the chunkedGroup to the collection.
-    void merge(std::unique_ptr<ChunkedNodeGroup> chunkedGroup);
+    void merge(std::unique_ptr<InMemChunkedNodeGroup> chunkedGroup);
     void merge(InMemChunkedNodeGroupCollection& other);
 
     uint64_t getNumChunkedGroups() const { return chunkedGroups.size(); }
@@ -48,7 +48,7 @@ public:
 
 private:
     std::vector<common::LogicalType> types;
-    std::vector<std::unique_ptr<ChunkedNodeGroup>> chunkedGroups;
+    std::vector<std::unique_ptr<InMemChunkedNodeGroup>> chunkedGroups;
 };
 
 } // namespace storage

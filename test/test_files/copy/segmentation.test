@@ -1,0 +1,88 @@
+-DATASET CSV empty
+# This expects segments of 256KB
+-SKIP_SEGMENT_SIZE_TESTS
+-SKIP_NODE_GROUP_SIZE_TESTS
+-SKIP_IN_MEM
+-SKIP_COMPRESSION_DISABLED
+
+--
+-CASE CopySegmentTest
+-STATEMENT CREATE NODE TABLE nums(num UINT64, ID SERIAL PRIMARY KEY);
+---- ok
+# Should fit in one segment
+-STATEMENT COPY nums from (UNWIND range(1, 64000) as num RETURN num);
+---- ok
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*);
+---- 1
+1
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
+# Check that inserting a large value makes the segment split
+-STATEMENT MATCH (n:nums) where n.ID = 0 set n.num = 18446744073709551615;
+---- ok
+-STATEMENT CHECKPOINT;
+---- ok
+# There could be either two or three segments depending on the internal id of the value being set to be large
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*) >= 2;
+---- 1
+True
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
+# Make second copy larger so its guaranteed to result in more than 3 segments
+-STATEMENT COPY nums from (UNWIND range(64000, 131072) as num RETURN num * 1000000000);
+---- ok
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*) > 3;
+---- 1
+True
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
+
+-CASE SingleCopyMultiSegmentTest
+-STATEMENT CREATE NODE TABLE nums(num UINT64, ID SERIAL PRIMARY KEY);
+---- ok
+# Should require two segments
+-STATEMENT COPY nums from (UNWIND range(1, 131072) as num RETURN num);
+---- ok
+-STATEMENT CALL STORAGE_INFO("nums") where node_group_id = 0 and column_name = "num" RETURN COUNT(*);
+---- 1
+2
+
+-CASE CopyRelSegmentTest
+-STATEMENT CREATE NODE TABLE nums(num UINT64, ID SERIAL PRIMARY KEY);
+---- ok
+-STATEMENT CREATE REL TABLE edges(from nums to nums);
+---- ok
+-STATEMENT COPY nums from (UNWIND range(1, 120000) as num RETURN num);
+---- ok
+# Should require multiple segments
+-STATEMENT COPY edges from (unwind range(1, 120000 - 2) as num return num, num + 1);
+---- ok
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_NBR_ID" RETURN COUNT(*);
+---- 1
+2
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_NBR_ID" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_csr_offset" RETURN COUNT(*);
+---- 1
+2
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_csr_offset" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "bwd_csr_offset" RETURN COUNT(*);
+---- 1
+2
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "bwd_csr_offset" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
+-STATEMENT COPY edges from (unwind range(1, 120000 - 3) as num return num, num + 2);
+---- ok
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_NBR_ID" RETURN COUNT(*);
+---- 1
+3
+-STATEMENT CALL STORAGE_INFO("edges") where node_group_id = 0 and column_name = "fwd_NBR_ID" and num_pages > 64 RETURN COUNT(*);
+---- 1
+0
