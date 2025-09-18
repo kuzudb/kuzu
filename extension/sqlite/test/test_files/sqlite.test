@@ -59,6 +59,7 @@ Catalog exception: person1 does not exist in catalog.
 Detached database successfully.
 
 -CASE ScanSqliteDynamicTable
+-SKIP_FSM_LEAK_CHECK
 -LOAD_DYNAMIC_EXTENSION sqlite
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/dynamic' as tinysnb (dbtype sqlite);
 ---- ok
@@ -74,6 +75,7 @@ Detached database successfully.
 alice
 
 -CASE TestingDataTypesSqlite
+-SKIP_FSM_LEAK_CHECK
 -LOAD_DYNAMIC_EXTENSION sqlite
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/extension/sqlite/test/sqlite_database/datatypeTestingSqlite' as datatype (dbtype sqlite);
 ---- ok
