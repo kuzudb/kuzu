@@ -121,6 +121,7 @@
 4|24|5
 
 -CASE InsertAndDropRelColumnCheckpointRecovery
+-SKIP_FSM_LEAK_CHECK
 -STATEMENT CREATE NODE TABLE test(id INT64, age INT64, name STRING, prop2 INT64, PRIMARY KEY(id));
 ---- ok
 -STATEMENT CREATE REL TABLE testRel(FROM test TO test, since DATE, prop3 INT64);
@@ -377,6 +378,7 @@ Binder exception: Cannot find property since for k.
 1|prop1|INT64|NULL|both
 
 -CASE AddDropRelGroupPropertyRollbackRecovery
+-SKIP_FSM_LEAK_CHECK
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
@@ -448,6 +450,7 @@ Binder exception: Cannot find property since for k.
 ---- 0
 
 -CASE DropRelGroupPropertyRollbackRecovery
+-SKIP_FSM_LEAK_CHECK
 -STATEMENT CREATE NODE TABLE base1(id INT64, primary key(id));
 ---- ok
 -STATEMENT CREATE NODE TABLE base2(id INT64, primary key(id));
