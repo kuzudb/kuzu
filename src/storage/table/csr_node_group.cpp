@@ -4,7 +4,6 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/table/column_chunk_data.h"
-#include "storage/table/combined_chunk_scanner.h"
 #include "storage/table/csr_chunked_node_group.h"
 #include "storage/table/lazy_segment_scanner.h"
 #include "storage/table/rel_table.h"
