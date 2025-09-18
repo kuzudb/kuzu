@@ -242,5 +242,11 @@ struct ListIntersectFunction {
     static function_set getFunctionSet();
 };
 
+struct ListSelectFunction {
+    static constexpr const char* name = "LIST_SELECT";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

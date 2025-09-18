@@ -29,7 +29,8 @@ add_library(kuzu_list_function
         quantifier_functions.cpp
         list_has_all.cpp
         list_has_any.cpp
-        list_intersect.cpp)
+        list_intersect.cpp
+        list_select_function.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_list_function>
