@@ -196,9 +196,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
 
         // Path functions
         SCALAR_FUNCTION(NodesFunction), SCALAR_FUNCTION(RelsFunction),
-        SCALAR_FUNCTION_ALIAS(RelationshipsFunction), SCALAR_FUNCTION(PropertiesFunction),
-        SCALAR_FUNCTION(IsTrailFunction), SCALAR_FUNCTION(IsACyclicFunction),
-        REWRITE_FUNCTION(LengthFunction),
+        SCALAR_FUNCTION_ALIAS(RelationshipsFunction), SCALAR_FUNCTION(IsTrailFunction),
+        SCALAR_FUNCTION(IsACyclicFunction), REWRITE_FUNCTION(LengthFunction),
 
         // Hash functions
         SCALAR_FUNCTION(MD5Function), SCALAR_FUNCTION(SHA256Function),
@@ -208,7 +207,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(CoalesceFunction), SCALAR_FUNCTION(IfNullFunction),
         SCALAR_FUNCTION(ConstantOrNullFunction), SCALAR_FUNCTION(CountIfFunction),
         SCALAR_FUNCTION(ErrorFunction), REWRITE_FUNCTION(NullIfFunction),
-        SCALAR_FUNCTION(TypeOfFunction),
+        SCALAR_FUNCTION(TypeOfFunction), SCALAR_FUNCTION(PropertiesFunctions),
 
         // Sequence functions
         SCALAR_FUNCTION(CurrValFunction), SCALAR_FUNCTION(NextValFunction),

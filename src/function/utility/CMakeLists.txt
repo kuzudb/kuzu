@@ -7,7 +7,8 @@ add_library(kuzu_utility_function
         count_if.cpp
         error.cpp
         nullif.cpp
-        typeof.cpp)
+        typeof.cpp
+        properties.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_utility_function>
