@@ -85,6 +85,7 @@ using relID_t = internalID_t;
 
 using cardinality_t = uint64_t;
 constexpr offset_t INVALID_LIMIT = UINT64_MAX;
+constexpr offset_t INVALID_RELBOUND = UINT32_MAX;
 using offset_vec_t = std::vector<offset_t>;
 // System representation for internalID.
 struct KUZU_API internalID_t {

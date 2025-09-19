@@ -684,7 +684,7 @@ kU_RecursiveType
 
 oC_RangeLiteral
     :  oC_LowerBound? SP? DOTDOT SP? oC_UpperBound?
-        | oC_IntegerLiteral ;
+        | oC_Expression ;
 
 kU_RecursiveComprehension
     : '(' SP? oC_Variable SP? ',' SP? oC_Variable ( SP? '|' SP? oC_Where SP? )? ( SP? '|' SP? kU_RecursiveProjectionItems SP? ',' SP? kU_RecursiveProjectionItems SP? )? ')' ;
@@ -693,10 +693,10 @@ kU_RecursiveProjectionItems
     : '{' SP? oC_ProjectionItems? SP? '}' ;
 
 oC_LowerBound
-    : DecimalInteger ;
+    : oC_Expression ;
 
 oC_UpperBound
-    : DecimalInteger ;
+    : oC_Expression ;
 
 oC_LabelName
     : oC_SchemaName ;

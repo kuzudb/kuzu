@@ -215,6 +215,5 @@ Parser exception: Invalid input <MATCH (a:A)            MATCH (a)-[:LIKES..>: ex
            MATCH (a)-[:LIKES*-2]->(c)
            RETURN c.name;
 ---- error
-Parser exception: Invalid input <MATCH (a:A)           MATCH (a)-[:LIKES*->: expected rule oC_SingleQuery (line: 1, offset: 40)
-"MATCH (a:A)           MATCH (a)-[:LIKES*-2]->(c)            RETURN c.name;"
-                                         ^
+Binder exception: Rel range upper/lower bound must be a non-negative integer.
+
