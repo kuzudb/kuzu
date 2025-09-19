@@ -109,7 +109,12 @@ static std::string entryToStringWithPos(sel_t pos, ValueVector* vector) {
 
 template<>
 std::string TypeUtils::toString(const int128_t& val, void* /*valueVector*/) {
-    return Int128_t::ToString(val);
+    return Int128_t::toString(val);
+}
+
+template<>
+std::string TypeUtils::toString(const uint128_t& val, void* /*valueVector*/) {
+    return UInt128_t::toString(val);
 }
 
 template<>
