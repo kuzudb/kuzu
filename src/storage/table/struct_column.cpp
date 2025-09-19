@@ -117,5 +117,32 @@ std::vector<std::unique_ptr<ColumnChunkData>> StructColumn::checkpointSegment(
     return result;
 }
 
+bool StructColumn::canCheckpointInPlace(const SegmentState& state,
+    const ColumnCheckpointState& checkpointState) const {
+    if (!Column::canCheckpointInPlace(state, checkpointState)) {
+        return false;
+    }
+    for (size_t i = 0; i < childColumns.size(); ++i) {
+        auto& structChunkData = checkpointState.persistentData.cast<StructChunkData>();
+        KU_ASSERT(childColumns.size() == structChunkData.getNumChildren());
+        auto* childChunkData = structChunkData.getChild(i);
+
+        std::vector<SegmentCheckpointState> childSegmentCheckpointStates;
+        for (auto& segmentCheckpointState : checkpointState.segmentCheckpointStates) {
+            auto& structSegmentData = segmentCheckpointState.chunkData.cast<StructChunkData>();
+            auto& childSegmentData = structSegmentData.getChild(i);
+            childSegmentCheckpointStates.emplace_back(childSegmentData,
+                segmentCheckpointState.offsetInSegment, segmentCheckpointState.startRowInData,
+                segmentCheckpointState.numRows);
+        }
+
+        if (!childColumns[i]->canCheckpointInPlace(state.getChildState(i),
+                ColumnCheckpointState(*childChunkData, std::move(childSegmentCheckpointStates)))) {
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace storage
 } // namespace kuzu
