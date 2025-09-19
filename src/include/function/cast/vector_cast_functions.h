@@ -154,6 +154,12 @@ struct CastToInt8Function {
     static function_set getFunctionSet();
 };
 
+struct CastToUInt128Function {
+    static constexpr const char* name = "TO_UINT128";
+
+    static function_set getFunctionSet();
+};
+
 struct CastToUInt64Function {
     static constexpr const char* name = "TO_UINT64";
 

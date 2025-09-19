@@ -2,6 +2,7 @@
 
 #include "common/in_mem_overflow_buffer.h"
 #include "common/types/int128_t.h"
+#include "common/types/uint128_t.h"
 #include "function/aggregate_function.h"
 #include "function/arithmetic/add.h"
 
@@ -16,11 +17,20 @@ struct AvgState : public AggregateStateWithNull {
     }
 
     void finalize()
-        requires common::IntegerTypes<T>
+        requires common::SignedIntegerTypes<T>
     {
         if (!isNull) {
             avg = common::Int128_t::cast<long double>(sum) /
                   common::Int128_t::cast<long double>(count);
+        }
+    }
+
+    void finalize()
+        requires common::UnsignedIntegerTypes<T>
+    {
+        if (!isNull) {
+            avg = common::UInt128_t::cast<long double>(sum) /
+                  common::UInt128_t::cast<long double>(count);
         }
     }
 

@@ -36,13 +36,21 @@ void AggregateFunctionUtils::appendSumOrAvgFuncs(std::string name, common::Logic
     for (auto isDistinct : std::vector<bool>{true, false}) {
         TypeUtils::visit(
             LogicalType{inputType},
-            [&]<IntegerTypes T>(T) {
+            [&]<SignedIntegerTypes T>(T) {
                 LogicalTypeID resultType = LogicalTypeID::INT128;
                 // For avg aggregate functions, the result type is always double.
                 if constexpr (std::is_same_v<FunctionType<T, int128_t>, AvgFunction<T, int128_t>>) {
                     resultType = LogicalTypeID::DOUBLE;
                 }
                 aggFunc = AggregateFunctionUtils::getAggFunc<FunctionType<T, int128_t>>(name,
+                    inputType, resultType, isDistinct);
+            },
+            [&]<UnsignedIntegerTypes T>(T) {
+                LogicalTypeID resultType = LogicalTypeID::UINT128;
+                if constexpr (std::is_same_v<FunctionType<T, uint128_t>, AvgFunction<T, uint128_t>>) {
+                    resultType = LogicalTypeID::DOUBLE;
+                }
+                aggFunc = AggregateFunctionUtils::getAggFunc<FunctionType<T, uint128_t>>(name,
                     inputType, resultType, isDistinct);
             },
             [&]<FloatingPointTypes T>(T) {

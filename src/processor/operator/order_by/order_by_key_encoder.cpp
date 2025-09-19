@@ -259,6 +259,10 @@ void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_
         func = encodeTemplate<interval_t>;
         return;
     }
+    case PhysicalTypeID::UINT128: {
+        func = encodeTemplate<uint128_t>;
+        return;
+    }
     default:
         KU_UNREACHABLE;
     }
@@ -329,6 +333,12 @@ void OrderByKeyEncoder::encodeData(uint64_t data, uint8_t* resultPtr, bool swapB
 template<>
 void OrderByKeyEncoder::encodeData(common::int128_t data, uint8_t* resultPtr, bool swapBytes) {
     encodeData<int64_t>(data.high, resultPtr, swapBytes);
+    encodeData<uint64_t>(data.low, resultPtr + sizeof(data.high), swapBytes);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(common::uint128_t data, uint8_t* resultPtr, bool swapBytes) {
+    encodeData<uint64_t>(data.high, resultPtr, swapBytes);
     encodeData<uint64_t>(data.low, resultPtr + sizeof(data.high), swapBytes);
 }
 

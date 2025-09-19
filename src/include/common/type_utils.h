@@ -98,6 +98,8 @@ public:
             return common::PhysicalTypeID::INT128;
         } else if constexpr (std::is_same_v<T, interval_t>) {
             return common::PhysicalTypeID::INTERVAL;
+        } else if constexpr (std::is_same_v<T, uint128_t>) {
+            return common::PhysicalTypeID::UINT128;
         } else if constexpr (std::same_as<T, ku_string_t> || std::same_as<T, std::string> ||
                              std::same_as<T, std::string_view>) {
             return common::PhysicalTypeID::STRING;
@@ -191,6 +193,8 @@ public:
             return func(interval_t());
         case LogicalTypeID::INTERNAL_ID:
             return func(internalID_t());
+        case LogicalTypeID::UINT128:
+            return func(uint128_t());
         case LogicalTypeID::STRING:
             return func(ku_string_t());
         case LogicalTypeID::DATE:
@@ -263,6 +267,8 @@ public:
             return func(interval_t());
         case PhysicalTypeID::INTERNAL_ID:
             return func(internalID_t());
+        case PhysicalTypeID::UINT128:
+            return func(uint128_t());
         case PhysicalTypeID::STRING:
             return func(ku_string_t());
         case PhysicalTypeID::ARRAY:

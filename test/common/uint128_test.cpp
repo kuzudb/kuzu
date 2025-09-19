@@ -42,7 +42,7 @@ TEST(Uint128Tests, Casting) {
         EXPECT_THROW({ [[maybe_unused]] uint128_t value = int8_value; }, OverflowException);
     }
 
-    { // conversion from int128_t 2^64 + 1 (no implicit casting between int128_t and uint128_t)
+    { // conversion from int128_t 2^64 + 1 (no implicit casting from int128_t to uint128_t)
         int128_t int128_value{(uint64_t)1, (int64_t)1};
         uint128_t value = (uint128_t)int128_value;
         EXPECT_EQ(value.low, 1);
@@ -50,8 +50,7 @@ TEST(Uint128Tests, Casting) {
     }
 
     { // conversion to int128_t
-        uint128_t value = {35, 165};
-        int128_t int128_value = (int128_t)value;
+        int128_t int128_value = uint128_t{35, 165};
         EXPECT_EQ(int128_value.low, 35);
         EXPECT_EQ(int128_value.high, 165);
     }

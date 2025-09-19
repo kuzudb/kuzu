@@ -730,16 +730,17 @@ uint128_t::operator float() const {
 uint128_t::operator int128_t() const {
     int128_t result{};
     if (!UInt128_t::tryCast(*this, result)) { // LCOV_EXCL_START
-        throw common::OverflowException("UINT128 value is out of INT128 range");
+        throw common::OverflowException(common::stringFormat("Value {} is not within INT128 range.",
+            common::TypeUtils::toString(*this)));
     } // LCOV_EXCL_STOP
     return result;
 }
 
 } // namespace kuzu::common
 
-std::size_t std::hash<kuzu::common::uint128_t>::operator()(
-    const kuzu::common::uint128_t& v) const noexcept {
-    kuzu::common::hash_t hash = 0;
-    kuzu::function::Hash::operation(v, hash);
-    return hash;
-}
+// std::size_t std::hash<kuzu::common::uint128_t>::operator()(
+//     const kuzu::common::uint128_t& v) const noexcept {
+//     kuzu::common::hash_t hash = 0;
+//     kuzu::function::Hash::operation(v, hash);
+//     return hash;
+// }

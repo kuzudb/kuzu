@@ -186,6 +186,79 @@ inline void simpleInt128Cast(const char* input, uint64_t len, int128_t& result) 
     }
 }
 
+struct UInt128CastData {
+    uint128_t result = 0;
+    uint64_t intermediate = 0;
+    uint8_t digits = 0;
+    bool decimal = false;
+
+    bool flush() {
+        if (digits == 0 && intermediate == 0) {
+            return true;
+        }
+        if (result.low != 0 || result.high != 0) {
+            if (digits > DECIMAL_PRECISION_LIMIT) {
+                return false;
+            }
+            if (!UInt128_t::tryMultiply(result, UInt128_t::powerOf10[digits], result)) {
+                return false;
+            }
+        }
+        if (!UInt128_t::addInPlace(result, uint128_t(intermediate))) {
+            return false;
+        }
+        digits = 0;
+        intermediate = 0;
+        return true;
+    }
+};
+
+struct UInt128CastOperation {
+    template<typename T, bool NEGATIVE>
+    static bool handleDigit(T& result, uint8_t digit) {
+        if (NEGATIVE) {
+            if (result.intermediate < digit / 10) {
+                if (!result.flush()) {
+                    return false;
+                }
+            }
+            result.intermediate *= 10;
+            result.intermediate -= digit;
+        } else {
+            if (result.intermediate > (std::numeric_limits<uint64_t>::max() - digit) / 10) {
+                if (!result.flush()) {
+                    return false;
+                }
+            }
+            result.intermediate *= 10;
+            result.intermediate += digit;
+        }
+        result.digits++;
+        return true;
+    }
+
+    template<typename T, bool NEGATIVE>
+    static bool finalize(T& result) {
+        return result.flush();
+    }
+};
+
+inline bool trySimpleUInt128Cast(const char* input, uint64_t len, uint128_t& result) {
+    UInt128CastData data{};
+    data.result = 0;
+    if (tryIntegerCast<UInt128CastData, false, UInt128CastOperation>(input, len, data)) {
+        result = data.result;
+        return true;
+    }
+    return false;
+}
+inline void simpleUInt128Cast(const char* input, uint64_t len, uint128_t& result) {
+    if (!trySimpleUInt128Cast(input, len, result)) {
+        throw ConversionException(stringFormat("Cast failed. {} is not within UINT128 range.",
+            std::string{input, (size_t)len}));
+    }
+}
+
 template<typename T, bool IS_SIGNED = true>
 KUZU_API inline bool trySimpleIntegerCast(const char* input, uint64_t len, T& result) {
     IntegerCastData<T> data{};

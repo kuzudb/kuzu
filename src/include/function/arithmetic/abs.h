@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "common/types/int128_t.h"
+#include "common/types/uint128_t.h"
 
 namespace kuzu {
 namespace function {
@@ -32,6 +33,9 @@ void Abs::operation(int64_t& input, int64_t& result);
 
 template<>
 void Abs::operation(common::int128_t& input, common::int128_t& result);
+
+template<>
+void Abs::operation(common::uint128_t& input, common::uint128_t& result);
 
 } // namespace function
 } // namespace kuzu
