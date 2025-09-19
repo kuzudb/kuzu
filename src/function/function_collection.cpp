@@ -131,6 +131,7 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(ListCosineSimilarityFunction), SCALAR_FUNCTION(ListCosineDistanceFunction),
         SCALAR_FUNCTION(ListDistanceFunction), SCALAR_FUNCTION(ListHasAnyFunction),
         SCALAR_FUNCTION(ListIntersectFunction), SCALAR_FUNCTION(ListSelectFunction),
+        SCALAR_FUNCTION(ListWhereFunction),
 
         // Cast functions
         SCALAR_FUNCTION(CastToDateFunction), SCALAR_FUNCTION_ALIAS(DateFunction),

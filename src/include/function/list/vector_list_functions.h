@@ -248,5 +248,11 @@ struct ListSelectFunction {
     static function_set getFunctionSet();
 };
 
+struct ListWhereFunction {
+    static constexpr const char* name = "LIST_WHERE";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
