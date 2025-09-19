@@ -245,6 +245,10 @@ private:
     common::row_idx_t getStartRowIdxInGroupNoLock() const;
     common::row_idx_t getStartRowIdxInGroup(const common::UniqLock& lock) const;
 
+    void scanCommittedUpdatesForColumn(std::vector<ChunkCheckpointState>& chunkCheckpointStates,
+        MemoryManager& memoryManager, const common::UniqLock& lock, common::column_id_t columnID,
+        const Column* column) const;
+
 protected:
     MemoryManager& mm;
     common::node_group_idx_t nodeGroupIdx;
