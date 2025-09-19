@@ -470,6 +470,9 @@ static void readFromJsonNum(NUM_TYPE val, common::ValueVector& vec, uint64_t pos
     case LogicalTypeID::UINT64:
         vec.setValue<uint64_t>(pos, (uint64_t)val);
         break;
+    case LogicalTypeID::UINT128:
+        vec.setValue<uint128_t>(pos, (uint128_t)val);
+        break;
     case LogicalTypeID::FLOAT:
         vec.setValue<float>(pos, (float)val);
         break;

@@ -130,7 +130,7 @@ static void appendStorageInfoForChunkData(StorageInfoLocalState* localState, Dat
         // Types which don't support statistics.
         // types not supported by TypeUtils::visit can
         // also be ignored since we don't track statistics for them
-        [](int128_t) {}, [](struct_entry_t) {}, [](interval_t) {});
+        [](int128_t) {}, [](struct_entry_t) {}, [](interval_t) {}, [](uint128_t) {});
     outputChunk.getValueVectorMutable(11).setValue(vectorPos,
         metadata.compMeta.toString(physicalType));
     outputChunk.state->getSelVectorUnsafe().incrementSelSize();

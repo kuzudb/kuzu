@@ -740,7 +740,7 @@ static std::unique_ptr<FunctionBindData> genericBinaryArithmeticFunc(
     if constexpr (FUNC::matchToOutputLogicalType) {
         common::TypeUtils::visit(
             resultingType.getPhysicalType(),
-            [&]<IntegerTypes T>(T) {
+            [&]<SignedIntegerTypes T>(T) {
                 asScalar->execFunc = ScalarFunction::BinaryStringExecFunction<T, T, T, FUNC>;
             },
             [](auto) { KU_UNREACHABLE; });

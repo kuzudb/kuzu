@@ -95,6 +95,7 @@ Expected: (INT128,INT128) -> INT128
           (INT16,INT16) -> INT16
           (INT8,INT8) -> INT8
           (SERIAL,SERIAL) -> SERIAL
+          (UINT128,UINT128) -> UINT128
           (UINT64,UINT64) -> UINT64
           (UINT32,UINT32) -> UINT32
           (UINT16,UINT16) -> UINT16
@@ -122,6 +123,7 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
 (SERIAL,SERIAL) -> SERIAL
+(UINT128,UINT128) -> UINT128
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
@@ -149,6 +151,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
 (SERIAL,SERIAL) -> SERIAL
+(UINT128,UINT128) -> UINT128
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
@@ -176,6 +179,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
 (SERIAL,SERIAL) -> SERIAL
+(UINT128,UINT128) -> UINT128
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
@@ -403,6 +407,8 @@ Expected: DISTINCT (BOOL) -> BOOL
           (UINT8) -> UINT8
           DISTINCT (INT128) -> INT128
           (INT128) -> INT128
+          DISTINCT (UINT128) -> UINT128
+          (UINT128) -> UINT128
           DISTINCT (DOUBLE) -> DOUBLE
           (DOUBLE) -> DOUBLE
           DISTINCT (FLOAT) -> FLOAT
@@ -496,6 +502,7 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
 (SERIAL,SERIAL) -> SERIAL
+(UINT128,UINT128) -> UINT128
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
@@ -557,6 +564,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
 (SERIAL,SERIAL) -> SERIAL
+(UINT128,UINT128) -> UINT128
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16
@@ -582,6 +590,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT16,INT16) -> INT16
 (INT8,INT8) -> INT8
 (SERIAL,SERIAL) -> SERIAL
+(UINT128,UINT128) -> UINT128
 (UINT64,UINT64) -> UINT64
 (UINT32,UINT32) -> UINT32
 (UINT16,UINT16) -> UINT16

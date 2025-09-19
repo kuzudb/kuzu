@@ -56,7 +56,7 @@ struct KUZU_API uint128_t {
     explicit operator double() const;
     explicit operator float() const;
 
-    explicit operator int128_t() const;
+    operator int128_t() const; // NOLINT
 };
 
 // arithmetic operators
@@ -219,7 +219,7 @@ bool UInt128_t::tryCastTo(long double value, uint128_t& result);
 } // namespace common
 } // namespace kuzu
 
-template<>
-struct std::hash<kuzu::common::uint128_t> {
-    std::size_t operator()(const kuzu::common::uint128_t& v) const noexcept;
-};
+// template<>
+// struct std::hash<kuzu::common::uint128_t> {
+//     std::size_t operator()(const kuzu::common::uint128_t& v) const noexcept;
+// };

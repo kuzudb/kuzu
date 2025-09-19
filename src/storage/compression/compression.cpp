@@ -1241,6 +1241,9 @@ std::pair<std::optional<StorageValue>, std::optional<StorageValue>> getMinMaxSto
                 returnValue.first = std::numeric_limits<uint64_t>::min();
                 returnValue.second = std::numeric_limits<uint64_t>::max();
             }
+        },
+        [&](uint128_t) {
+            KU_UNREACHABLE;
         });
     return returnValue;
 }

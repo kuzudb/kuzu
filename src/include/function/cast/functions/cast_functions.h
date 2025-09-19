@@ -6,6 +6,8 @@
 #include "common/vector/value_vector.h"
 #include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/numeric_cast.h"
+#include "common/types/int128_t.h"
+#include "common/types/uint128_t.h"
 
 namespace kuzu {
 namespace function {
@@ -143,6 +145,23 @@ struct CastToInt128 {
         common::Int128_t::tryCastTo(input, result);
     }
 };
+
+struct CastToUInt128 {
+    template<typename T>
+    static inline void operation(T& input, common::uint128_t& result) {
+        common::UInt128_t::tryCastTo(input, result);
+    }
+};
+
+template<>
+inline void CastToInt128::operation(common::uint128_t& input, common::int128_t& result) {
+    result = (common::int128_t)input;
+}
+
+template<>
+inline void CastToUInt128::operation(common::int128_t& input, common::uint128_t& result) {
+    result = (common::uint128_t)input;
+}
 
 struct CastToInt64 {
     template<typename T>

@@ -218,6 +218,7 @@ void VectorHashFunction::computeHash(const ValueVector& operand,
         [&](list_entry_t) {
             computeListVectorHash(operand, operandSelectVec, result, resultSelectVec);
         },
+        [&](uint128_t) {},
         [&operand](auto) {
             // LCOV_EXCL_START
             throw RuntimeException("Cannot hash data type " + operand.dataType.toString());

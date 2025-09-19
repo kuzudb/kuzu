@@ -212,6 +212,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -237,6 +239,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -262,6 +266,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -287,6 +293,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -312,6 +320,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -337,6 +347,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -362,6 +374,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -387,6 +401,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -412,6 +428,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -437,6 +455,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -462,6 +482,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -487,6 +509,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -512,6 +536,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -537,6 +563,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -562,6 +590,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -587,6 +617,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -612,6 +644,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -637,6 +671,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -662,6 +698,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -687,6 +725,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST
@@ -713,6 +753,8 @@ Expected: (INT128,INT128) -> LIST
           (INT8,INT8,INT8) -> LIST
           (SERIAL,SERIAL) -> LIST
           (SERIAL,SERIAL,SERIAL) -> LIST
+          (UINT128,UINT128) -> LIST
+          (UINT128,UINT128,UINT128) -> LIST
           (UINT64,UINT64) -> LIST
           (UINT64,UINT64,UINT64) -> LIST
           (UINT32,UINT32) -> LIST

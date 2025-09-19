@@ -84,5 +84,10 @@ void Abs::operation(common::int128_t& input, common::int128_t& result) {
     result = input < 0 ? -input : input;
 }
 
+template<>
+void Abs::operation(common::uint128_t& input, common::uint128_t& result) {
+    result = input;
+}
+
 } // namespace function
 } // namespace kuzu
