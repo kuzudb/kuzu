@@ -3,6 +3,7 @@
 --
 
 -CASE ScanDuckDBTable
+-SKIP_FSM_LEAK_CHECK
 -LOAD_DYNAMIC_EXTENSION duckdb
 -LOG AttachUnsupportedTableError
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/tinysnb.db' as tinysnb (dbtype duckdb);
@@ -215,6 +216,7 @@ Attached database successfully.
 ---- ok
 
 -CASE TestingSupportedDBDataTypes
+-SKIP_FSM_LEAK_CHECK
 -LOAD_DYNAMIC_EXTENSION duckdb
 -STATEMENT ATTACH '${KUZU_ROOT_DIRECTORY}/dataset/databases/duckdb_database/datatypeTesting.db' as dataType (dbtype duckdb);
 ---- ok

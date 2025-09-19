@@ -314,6 +314,11 @@ TestStatement TestParser::parseStatement(const std::string& testCaseName) {
             statement.type = TestStatementType::VALID;
             return statement;
         }
+        case TokenType::SKIP_FSM_LEAK_CHECKER: {
+            statement.skipFSMLeakCheckerFlag = true;
+            statement.type = TestStatementType::VALID;
+            return statement;
+        }
         case TokenType::RELOADDB: {
             statement.reloadDBFlag = true;
             statement.type = TestStatementType::VALID;

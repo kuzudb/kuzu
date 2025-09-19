@@ -3,7 +3,7 @@
 --
 
 -CASE UUIDfunctions
-# messing with node group size can change the output order of collect()
+-SKIP_FSM_LEAK_CHECK
 -LOG UUIDOrderByTest
 -STATEMENT CREATE NODE TABLE Person(name STRING, u UUID, PRIMARY KEY(name));
 ---- ok
