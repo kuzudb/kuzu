@@ -13,22 +13,34 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct ListSelect {
+struct ListWhere {
     static void operation(common::list_entry_t& left, common::list_entry_t& right,
         common::list_entry_t& result, common::ValueVector& leftVector,
         common::ValueVector& rightVector, common::ValueVector& resultVector) {
-        result = common::ListVector::addList(&resultVector, right.size);
-        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
-        auto resultPos = result.offset;
+        if (right.size!=left.size) {
+            throw BinderException(stringFormat("LIST_WHERE expecting lists of same size, receiving size {} and size {}", left.size, left.size));
+        }
         auto leftDataVector = common::ListVector::getDataVector(&leftVector);
+        auto leftPos = left.offset;
         auto rightDataVector = common::ListVector::getDataVector(&rightVector);
         auto rightPos = right.offset;
+        list_size_t resultSize=0;
+        std::vector<bool> maskListBools;
         for (auto i=0u; i < right.size; i++) {
-            auto leftIndexPos=rightDataVector->getValue<long long>(rightPos+i);
-            if ((leftIndexPos<0)||(leftIndexPos>=left.size)) {
-                throw BinderException(stringFormat("LIST_SELECTION encounters index out of range : {} , min: {}, max: {}", leftIndexPos, 0, left.size-1));
+            auto maskBool=rightDataVector->getValue<bool>(rightPos+i);
+            maskListBools.push_back(maskBool);
+            if (maskBool) {
+                resultSize++;
             }
-            resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftIndexPos);
+        }
+        result = common::ListVector::addList(&resultVector, resultSize);
+        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
+        auto resultPos = result.offset;
+        for (auto i=0u; i < right.size; i++) {
+            auto maskBool=maskListBools.at(i);
+            if (maskBool) {
+                resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftPos+i);
+            }
         }
     }
 };
@@ -42,17 +54,17 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     } else {
         auto thisExtraTypeInfo=types[1].getExtraTypeInfo();
         auto thisListTypeInfo=ku_dynamic_cast<const ListTypeInfo*>(thisExtraTypeInfo);
-        if (thisListTypeInfo->getChildType().getPhysicalType()!=PhysicalTypeID::INT64) {
-            throw BinderException("LIST_SELECT expecting argument type: LIST of ANY, LIST of INT");
+        if (thisListTypeInfo->getChildType().getPhysicalType()!=PhysicalTypeID::BOOL) {
+            throw BinderException("LIST_SELECT expecting argument type: LIST of ANY, LIST of BOOL");
         }
     }
     return std::make_unique<FunctionBindData>(std::move(types), types[0].copy());
 }
 
-function_set ListSelectFunction::getFunctionSet() {
+function_set ListWhereFunction::getFunctionSet() {
     function_set result;
     auto execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t,
-        list_entry_t, ListSelect>;
+        list_entry_t, ListWhere>;
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::LIST,
         execFunc);
