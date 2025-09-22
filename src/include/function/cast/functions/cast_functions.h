@@ -3,11 +3,11 @@
 #include "common/exception/overflow.h"
 #include "common/string_format.h"
 #include "common/type_utils.h"
+#include "common/types/int128_t.h"
+#include "common/types/uint128_t.h"
 #include "common/vector/value_vector.h"
 #include "function/cast/cast_union_bind_data.h"
 #include "function/cast/functions/numeric_cast.h"
-#include "common/types/int128_t.h"
-#include "common/types/uint128_t.h"
 
 namespace kuzu {
 namespace function {

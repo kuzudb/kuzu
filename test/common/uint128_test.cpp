@@ -43,14 +43,14 @@ TEST(Uint128Tests, Casting) {
     }
 
     { // conversion from int128_t 2^64 + 1 (no implicit casting from int128_t to uint128_t)
-        int128_t int128_value {(uint64_t)1, (int64_t)1};
+        int128_t int128_value{(uint64_t)1, (int64_t)1};
         uint128_t value = (uint128_t)int128_value;
         EXPECT_EQ(value.low, 1);
         EXPECT_EQ(value.high, 1);
     }
 
     { // conversion to int128_t
-        int128_t int128_value = uint128_t {35, 165};
+        int128_t int128_value = uint128_t{35, 165};
         EXPECT_EQ(int128_value.low, 35);
         EXPECT_EQ(int128_value.high, 165);
     }
@@ -391,8 +391,8 @@ TEST(Uint128Tests, BitwiseTest2) {
     uint128_t value1{0, (1ULL << 63) + (1ULL << 62)}; // 11000...000
     uint128_t value2{2, (1ULL << 62) + (1ULL << 60)}; // 01010...010
 
-    { 
-        uint128_t expected_and{0, (1ULL << 62)};                              // 01000...000
+    {
+        uint128_t expected_and{0, (1ULL << 62)}; // 01000...000
         EXPECT_EQ(expected_and, value1 & value2);
         EXPECT_EQ(expected_and, UInt128_t::BinaryAnd(value1, value2));
     }
@@ -416,8 +416,8 @@ TEST(Uint128Tests, BitwiseTest2) {
     }
 
     {
-        EXPECT_EQ(value1, value1 >> 0); // right shift by 0
-        uint128_t expected_right_shift1{3, 0};                                // 000...011
+        EXPECT_EQ(value1, value1 >> 0);                   // right shift by 0
+        uint128_t expected_right_shift1{3, 0};            // 000...011
         uint128_t expected_right_shift2{(1ULL << 62), 1}; // 000...1 010... 0 (shift by 62)
         EXPECT_EQ(expected_right_shift1, value1 >> 126);
         EXPECT_EQ(expected_right_shift1, UInt128_t::RightShift(value1, 126));

@@ -13,10 +13,10 @@
 #include "common/serializer/serializer.h"
 #include "common/string_utils.h"
 #include "common/types/int128_t.h"
-#include "common/types/uint128_t.h"
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/types/uint128_t.h"
 #include "function/built_in_function_utils.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "storage/compression/float_compression.h"
@@ -27,7 +27,9 @@ using kuzu::function::BuiltInFunctionsUtils;
 namespace kuzu {
 namespace common {
 
-LogicalType LogicalType::UINT128() { return LogicalType(LogicalTypeID::UINT128); }
+LogicalType LogicalType::UINT128() {
+    return LogicalType(LogicalTypeID::UINT128);
+}
 
 internalID_t::internalID_t() : offset{INVALID_OFFSET}, tableID{INVALID_TABLE_ID} {}
 
@@ -1227,17 +1229,18 @@ bool LogicalTypeUtils::isNested(kuzu::common::LogicalTypeID logicalTypeID) {
 std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
     return std::vector<LogicalTypeID>{LogicalTypeID::BOOL, LogicalTypeID::INT64,
         LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::UINT64,
-        LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8, LogicalTypeID::INT128, LogicalTypeID::UINT128,
-        LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
-        LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
-        LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::BLOB,
-        LogicalTypeID::UUID, LogicalTypeID::STRING, LogicalTypeID::SERIAL};
+        LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8, LogicalTypeID::INT128,
+        LogicalTypeID::UINT128, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::DATE,
+        LogicalTypeID::TIMESTAMP, LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS,
+        LogicalTypeID::TIMESTAMP_SEC, LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL,
+        LogicalTypeID::BLOB, LogicalTypeID::UUID, LogicalTypeID::STRING, LogicalTypeID::SERIAL};
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getIntegerTypeIDs() {
     return std::vector<LogicalTypeID>{LogicalTypeID::INT128, LogicalTypeID::INT64,
         LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8, LogicalTypeID::SERIAL,
-        LogicalTypeID::UINT128, LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8};
+        LogicalTypeID::UINT128, LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16,
+        LogicalTypeID::UINT8};
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getFloatingPointTypeIDs() {
@@ -1256,8 +1259,8 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
     return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
         LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::INT8,
         LogicalTypeID::UINT64, LogicalTypeID::UINT32, LogicalTypeID::UINT16, LogicalTypeID::UINT8,
-        LogicalTypeID::INT128, LogicalTypeID::UINT128, LogicalTypeID::DOUBLE, LogicalTypeID::STRING, LogicalTypeID::BLOB,
-        LogicalTypeID::UUID, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
+        LogicalTypeID::INT128, LogicalTypeID::UINT128, LogicalTypeID::DOUBLE, LogicalTypeID::STRING,
+        LogicalTypeID::BLOB, LogicalTypeID::UUID, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
         LogicalTypeID::TIMESTAMP_NS, LogicalTypeID::TIMESTAMP_MS, LogicalTypeID::TIMESTAMP_SEC,
         LogicalTypeID::TIMESTAMP_TZ, LogicalTypeID::INTERVAL, LogicalTypeID::LIST,
         LogicalTypeID::ARRAY, LogicalTypeID::MAP, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL,

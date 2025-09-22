@@ -475,7 +475,8 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
         func = ScalarFunction::UnaryCastExecFunction<int128_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT128: {
-        func = ScalarFunction::UnaryCastExecFunction<uint128_t, ku_string_t, CastToString, EXECUTOR>;
+        func =
+            ScalarFunction::UnaryCastExecFunction<uint128_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT8: {
         func = ScalarFunction::UnaryCastExecFunction<uint8_t, ku_string_t, CastToString, EXECUTOR>;
@@ -864,8 +865,8 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
             targetType);
     }
     case LogicalTypeID::UINT128: {
-        return bindCastToNumericFunction<uint128_t, CastToUInt128, EXECUTOR>(functionName, sourceType,
-            targetType);
+        return bindCastToNumericFunction<uint128_t, CastToUInt128, EXECUTOR>(functionName,
+            sourceType, targetType);
     }
     case LogicalTypeID::SERIAL: {
         return bindCastToNumericFunction<int64_t, CastToSerial, EXECUTOR>(functionName, sourceType,

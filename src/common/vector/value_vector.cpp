@@ -7,10 +7,10 @@
 #include "common/serializer/deserializer.h"
 #include "common/serializer/serializer.h"
 #include "common/system_config.h"
+#include "common/types/uint128_t.h"
 #include "common/types/value/nested.h"
 #include "common/types/value/value.h"
 #include "common/vector/auxiliary_buffer.h"
-#include "common/types/uint128_t.h"
 
 namespace kuzu {
 namespace common {
