@@ -322,7 +322,7 @@ uint128_t UInt128_t::BinaryNot(uint128_t val) {
     return uint128_t{~val.low, ~val.high};
 }
 
-uint128_t Uint128_t::LeftShift(uint128_t lhs, int amount) {
+uint128_t UInt128_t::LeftShift(uint128_t lhs, int amount) {
     return amount >= 64 ?
                uint128_t(0, lhs.low << (amount - 64)) :
            amount == 0 ?
