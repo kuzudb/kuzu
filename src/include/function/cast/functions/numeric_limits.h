@@ -40,9 +40,7 @@ struct NumericLimits<common::int128_t> {
 
 template<>
 struct NumericLimits<common::uint128_t> {
-    static constexpr common::uint128_t minimum() {
-        return {0, 0};
-    }
+    static constexpr common::uint128_t minimum() { return {0, 0}; }
     static constexpr common::uint128_t maximum() {
         return {std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max()};
     }
@@ -160,7 +158,8 @@ constexpr std::array<common::int128_t, NumericLimits<common::int128_t>::digits()
 }
 
 template<>
-constexpr std::array<common::uint128_t, NumericLimits<common::uint128_t>::digits()> pow10Sequence() {
+constexpr std::array<common::uint128_t, NumericLimits<common::uint128_t>::digits()>
+pow10Sequence() {
     return {
         common::uint128_t(1UL, 0UL),
         common::uint128_t(10UL, 0UL),

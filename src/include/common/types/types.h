@@ -146,8 +146,7 @@ concept UnsignedIntegerTypes =
     std::is_same_v<T, uint64_t> || std::is_same_v<T, uint128_t>;
 
 template<typename T>
-concept IntegerTypes =
-    SignedIntegerTypes<T> || UnsignedIntegerTypes<T>;
+concept IntegerTypes = SignedIntegerTypes<T> || UnsignedIntegerTypes<T>;
 
 template<typename T>
 concept FloatingPointTypes = std::is_same_v<T, float> || std::is_same_v<T, double>;

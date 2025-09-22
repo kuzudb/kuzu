@@ -43,7 +43,8 @@ template<>
 void Modulo::operation(common::int128_t& left, common::int128_t& right, common::int128_t& result);
 
 template<>
-void Modulo::operation(common::uint128_t& left, common::uint128_t& right, common::uint128_t& result);
+void Modulo::operation(common::uint128_t& left, common::uint128_t& right,
+    common::uint128_t& result);
 
 } // namespace function
 } // namespace kuzu
