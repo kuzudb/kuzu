@@ -206,7 +206,7 @@ val valueGetAsEmscriptenValue(const Value& value) {
     }
     case LogicalTypeID::INT128: {
         auto int128Val = value.getValue<int128_t>();
-        auto str = Int128_t::ToString(int128Val);
+        auto str = Int128_t::toString(int128Val);
         return JsBigInt(str);
     }
     case LogicalTypeID::FLOAT: {

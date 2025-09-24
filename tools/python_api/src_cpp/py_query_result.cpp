@@ -132,7 +132,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::INT128: {
         kuzu::common::int128_t result = value.getValue<kuzu::common::int128_t>();
-        std::string int128_string = kuzu::common::Int128_t::ToString(result);
+        std::string int128_string = kuzu::common::Int128_t::toString(result);
 
         auto Decimal = importCache->decimal.Decimal();
         py::object largeInt = Decimal(int128_string);

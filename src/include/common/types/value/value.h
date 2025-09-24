@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <stdexcept>
 
 #include "common/api.h"
 #include "common/types/date_t.h"
