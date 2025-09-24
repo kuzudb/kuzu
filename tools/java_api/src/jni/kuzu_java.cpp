@@ -1394,7 +1394,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_Native_kuzuValueGetValue(JNIEnv* env, 
         }
         case LogicalTypeID::INT128: {
             int128_t int128_val = v->getValue<int128_t>();
-            jstring val = env->NewStringUTF(Int128_t::ToString(int128_val).c_str());
+            jstring val = env->NewStringUTF(Int128_t::toString(int128_val).c_str());
             jobject ret = env->NewObject(J_C_BigInteger, J_C_BigInteger_M_init, val);
             return ret;
         }

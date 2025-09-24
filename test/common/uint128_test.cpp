@@ -57,14 +57,14 @@ TEST(Uint128Tests, Casting) {
 
     { // conversion from int128_t (error: negative value)
         int128_t negative_two = -2;
-        EXPECT_THROW((uint128_t)negative_two, OverflowException);
+        EXPECT_THROW({ [[maybe_unused]] uint128_t value = (uint128_t)negative_two; }, OverflowException);
     }
 
     { // conversion to int128_t (error: overflow)
         uint128_t large_uint128 = {335882, (1ULL << 63) + 9101028};
-        EXPECT_THROW((int128_t)large_uint128, OverflowException);
+        EXPECT_THROW({ [[maybe_unused]] int128_t value1 = (int128_t)large_uint128; }, OverflowException);
         uint128_t max_uint128 = {UINT64_MAX, UINT64_MAX};
-        EXPECT_THROW((int128_t)max_uint128, OverflowException);
+        EXPECT_THROW({ [[maybe_unused]] int128_t value2 = (int128_t)max_uint128; }, OverflowException);
     }
 
     { // conversion to float and double
@@ -162,7 +162,7 @@ TEST(Uint128Tests, AdditionTest) {
         EXPECT_THROW(value1 + value2, OverflowException);
         uint128_t value3{UINT64_MAX, 1};
         uint128_t value4{0, UINT64_MAX};
-        EXPECT_THROW(value1 + value2, OverflowException);
+        EXPECT_THROW(value3 + value4, OverflowException);
     }
 }
 

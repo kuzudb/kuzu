@@ -155,9 +155,6 @@ alldebug:
 test-build:
 	$(call run-cmake-relwithdebinfo, -DBUILD_TESTS=TRUE -DENABLE_BACKTRACES=TRUE)
 
-build_test_debug:
-	$(call run-cmake-debug, -DBUILD_TESTS=TRUE)
-
 test: test-build
 	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS}
 
