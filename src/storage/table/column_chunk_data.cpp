@@ -334,9 +334,11 @@ void ColumnChunkData::setToOnDisk(const ColumnChunkMetadata& otherMetadata) {
 
 ColumnChunkMetadata ColumnChunkData::flushBuffer(PageAllocator& pageAllocator,
     const PageRange& entry, const ColumnChunkMetadata& otherMetadata) const {
-    if (!otherMetadata.compMeta.isConstant() && getBufferSize(numValues) != 0) {
-        return flushBufferFunction(buffer->getBuffer(), pageAllocator.getDataFH(), entry,
-            otherMetadata);
+    const auto bufferSizeToFlush = getBufferSize(numValues);
+    if (!otherMetadata.compMeta.isConstant() && bufferSizeToFlush != 0) {
+        KU_ASSERT(bufferSizeToFlush <= buffer->getBuffer().size_bytes());
+        const auto bufferToFlush = buffer->getBuffer().subspan(0, bufferSizeToFlush);
+        return flushBufferFunction(bufferToFlush, pageAllocator.getDataFH(), entry, otherMetadata);
     }
     KU_ASSERT(otherMetadata.getNumPages() == 0);
     return otherMetadata;
