@@ -99,6 +99,10 @@ static void validateChildType(const LogicalType& type, const std::string& functi
 
 static LogicalType validateListFunctionParameters(const LogicalType& leftType,
     const LogicalType& rightType, const std::string& functionName) {
+    if ((leftType.getPhysicalType()!=common::PhysicalTypeID::LIST)||
+        (rightType.getPhysicalType()!=common::PhysicalTypeID::LIST)) {
+            throw BinderException(stringFormat("Function {} did not receive correct arguments",functionName));
+    }
     const auto& leftChildType = ListType::getChildType(leftType);
     const auto& rightChildType = ListType::getChildType(rightType);
     validateChildType(leftChildType, functionName);

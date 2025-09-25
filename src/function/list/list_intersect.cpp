@@ -35,7 +35,7 @@ struct ListIntersect {
             }
         }
         common::ValueVector tempVec(
-            kuzu::common::LogicalType::LIST(rightDataVector->dataType.getLogicalTypeID()), nullptr);
+            kuzu::common::LogicalType::LIST(rightDataVector->dataType.copy()), nullptr, nullptr);
         auto tempDataVec = common::ListVector::getDataVector(&tempVec);
         auto temp = common::ListVector::addList(&tempVec, rightOffsets.size());
         auto tempPos = temp.offset;
