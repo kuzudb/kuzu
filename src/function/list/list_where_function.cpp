@@ -17,9 +17,6 @@ struct ListWhere {
     static void operation(common::list_entry_t& left, common::list_entry_t& right,
         common::list_entry_t& result, common::ValueVector& leftVector,
         common::ValueVector& rightVector, common::ValueVector& resultVector) {
-        if (right.size!=left.size) {
-            throw BinderException(stringFormat("LIST_WHERE expecting lists of same size, receiving size {} and size {}", left.size, left.size));
-        }
         auto leftDataVector = common::ListVector::getDataVector(&leftVector);
         auto leftPos = left.offset;
         auto rightDataVector = common::ListVector::getDataVector(&rightVector);
@@ -27,11 +24,14 @@ struct ListWhere {
         list_size_t resultSize=0;
         std::vector<bool> maskListBools;
         for (auto i=0u; i < right.size; i++) {
+            if (rightDataVector->isNull(rightPos+i)) {
+                throw BinderException("NULLs are not allowed as list elements in the second input parameter.");
+            }
             auto maskBool=rightDataVector->getValue<bool>(rightPos+i);
-            maskListBools.push_back(maskBool);
-            if (maskBool) {
+            if (maskBool){
                 resultSize++;
             }
+            maskListBools.push_back(maskBool);
         }
         result = common::ListVector::addList(&resultVector, resultSize);
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
@@ -39,7 +39,12 @@ struct ListWhere {
         for (auto i=0u; i < right.size; i++) {
             auto maskBool=maskListBools.at(i);
             if (maskBool) {
-                resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftPos+i);
+                if (leftPos+i<left.size) {
+                    resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftPos+i);
+                } else {
+                    resultDataVector->setNull(resultPos++,true);
+                }
+                
             }
         }
     }
@@ -48,6 +53,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
     types.push_back(input.arguments[1]->getDataType().copy());
+    if (types[0].getPhysicalType()!=PhysicalTypeID::LIST) {
+        throw BinderException("LIST_WHERE expecting argument type: LIST of ANY, LIST of BOOL");
+    }
     if (types[1].getPhysicalType()!=PhysicalTypeID::LIST) {
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
             ListIntersectFunction::name, types[0].toString(), types[1].toString()));
@@ -55,7 +63,7 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
         auto thisExtraTypeInfo=types[1].getExtraTypeInfo();
         auto thisListTypeInfo=ku_dynamic_cast<const ListTypeInfo*>(thisExtraTypeInfo);
         if (thisListTypeInfo->getChildType().getPhysicalType()!=PhysicalTypeID::BOOL) {
-            throw BinderException("LIST_SELECT expecting argument type: LIST of ANY, LIST of BOOL");
+            throw BinderException("LIST_WHERE expecting argument type: LIST of ANY, LIST of BOOL");
         }
     }
     return std::make_unique<FunctionBindData>(std::move(types), types[0].copy());

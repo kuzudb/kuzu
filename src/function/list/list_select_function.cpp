@@ -24,11 +24,13 @@ struct ListSelect {
         auto rightDataVector = common::ListVector::getDataVector(&rightVector);
         auto rightPos = right.offset;
         for (auto i=0u; i < right.size; i++) {
-            auto leftIndexPos=rightDataVector->getValue<long long>(rightPos+i);
+            auto leftIndexPos=rightDataVector->getValue<long long>(rightPos+i)-1;
             if ((leftIndexPos<0)||(leftIndexPos>=left.size)) {
-                throw BinderException(stringFormat("LIST_SELECTION encounters index out of range : {} , min: {}, max: {}", leftIndexPos, 0, left.size-1));
+                // append null to result if out of index
+                resultDataVector->setNull(resultPos++, true);
+            } else {
+                resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftIndexPos);
             }
-            resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftIndexPos);
         }
     }
 };
@@ -36,6 +38,9 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     std::vector<LogicalType> types;
     types.push_back(input.arguments[0]->getDataType().copy());
     types.push_back(input.arguments[1]->getDataType().copy());
+    if (types[0].getPhysicalType()!=PhysicalTypeID::LIST) {
+        throw BinderException("LIST_SELECT expecting argument type: LIST of ANY, LIST of INT");
+    }
     if (types[1].getPhysicalType()!=PhysicalTypeID::LIST) {
         throw BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
             ListIntersectFunction::name, types[0].toString(), types[1].toString()));
