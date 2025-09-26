@@ -202,18 +202,18 @@ LogicalType inferMinimalTypeFromString(std::string_view str) {
 
     // integer
     if (RE2::FullMatch(cpy, intPattern())) {
-        if (cpy.size() >= 1 + NumericLimits<int128_t>::digits()) {
+        if (cpy.size() >= 1 + NumericLimits<int128_t>::maxNumDigits()) {
             return LogicalType::DOUBLE();
         }
         int128_t int128val = 0;
         uint128_t uint128val = 0;
-        if (trySimpleInt128Cast(cpy.data(), cpy.length(), int128val)) {
+        if (trySimpleIntegerCast<int128_t, true>(cpy.data(), cpy.length(), int128val)) {
             if (NumericLimits<int64_t>::isInBounds(int128val)) {
                 return LogicalType::INT64();
             }
             KU_ASSERT(NumericLimits<int128_t>::isInBounds(int128val));
             return LogicalType::INT128();
-        } else if (trySimpleUInt128Cast(cpy.data(), cpy.length(), uint128val)) {
+        } else if (trySimpleIntegerCast<uint128_t, false>(cpy.data(), cpy.length(), uint128val)) {
             return LogicalType::UINT128();
         }
         return LogicalType::STRING();

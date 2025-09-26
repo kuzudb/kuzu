@@ -357,16 +357,16 @@ Conversion exception: Cast failed. Could not convert "256" to UINT8.
 Conversion exception: Cast failed. Could not convert "-1" to UINT8.
 -STATEMENT RETURN TO_UINT128("-1");
 ---- error
-Conversion exception: Cast failed. -1 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "-1" to UINT128.
 -STATEMENT RETURN TO_INT128(170141183460469231731687303715884105728);
 ---- error
 Overflow exception: Value 170141183460469231731687303715884105728 is not within INT128 range.
 -STATEMENT RETURN TO_INT128("-170141183460469231731687303715884105729");
 ---- error
-Conversion exception: Cast failed. -170141183460469231731687303715884105729 is not within INT128 range.
+Conversion exception: Cast failed. Could not convert "-170141183460469231731687303715884105729" to INT128.
 -STATEMENT RETURN TO_UINT128("340282366920938463463374607431768211456");
 ---- error
-Conversion exception: Cast failed. 340282366920938463463374607431768211456 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "340282366920938463463374607431768211456" to UINT128.
 -STATEMENT RETURN TO_UINT8(TO_INT128(-1));
 ---- error
 Overflow exception: Cast failed. Cannot cast -1 to unsigned type.
@@ -381,7 +381,7 @@ Overflow exception: Cast failed. Cannot cast -15 to unsigned type.
 Overflow exception: INT128 is out of range: cannot add.
 -STATEMENT RETURN TO_INT128(-170141183460469231731687303715884102147483648727) + TO_INT128(-10);
 ---- error
-Conversion exception: Cast failed. -170141183460469231731687303715884102147483648727 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "-170141183460469231731687303715884102147483648727" to UINT128.
 -STATEMENT RETURN TO_INT128(170141183460469231731687303715884105727) - TO_INT128(-10);
 ---- error
 Overflow exception: INT128 is out of range: cannot subtract.
@@ -435,16 +435,16 @@ Conversion exception: Cast failed. Could not convert "256" to UINT8.
 Conversion exception: Cast failed. Could not convert "-1" to UINT8.
 -STATEMENT RETURN cast("-1", "uint128");
 ---- error
-Conversion exception: Cast failed. -1 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "-1" to UINT128.
 -STATEMENT RETURN cast(170141183460469231731687303715884105728, "int128");
 ---- error
 Overflow exception: Value 170141183460469231731687303715884105728 is not within INT128 range.
 -STATEMENT RETURN cast("-170141183460469231731687303715884105729", "int128");
 ---- error
-Conversion exception: Cast failed. -170141183460469231731687303715884105729 is not within INT128 range.
+Conversion exception: Cast failed. Could not convert "-170141183460469231731687303715884105729" to INT128.
 -STATEMENT RETURN cast("1000000000000000000000000000000000000000", "uint128");
 ---- error
-Conversion exception: Cast failed. 1000000000000000000000000000000000000000 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "1000000000000000000000000000000000000000" to UINT128.
 -STATEMENT RETURN TO_UINT8(cast(-1, "int128"));
 ---- error
 Overflow exception: Cast failed. Cannot cast -1 to unsigned type.
@@ -547,7 +547,7 @@ Overflow exception: Value 18446744073709551615 is not within UINT16 range
 Overflow exception: Value 256 is not within UINT8 range
 -STATEMENT RETURN TO_UINT128(TO_INT128(-2147483648));
 ---- error
-Overflow exception: Cannot cast negative INT128 to UINT128
+Overflow exception: Cannot cast negative INT128 value -2147483648 to UINT128
 -STATEMENT RETURN cast(cast(18446744073709551615, "int128"), "serial");
 ---- error
 Overflow exception: Value 18446744073709551615 is not within INT64 range
@@ -595,10 +595,10 @@ Overflow exception: Value 170141183460469231731687303715884105728 is not within 
 Conversion exception: Could not convert to union type UNION(uint64 UINT64, int128 INT128, uint128 UINT128, BOOLEAN BOOL): fd.
 -STATEMENT RETURN cast("{a: 432412343242343241432432444444444444443244}", "STRUCT(a INT128)");
 ---- error
-Conversion exception: Cast failed. 432412343242343241432432444444444444443244 is not within INT128 range.
+Conversion exception: Cast failed. Could not convert "432412343242343241432432444444444444443244" to INT128.
 -STATEMENT RETURN cast("{a: 432412343242343241432432444444444444443244}", "STRUCT(a UINT128)");
 ---- error
-Conversion exception: Cast failed. 432412343242343241432432444444444444443244 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "432412343242343241432432444444444444443244" to UINT128.
 -STATEMENT RETURN cast("{a}", "STRUCT(a INT128)");
 ---- error
 Conversion exception: Cast failed. {a} is not in STRUCT(a INT128) range.
@@ -619,10 +619,10 @@ Conversion exception: Cast failed. bool is not in INT64[] range.
 Conversion exception: Cast failed. [[231|4324] is not in INT64[][] range.
 -STATEMENT RETURN cast("[2, 4, 16, 256, 65536, 18446744073709551616, 340282366920938463463374607431768211456]", "UINT128[]");
 ---- error
-Conversion exception: Cast failed. 340282366920938463463374607431768211456 is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "340282366920938463463374607431768211456" to UINT128.
 -STATEMENT RETURN cast("[[]]", "UINT128[]");
 ---- error
-Conversion exception: Cast failed. [] is not within UINT128 range.
+Conversion exception: Cast failed. Could not convert "[]" to UINT128.
 -STATEMENT RETURN cast("[1, 18", "UINT128[]");
 ---- error
 Conversion exception: Cast failed. [1, 18 is not in UINT128[] range.

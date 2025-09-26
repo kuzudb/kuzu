@@ -27,10 +27,6 @@ using kuzu::function::BuiltInFunctionsUtils;
 namespace kuzu {
 namespace common {
 
-LogicalType LogicalType::UINT128() {
-    return LogicalType(LogicalTypeID::UINT128);
-}
-
 internalID_t::internalID_t() : offset{INVALID_OFFSET}, tableID{INVALID_TABLE_ID} {}
 
 internalID_t::internalID_t(offset_t offset, table_id_t tableID)
@@ -1756,34 +1752,34 @@ static inline bool tryCombineDecimalWithNumeric(const LogicalType& dec, const Lo
     // How many digits before the decimal point does result require?
     switch (nonDec.getLogicalTypeID()) {
     case LogicalTypeID::INT8:
-        requiredDigits = function::NumericLimits<int8_t>::digits();
+        requiredDigits = function::NumericLimits<int8_t>::maxNumDigits();
         break;
     case LogicalTypeID::UINT8:
-        requiredDigits = function::NumericLimits<uint8_t>::digits();
+        requiredDigits = function::NumericLimits<uint8_t>::maxNumDigits();
         break;
     case LogicalTypeID::INT16:
-        requiredDigits = function::NumericLimits<int16_t>::digits();
+        requiredDigits = function::NumericLimits<int16_t>::maxNumDigits();
         break;
     case LogicalTypeID::UINT16:
-        requiredDigits = function::NumericLimits<uint16_t>::digits();
+        requiredDigits = function::NumericLimits<uint16_t>::maxNumDigits();
         break;
     case LogicalTypeID::INT32:
-        requiredDigits = function::NumericLimits<int32_t>::digits();
+        requiredDigits = function::NumericLimits<int32_t>::maxNumDigits();
         break;
     case LogicalTypeID::UINT32:
-        requiredDigits = function::NumericLimits<uint32_t>::digits();
+        requiredDigits = function::NumericLimits<uint32_t>::maxNumDigits();
         break;
     case LogicalTypeID::INT64:
-        requiredDigits = function::NumericLimits<int64_t>::digits();
+        requiredDigits = function::NumericLimits<int64_t>::maxNumDigits();
         break;
     case LogicalTypeID::UINT64:
-        requiredDigits = function::NumericLimits<uint64_t>::digits();
+        requiredDigits = function::NumericLimits<uint64_t>::maxNumDigits();
         break;
     case LogicalTypeID::INT128:
-        requiredDigits = function::NumericLimits<int128_t>::digits();
+        requiredDigits = function::NumericLimits<int128_t>::maxNumDigits();
         break;
     case LogicalTypeID::UINT128:
-        requiredDigits = function::NumericLimits<uint128_t>::digits();
+        requiredDigits = function::NumericLimits<uint128_t>::maxNumDigits();
         break;
     default:
         requiredDigits = DECIMAL_PRECISION_LIMIT + 1;

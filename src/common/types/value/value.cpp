@@ -127,7 +127,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::UINT8:
         return Value((uint8_t)0);
     case LogicalTypeID::INT128:
-        return Value(int128_t((int32_t)0));
+        return Value(int128_t(0));
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
@@ -149,7 +149,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::INTERNAL_ID:
         return Value(nodeID_t());
     case LogicalTypeID::UINT128:
-        return Value(uint128_t((int32_t)0));
+        return Value(uint128_t(0));
     case LogicalTypeID::BLOB:
         return Value(LogicalType::BLOB(), std::string(""));
     case LogicalTypeID::UUID:

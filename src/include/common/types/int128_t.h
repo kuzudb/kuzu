@@ -220,8 +220,6 @@ bool Int128_t::tryCastTo(double value, int128_t& result);
 template<>
 bool Int128_t::tryCastTo(long double value, int128_t& result);
 
-// TODO: const char to int128
-
 } // namespace common
 } // namespace kuzu
 
