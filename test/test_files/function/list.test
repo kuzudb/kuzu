@@ -2211,7 +2211,7 @@ Binder exception: Function LIST_DISTANCE did not receive correct arguments
 
 -STATEMENT RETURN list_distance(2,3,4,5)
 ---- error
-Error: Binder exception: Function LIST_DISTANCE did not receive correct arguments:
+Binder exception: Function LIST_DISTANCE did not receive correct arguments:
 Actual:   (INT64,INT64,INT64,INT64)
 Expected: (LIST,LIST) -> ANY
 
