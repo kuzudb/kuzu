@@ -42,7 +42,8 @@ void AggregateFunctionUtils::appendSumOrAvgFuncs(std::string name, common::Logic
                 LogicalTypeID resultType =
                     UnsignedIntegerTypes<T> ? LogicalTypeID::UINT128 : LogicalTypeID::INT128;
                 // For avg aggregate functions, the result type is always double.
-                if constexpr (std::is_same_v<FunctionType<T, ResultType>, AvgFunction<T, ResultType>>) {
+                if constexpr (std::is_same_v<FunctionType<T, ResultType>,
+                                  AvgFunction<T, ResultType>>) {
                     resultType = LogicalTypeID::DOUBLE;
                 }
                 aggFunc = AggregateFunctionUtils::getAggFunc<FunctionType<T, ResultType>>(name,

@@ -26,8 +26,7 @@ LogicalType KUZU_API inferMinimalTypeFromString(std::string_view str);
 
 // cast string to numerical
 template<class T>
-struct IntegerCastData {
-};
+struct IntegerCastData {};
 
 template<std::integral T>
 struct IntegerCastData<T> {
@@ -50,7 +49,8 @@ struct IntegerCastData<int128_t> {
             if (digits > DECIMAL_PRECISION_LIMIT) {
                 return false;
             }
-            if (!Int128_t::tryMultiply(result, function::pow10Sequence<int128_t>()[digits], result)) {
+            if (!Int128_t::tryMultiply(result, function::pow10Sequence<int128_t>()[digits],
+                    result)) {
                 return false;
             }
         }
@@ -78,7 +78,8 @@ struct IntegerCastData<uint128_t> {
             if (digits > DECIMAL_PRECISION_LIMIT) {
                 return false;
             }
-            if (!UInt128_t::tryMultiply(result, function::pow10Sequence<uint128_t>()[digits], result)) {
+            if (!UInt128_t::tryMultiply(result, function::pow10Sequence<uint128_t>()[digits],
+                    result)) {
                 return false;
             }
         }
@@ -92,13 +93,12 @@ struct IntegerCastData<uint128_t> {
 };
 
 template<class T>
-struct IntegerCastOperation {
-};
+struct IntegerCastOperation {};
 
 template<std::integral T>
 struct IntegerCastOperation<T> {
     using CastData = IntegerCastData<T>;
-    
+
     template<bool NEGATIVE>
     static bool handleDigit(CastData& state, uint8_t digit) {
         using result_t = typename CastData::Result;
@@ -117,9 +117,7 @@ struct IntegerCastOperation<T> {
     }
 
     // TODO(Kebing): handle decimals
-    static bool finalize(CastData& /*state*/) {
-        return true;
-    }
+    static bool finalize(CastData& /*state*/) { return true; }
 };
 
 template<>
@@ -149,9 +147,7 @@ struct IntegerCastOperation<int128_t> {
         return true;
     }
 
-    static bool finalize(CastData& result) {
-        return result.flush();
-    }
+    static bool finalize(CastData& result) { return result.flush(); }
 };
 
 template<>
@@ -181,9 +177,7 @@ struct IntegerCastOperation<uint128_t> {
         return true;
     }
 
-    static bool finalize(CastData& result) {
-        return result.flush();
-    }
+    static bool finalize(CastData& result) { return result.flush(); }
 };
 
 // cast string to bool
@@ -235,7 +229,7 @@ inline bool tryIntegerCast(const char* input, uint64_t& len, IntegerCastData<T>&
         // decimal separator is default to "."
         return integerCastLoop<T, true>(input, len, result);
     }
-    
+
     // not allow leading 0
     if (len > 1 && *input == '0') {
         return false;

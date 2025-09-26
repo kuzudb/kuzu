@@ -113,7 +113,8 @@ static constexpr std::array<T, NumericLimits<T>::maxNumDigits()> pow10Sequence()
 }
 
 template<>
-constexpr std::array<common::int128_t, NumericLimits<common::int128_t>::maxNumDigits()> pow10Sequence() {
+constexpr std::array<common::int128_t, NumericLimits<common::int128_t>::maxNumDigits()>
+pow10Sequence() {
     return {
         common::int128_t(1UL, 0LL),
         common::int128_t(10UL, 0LL),

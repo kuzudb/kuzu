@@ -1,12 +1,12 @@
 #include "common/types/uint128_t.h"
 
 #include <cmath>
-#include <bit>
 
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/int128_t.h"
 #include "function/cast/functions/numeric_limits.h"
+#include <bit>
 
 namespace kuzu::common {
 
@@ -639,14 +639,16 @@ uint128_t::operator uint8_t() const {
 
 uint128_t::operator double() const {
     double result = NAN;
-    [[maybe_unused]] bool success = UInt128_t::tryCast(*this, result); // casting to double should always succeed
+    [[maybe_unused]] bool success =
+        UInt128_t::tryCast(*this, result); // casting to double should always succeed
     KU_ASSERT(success);
     return result;
 }
 
 uint128_t::operator float() const {
     float result = NAN;
-    [[maybe_unused]] bool success = UInt128_t::tryCast(*this, result); // casting overly large values to float currently returns inf
+    [[maybe_unused]] bool success = UInt128_t::tryCast(*this,
+        result); // casting overly large values to float currently returns inf
     KU_ASSERT(success);
     return result;
 }

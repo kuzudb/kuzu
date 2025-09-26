@@ -678,8 +678,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
         return std::make_unique<ParsedLiteralExpression>(Value(result), ctx.getText());
     }
     int128_t result128 = 0;
-    if (function::trySimpleIntegerCast(reinterpret_cast<const char*>(literal.getData()), literal.len,
-            result128)) {
+    if (function::trySimpleIntegerCast(reinterpret_cast<const char*>(literal.getData()),
+            literal.len, result128)) {
         return std::make_unique<ParsedLiteralExpression>(Value(result128), ctx.getText());
     }
     uint128_t resultu128 = 0;

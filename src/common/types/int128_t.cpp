@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <bit>
 
 #include "common/exception/runtime.h"
 #include "common/numeric_utils.h"
@@ -10,6 +9,7 @@
 #include "common/types/uint128_t.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
+#include <bit>
 
 namespace kuzu::common {
 
@@ -762,8 +762,8 @@ int128_t::operator float() const {
 int128_t::operator uint128_t() const {
     uint128_t result{};
     if (!Int128_t::tryCast(*this, result)) {
-        throw common::OverflowException(common::stringFormat("Cannot cast negative INT128 value {} to UINT128",
-            common::TypeUtils::toString(*this)));
+        throw common::OverflowException(common::stringFormat(
+            "Cannot cast negative INT128 value {} to UINT128", common::TypeUtils::toString(*this)));
     }
     return result;
 }

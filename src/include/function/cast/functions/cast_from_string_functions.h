@@ -43,8 +43,8 @@ inline void CastString::operation(const ku_string_t& input, int128_t& result,
 template<>
 inline void CastString::operation(const ku_string_t& input, uint128_t& result,
     ValueVector* /*resultVector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    simpleIntegerCast<uint128_t, false>(reinterpret_cast<const char*>(input.getData()), input.len, result,
-        LogicalTypeID::UINT128);
+    simpleIntegerCast<uint128_t, false>(reinterpret_cast<const char*>(input.getData()), input.len,
+        result, LogicalTypeID::UINT128);
 }
 
 template<>
