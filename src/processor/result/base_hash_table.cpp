@@ -227,7 +227,8 @@ static compare_function_t getCompareEntryFunc(const LogicalType& type) {
     default: {
         TypeUtils::visit(
             type.getPhysicalType(), [&]<HashableTypes T>(T) { func = compareEntry<T>; },
-            [&](uint128_t) { func = compareEntry<uint128_t>; }, [](auto) { KU_UNREACHABLE; });
+            [&](uint128_t) { func = compareEntry<uint128_t>; }, // TODO: remove when uint128_t hashing is implemented
+            [](auto) { KU_UNREACHABLE; });
     }
     }
     return func;
@@ -246,7 +247,7 @@ static ft_compare_function_t getFactorizedTableCompareEntryFunc(const LogicalTyp
         TypeUtils::visit(
             type.getPhysicalType(),
             [&]<HashableTypes T>(T) { func = factorizedTableCompareEntry<T>; },
-            [&](uint128_t) { func = factorizedTableCompareEntry<uint128_t>; },
+            [&](uint128_t) { func = factorizedTableCompareEntry<uint128_t>; }, // TODO: remove when uint128_t hashing is implemented
             [](auto) { KU_UNREACHABLE; });
     }
     }

@@ -1,77 +1,21 @@
 #include "common/types/uint128_t.h"
 
 #include <cmath>
+#include <bit>
 
 #include "common/exception/runtime.h"
 #include "common/type_utils.h"
 #include "common/types/int128_t.h"
 #include "function/cast/functions/numeric_limits.h"
-#include "function/hash/hash_functions.h"
 
 namespace kuzu::common {
 
-// NOLINTNEXTLINE(cert-err58-cpp): This initialization won't actually throw.
-const uint128_t UInt128_t::powerOf10[]{
-    uint128_t((uint64_t)1),
-    uint128_t((uint64_t)10),
-    uint128_t((uint32_t)100),
-    uint128_t((uint64_t)1000),
-    uint128_t((uint64_t)10000),
-    uint128_t((uint64_t)100000),
-    uint128_t((uint64_t)1000000),
-    uint128_t((uint64_t)10000000),
-    uint128_t((uint64_t)100000000),
-    uint128_t((uint64_t)1000000000),
-    uint128_t((uint64_t)10000000000),
-    uint128_t((uint64_t)100000000000),
-    uint128_t((uint64_t)1000000000000),
-    uint128_t((uint64_t)10000000000000),
-    uint128_t((uint64_t)100000000000000),
-    uint128_t((uint64_t)1000000000000000),
-    uint128_t((uint64_t)10000000000000000),
-    uint128_t((uint64_t)100000000000000000),
-    uint128_t((uint64_t)1000000000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)10),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)100),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)10000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)100000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)10000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)100000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)10000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)100000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)10000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)100000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)10000000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)100000000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000000000000000),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000000000000000) *
-        uint128_t((uint64_t)10),
-    uint128_t((uint64_t)1000000000000000000) * uint128_t((uint64_t)1000000000000000000) *
-        uint128_t((uint64_t)100),
-};
-
 static uint8_t uint128BitsAmount(uint128_t input) {
-    uint8_t result = 0;
     if (input.high) {
-        result = 64;
-        uint64_t high = input.high;
-        while (high) {
-            high >>= 1;
-            result++;
-        }
+        return 128 - std::countl_zero(input.high);
     } else {
-        uint64_t low = input.low;
-        while (low) {
-            low >>= 1;
-            result++;
-        }
+        return 64 - std::countl_zero(input.low);
     }
-    return result;
 }
 
 static bool uint128IsBitSet(uint128_t input, uint8_t bit) {
@@ -90,9 +34,7 @@ uint128_t uint128LeftShift(uint128_t lhs, uint32_t amount) {
 }
 
 uint128_t UInt128_t::divModPositive(uint128_t lhs, uint64_t rhs, uint64_t& remainder) {
-    uint128_t result{};
-    result.low = 0;
-    result.high = 0;
+    uint128_t result{0};
     remainder = 0;
 
     for (uint8_t i = uint128BitsAmount(lhs); i > 0; i--) {
@@ -260,9 +202,7 @@ uint128_t UInt128_t::divMod(uint128_t lhs, uint128_t rhs, uint128_t& remainder) 
     // https://github.com/calccrypto/uint128_t/blob/master/uint128_t.cpp
     // License: https://github.com/calccrypto/uint128_t/blob/c%2B%2B11_14/LICENSE
     // initialize the result and remainder to 0
-    uint128_t div_result{};
-    div_result.low = 0;
-    div_result.high = 0;
+    uint128_t div_result{0};
     remainder.low = 0;
     remainder.high = 0;
 
@@ -425,8 +365,8 @@ bool UInt128_t::tryCast(uint128_t input, long double& result) {
     return CastUint128ToFloating<long double>(input, result);
 }
 
-template<class DST>
-uint128_t tryCastToTemplate(DST value) {
+template<class SRC>
+uint128_t tryCastToTemplate(SRC value) {
     if (value < 0) {
         throw common::OverflowException("Cannot cast negative value to UINT128.");
     }
@@ -497,7 +437,6 @@ bool UInt128_t::tryCastTo(float value, uint128_t& result) {
 
 template<class REAL_T>
 bool castFloatingToUint128(REAL_T value, uint128_t& result) {
-    // TODO: Maybe need to add func isFinite in value.h to see if every type is finite.
     if (value < 0.0 || value >= 340282366920938463463374607431768211455.0) {
         return false;
     }
@@ -518,64 +457,53 @@ bool UInt128_t::tryCastTo(long double value, uint128_t& result) {
 }
 //===============================================================================================
 
+template<NumericTypes T>
+void constructUInt128Template(T value, uint128_t& result) {
+    uint128_t casted = UInt128_t::castTo(value);
+    result.low = casted.low;
+    result.high = casted.high;
+}
+
 uint128_t::uint128_t(int64_t value) {
     auto result = UInt128_t::castTo(value);
     this->low = result.low;
     this->high = result.high;
 }
 
-uint128_t::uint128_t(int32_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(int32_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(int16_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(int16_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(int8_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(int8_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(uint64_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(uint64_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(uint32_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(uint32_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(uint16_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(uint16_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(uint8_t value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(uint8_t value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(double value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(double value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
-uint128_t::uint128_t(float value) {
-    auto result = UInt128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+uint128_t::uint128_t(float value) { // NOLINT: fields are constructed by the template
+    constructUInt128Template(value, *this);
 }
 
 //============================================================================================
@@ -711,36 +639,25 @@ uint128_t::operator uint8_t() const {
 
 uint128_t::operator double() const {
     double result = NAN;
-    if (!UInt128_t::tryCast(*this, result)) { // LCOV_EXCL_START
-        throw common::OverflowException(common::stringFormat("Value {} is not within DOUBLE range",
-            common::TypeUtils::toString(*this)));
-    } // LCOV_EXCL_STOP
+    [[maybe_unused]] bool success = UInt128_t::tryCast(*this, result); // casting to double should always succeed
+    KU_ASSERT(success);
     return result;
 }
 
 uint128_t::operator float() const {
     float result = NAN;
-    if (!UInt128_t::tryCast(*this, result)) { // LCOV_EXCL_START
-        throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
-            common::TypeUtils::toString(*this)));
-    } // LCOV_EXCL_STOP
+    [[maybe_unused]] bool success = UInt128_t::tryCast(*this, result); // casting overly large values to float currently returns inf
+    KU_ASSERT(success);
     return result;
 }
 
 uint128_t::operator int128_t() const {
     int128_t result{};
-    if (!UInt128_t::tryCast(*this, result)) { // LCOV_EXCL_START
+    if (!UInt128_t::tryCast(*this, result)) {
         throw common::OverflowException(common::stringFormat("Value {} is not within INT128 range.",
             common::TypeUtils::toString(*this)));
-    } // LCOV_EXCL_STOP
+    }
     return result;
 }
 
 } // namespace kuzu::common
-
-// std::size_t std::hash<kuzu::common::uint128_t>::operator()(
-//     const kuzu::common::uint128_t& v) const noexcept {
-//     kuzu::common::hash_t hash = 0;
-//     kuzu::function::Hash::operation(v, hash);
-//     return hash;
-// }

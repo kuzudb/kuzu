@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "common/types/int128_t.h"
+#include "common/types/types.h"
 #include "common/types/uint128_t.h"
 
 namespace kuzu {
@@ -11,7 +12,7 @@ namespace function {
 struct Abs {
     template<class T>
     static inline void operation(T& input, T& result) {
-        if constexpr (std::is_unsigned_v<T>) {
+        if constexpr (common::UnsignedIntegerTypes<T>) {
             result = input;
         } else {
             result = std::abs(input);
@@ -33,9 +34,6 @@ void Abs::operation(int64_t& input, int64_t& result);
 
 template<>
 void Abs::operation(common::int128_t& input, common::int128_t& result);
-
-template<>
-void Abs::operation(common::uint128_t& input, common::uint128_t& result);
 
 } // namespace function
 } // namespace kuzu

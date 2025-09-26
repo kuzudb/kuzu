@@ -336,7 +336,7 @@ public:
     static LogicalType INTERVAL() { return LogicalType(LogicalTypeID::INTERVAL); }
     static KUZU_API LogicalType DECIMAL(uint32_t precision, uint32_t scale);
     static LogicalType INTERNAL_ID() { return LogicalType(LogicalTypeID::INTERNAL_ID); }
-    static LogicalType UINT128();
+    static LogicalType UINT128() { return LogicalType(LogicalTypeID::UINT128); };
     static LogicalType SERIAL() { return LogicalType(LogicalTypeID::SERIAL); }
     static LogicalType STRING() { return LogicalType(LogicalTypeID::STRING); }
     static LogicalType BLOB() { return LogicalType(LogicalTypeID::BLOB); }

@@ -19,7 +19,7 @@ struct NumericLimits {
     static bool isInBounds(V val) {
         return minimum() <= val && val <= maximum();
     }
-    static constexpr uint64_t digits();
+    static constexpr uint64_t maxNumDigits();
 };
 
 template<>
@@ -35,7 +35,7 @@ struct NumericLimits<common::int128_t> {
         return minimum() <= val && val <= maximum();
     }
     static constexpr bool isSigned() { return true; }
-    static constexpr uint64_t digits() { return 39; }
+    static constexpr uint64_t maxNumDigits() { return 39; }
 };
 
 template<>
@@ -49,71 +49,71 @@ struct NumericLimits<common::uint128_t> {
         return minimum() <= val && val <= maximum();
     }
     static constexpr bool isSigned() { return false; }
-    static constexpr uint64_t digits() { return 39; }
+    static constexpr uint64_t maxNumDigits() { return 39; }
 };
 
 template<>
-constexpr uint64_t NumericLimits<int8_t>::digits() {
+constexpr uint64_t NumericLimits<int8_t>::maxNumDigits() {
     return 3;
 }
 
 template<>
-constexpr uint64_t NumericLimits<int16_t>::digits() {
+constexpr uint64_t NumericLimits<int16_t>::maxNumDigits() {
     return 5;
 }
 
 template<>
-constexpr uint64_t NumericLimits<int32_t>::digits() {
+constexpr uint64_t NumericLimits<int32_t>::maxNumDigits() {
     return 10;
 }
 
 template<>
-constexpr uint64_t NumericLimits<int64_t>::digits() {
+constexpr uint64_t NumericLimits<int64_t>::maxNumDigits() {
     return 19;
 }
 
 template<>
-constexpr uint64_t NumericLimits<uint8_t>::digits() {
+constexpr uint64_t NumericLimits<uint8_t>::maxNumDigits() {
     return 3;
 }
 
 template<>
-constexpr uint64_t NumericLimits<uint16_t>::digits() {
+constexpr uint64_t NumericLimits<uint16_t>::maxNumDigits() {
     return 5;
 }
 
 template<>
-constexpr uint64_t NumericLimits<uint32_t>::digits() {
+constexpr uint64_t NumericLimits<uint32_t>::maxNumDigits() {
     return 10;
 }
 
 template<>
-constexpr uint64_t NumericLimits<uint64_t>::digits() {
+constexpr uint64_t NumericLimits<uint64_t>::maxNumDigits() {
     return 20;
 }
 
 template<>
-constexpr uint64_t NumericLimits<float>::digits() {
+constexpr uint64_t NumericLimits<float>::maxNumDigits() {
     return 127;
 }
 
 template<>
-constexpr uint64_t NumericLimits<double>::digits() {
+constexpr uint64_t NumericLimits<double>::maxNumDigits() {
     return 250;
 }
 
 template<typename T>
-static constexpr std::array<T, NumericLimits<T>::digits()> pow10Sequence() {
-    std::array<T, NumericLimits<T>::digits()> retval{};
+static constexpr std::array<T, NumericLimits<T>::maxNumDigits()> pow10Sequence() {
+    std::array<T, NumericLimits<T>::maxNumDigits()> retval{};
     retval[0] = 1;
-    for (auto i = 1u; i < NumericLimits<T>::digits(); i++) {
+    for (auto i = 1u; i < NumericLimits<T>::maxNumDigits(); i++) {
         retval[i] = retval[i - 1] * 10;
     }
     return retval;
 }
 
 template<>
-constexpr std::array<common::int128_t, NumericLimits<common::int128_t>::digits()> pow10Sequence() {
+constexpr std::array<common::int128_t, NumericLimits<common::int128_t>::maxNumDigits()> pow10Sequence() {
     return {
         common::int128_t(1UL, 0LL),
         common::int128_t(10UL, 0LL),
@@ -158,7 +158,7 @@ constexpr std::array<common::int128_t, NumericLimits<common::int128_t>::digits()
 }
 
 template<>
-constexpr std::array<common::uint128_t, NumericLimits<common::uint128_t>::digits()>
+constexpr std::array<common::uint128_t, NumericLimits<common::uint128_t>::maxNumDigits()>
 pow10Sequence() {
     return {
         common::uint128_t(1UL, 0UL),

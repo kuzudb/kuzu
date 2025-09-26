@@ -17,20 +17,11 @@ struct AvgState : public AggregateStateWithNull {
     }
 
     void finalize()
-        requires common::SignedIntegerTypes<T>
+        requires common::IntegerTypes<T>
     {
+        using ResultType = std::conditional<common::SignedIntegerTypes<T>, common::Int128_t, common::UInt128_t>::type;
         if (!isNull) {
-            avg = common::Int128_t::cast<long double>(sum) /
-                  common::Int128_t::cast<long double>(count);
-        }
-    }
-
-    void finalize()
-        requires common::UnsignedIntegerTypes<T>
-    {
-        if (!isNull) {
-            avg = common::UInt128_t::cast<long double>(sum) /
-                  common::UInt128_t::cast<long double>(count);
+            avg = ResultType::template cast<long double>(sum) / ResultType::template cast<long double>(count);
         }
     }
 

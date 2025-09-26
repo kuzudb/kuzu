@@ -156,6 +156,9 @@ Conversion exception: Map does not allow null as key.
 {a: 340282366920938463463374607431768211455}
 
 -LOG CastToUnion
+-STATEMENT RETURN cast("324324", "UNION(uint64, int128, BOOLEAN)"), cast("-324324", "UNION(uint64, int128, BOOLEAN)"), cast("false", "UNION(uint64, int128, BOOLEAN)");
+---- 1
+324324|-324324|False
 -STATEMENT RETURN cast("324324", "UNION(int64, uint128, BOOLEAN)"), cast("-324324", "UNION(int64, uint128, BOOLEAN)"), cast("false", "UNION(int64, uint128, BOOLEAN)");
 ---- 1
 324324|-324324|False

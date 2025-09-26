@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <string>
 
 #include "common/api.h"
@@ -56,7 +55,7 @@ struct KUZU_API uint128_t {
     explicit operator double() const;
     explicit operator float() const;
 
-    operator int128_t() const; // NOLINT
+    operator int128_t() const; // NOLINT: Allow implicit conversion from uint128 to int128
 };
 
 // arithmetic operators
@@ -161,7 +160,6 @@ public:
     static bool lessThanOrEquals(uint128_t lhs, uint128_t rhs) {
         return (lhs.high < rhs.high) || (lhs.high == rhs.high && lhs.low <= rhs.low);
     }
-    static const uint128_t powerOf10[40];
 };
 
 template<>
@@ -214,12 +212,5 @@ bool UInt128_t::tryCastTo(double value, uint128_t& result);
 template<>
 bool UInt128_t::tryCastTo(long double value, uint128_t& result);
 
-// TODO: const char to int128
-
 } // namespace common
 } // namespace kuzu
-
-// template<>
-// struct std::hash<kuzu::common::uint128_t> {
-//     std::size_t operator()(const kuzu::common::uint128_t& v) const noexcept;
-// };
