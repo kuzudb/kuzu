@@ -15,6 +15,7 @@ using namespace transaction;
 ColumnChunkMetadata uncompressedFlushBuffer(std::span<const uint8_t> buffer, FileHandle* dataFH,
     const PageRange& entry, const ColumnChunkMetadata& metadata) {
     KU_ASSERT(dataFH->getNumPages() >= entry.startPageIdx + entry.numPages);
+    KU_ASSERT(buffer.size_bytes() <= entry.numPages * KUZU_PAGE_SIZE);
     dataFH->writePagesToFile(buffer.data(), buffer.size(), entry.startPageIdx);
     return ColumnChunkMetadata(entry.startPageIdx, entry.numPages, metadata.numValues,
         metadata.compMeta);

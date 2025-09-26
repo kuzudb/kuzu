@@ -10,3 +10,20 @@
 -STATEMENT MATCH (n:Person)-[r:likes_Comment]->(m:Comment) WHERE n.id=24189255812290 AND m.id=412317157805 RETURN r.creationDate;
 ---- 1
 202311180116
+
+-CASE CreateManyRelsSeparateCommit
+-STATEMENT create rel table some_rel_table (FROM Comment TO Comment, str STRING);
+---- ok
+-STATEMENT copy some_rel_table from (
+     match (a:comment), (c:comment) where a.id = 618475290625 and c.id <> a.id return a.id, c.id, c.content)
+---- ok
+-LOOP i 1 10
+-STATEMENT match (a:comment), (c:comment)
+     where a.id = 618475290626 and a.id <> c.id and offset(id(c)) > ${i} * 1000 and offset(id(c)) < (${i} + 1) * 1000
+     create (a)-[:some_rel_table{str: c.content}]->(c)
+---- ok
+-ENDLOOP
+-STATEMENT match (a:comment)-[r:some_rel_table]->(c:comment)
+     where r.str <> c.content and a.id = 618475290626
+     return a.id, c.id, r.str, c.content
+---- 0

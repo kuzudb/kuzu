@@ -149,13 +149,14 @@ void StringColumn::scanSegment(const SegmentState& state, ColumnChunkData* resul
     auto* indexChunk = stringResultChunk->getIndexColumnChunk();
     indexColumn->scanSegment(getChildState(state, ChildStateIndex::INDEX), indexChunk,
         startOffsetInSegment, numValuesToScan);
+
+    const auto initialDictSize =
+        stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
     if (numValuesToScan == state.metadata.numValues) {
         // Append the entire dictionary into the chunk
         // Since the resultChunk may be non-empty, each index needs to be incremented by the initial
         // size of the dictionary so that the indices line up with the values that will be scanned
         // into the dictionary chunk
-        auto initialDictSize =
-            stringResultChunk->getDictionaryChunk().getOffsetChunk()->getNumValues();
         for (row_idx_t i = 0; i < numValuesToScan; i++) {
             indexChunk->setValue<string_index_t>(
                 indexChunk->getValue<string_index_t>(startOffsetInResult + i) + initialDictSize,
@@ -172,11 +173,10 @@ void StringColumn::scanSegment(const SegmentState& state, ColumnChunkData* resul
                 auto index = indexChunk->getValue<string_index_t>(startOffsetInResult + i);
                 auto element = indexMap.find(index);
                 if (element == indexMap.end()) {
-                    indexMap.insert(
-                        std::make_pair(index, startOffsetInResult + offsetsToScan.size()));
-                    indexChunk->setValue<string_index_t>(startOffsetInResult + offsetsToScan.size(),
+                    indexMap.insert(std::make_pair(index, initialDictSize + offsetsToScan.size()));
+                    indexChunk->setValue<string_index_t>(initialDictSize + offsetsToScan.size(),
                         startOffsetInResult + i);
-                    offsetsToScan.emplace_back(index, startOffsetInResult + offsetsToScan.size());
+                    offsetsToScan.emplace_back(index, initialDictSize + offsetsToScan.size());
                 } else {
                     indexChunk->setValue<string_index_t>(element->second, startOffsetInResult + i);
                 }
