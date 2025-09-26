@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-mac-nodejs-arm64:
-    runs-on: macos-14
+    runs-on: self-hosted-mac-arm64
     steps:
       - uses: actions/checkout@v4
 
