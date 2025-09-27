@@ -4,6 +4,7 @@
 
 #include "common/types/types.h"
 #include "function/table/bind_input.h"
+#include "function/table/optional_params.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -14,6 +15,12 @@ struct Stemmer {
     static constexpr const char* DEFAULT_VALUE = "english";
 
     static void validate(const std::string& stemmer);
+};
+
+struct ExactTermMatch {
+    static constexpr const char* NAME = "exact_term_match";
+    static constexpr common::LogicalTypeID TYPE = common::LogicalTypeID::BOOL;
+    static constexpr bool DEFAULT_VALUE = false;
 };
 
 enum class StopWordsSource : uint8_t {
@@ -78,6 +85,7 @@ struct CreateFTSConfig {
     std::string ignorePattern = IgnorePattern::DEFAULT_VALUE;
     std::string ignorePatternQuery = IgnorePattern::DEFAULT_VALUE_QUERY;
     TokenizerInfo tokenizerInfo;
+    bool exactTermMatch = ExactTermMatch::DEFAULT_VALUE;
 
     CreateFTSConfig() = default;
     CreateFTSConfig(main::ClientContext& context, common::table_id_t tableID,
@@ -96,15 +104,16 @@ struct FTSConfig {
     std::string ignorePatternQuery = "";
     std::string tokenizer = "";
     std::string jiebaDictDir = "";
+    bool exactTermMatch = false;
 
     FTSConfig() = default;
     FTSConfig(std::string stemmer, std::string stopWordsTableName, std::string stopWordsSource,
         std::string ignorePattern, std::string ignorePatternQuery, std::string tokenizer,
-        std::string jiebaDictDir)
+        std::string jiebaDictDir, bool exactTermMatch)
         : stemmer{std::move(stemmer)}, stopWordsTableName{std::move(stopWordsTableName)},
           stopWordsSource{std::move(stopWordsSource)}, ignorePattern{std::move(ignorePattern)},
           ignorePatternQuery{std::move(ignorePatternQuery)}, tokenizer{std::move(tokenizer)},
-          jiebaDictDir{std::move(jiebaDictDir)} {}
+          jiebaDictDir{std::move(jiebaDictDir)}, exactTermMatch{exactTermMatch} {}
 
     void serialize(common::Serializer& serializer) const;
 

@@ -145,6 +145,20 @@ static std::string formatStrInCypher(const std::string& input) {
     return result;
 }
 
+static std::string createTablesForExactTermMatch(const CreateFTSBindData& bindData) {
+    std::string query;
+    auto appearsInfoTableName =
+        FTSUtils::getAppearsInfoTableName(bindData.tableID, bindData.indexName);
+    auto originalTermsTableName =
+        FTSUtils::getOrigTermsTableName(bindData.tableID, bindData.indexName);
+    query += common::stringFormat("CREATE NODE TABLE `{}`(term string, primary key(term));",
+        originalTermsTableName);
+    query +=
+        common::stringFormat("COPY `{}` FROM (match (doc:`{}`) return distinct doc.term_origin);",
+            originalTermsTableName, appearsInfoTableName);
+    return query;
+}
+
 std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData& bindData) {
     auto ftsBindData = bindData.constPtrCast<CreateFTSBindData>();
     auto tableID = ftsBindData->tableID;
@@ -174,8 +188,9 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     // Create the terms_in_doc table which servers as a temporary table to store the
     // relationship between terms and docs.
     auto appearsInfoTableName = FTSUtils::getAppearsInfoTableName(tableID, indexName);
-    query += stringFormat("CREATE NODE TABLE `{}` (ID SERIAL, term string, docID INT64, primary "
-                          "key(ID));",
+    query += stringFormat(
+        "CREATE NODE TABLE `{}` (ID SERIAL, term string, term_origin string, docID INT64, primary "
+        "key(ID));",
         appearsInfoTableName);
     auto tableName = ftsBindData->tableName;
     auto tableEntry = catalog::Catalog::Get(context)->getTableCatalogEntry(
@@ -189,7 +204,7 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                               "WITH t AS t1, id AS id1 "
                               "WHERE t1 is NOT NULL AND SIZE(t1) > 0 AND "
                               "NOT EXISTS {MATCH (s:`{}` {sw: t1})} "
-                              "RETURN STEM(t1, '{}'), id1);",
+                              "RETURN STEM(t1, '{}'), t1, id1);",
             appearsInfoTableName, tableName, FTSUtils::getTokenizeMacroName(tableID, indexName),
             propertyName, ftsBindData->createFTSConfig.stopWordsTableInfo.tableName,
             ftsBindData->createFTSConfig.stemmer);
@@ -212,6 +227,11 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
                           "(MATCH (t:`{}`) "
                           "RETURN t.term, CAST(count(distinct t.docID) AS UINT64));",
         termsTableName, appearsInfoTableName);
+
+    // If the exact_term_match is enabled, we need to create an additional tables.
+    if (ftsBindData->createFTSConfig.exactTermMatch) {
+        query += createTablesForExactTermMatch(*ftsBindData);
+    }
 
     auto appearsInTableName = FTSUtils::getAppearsInTableName(tableID, indexName);
     // Finally, create a terms table that records the documents in which the terms appear, along
@@ -236,8 +256,10 @@ std::string createFTSIndexQuery(ClientContext& context, const TableFuncBindData&
     properties += "]";
     std::string params;
     params += stringFormat("stemmer := '{}', ", ftsBindData->createFTSConfig.stemmer);
-    params += stringFormat("stopWords := '{}'",
+    params += stringFormat("stopWords := '{}', ",
         ftsBindData->createFTSConfig.stopWordsTableInfo.stopWords);
+    params += stringFormat("exact_term_match := {}",
+        ftsBindData->createFTSConfig.exactTermMatch ? "true" : "false");
     query += stringFormat("CALL _CREATE_FTS_INDEX('{}', '{}', {}, {});", tableName, indexName,
         properties, params);
     query += stringFormat("RETURN 'Index {} has been created.' as result;", ftsBindData->indexName);
