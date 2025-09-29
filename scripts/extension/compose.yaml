@@ -1,7 +1,6 @@
 version: '3'
 services:
   file-server:
-    platform: linux/x86_64
     image: ghcr.io/kuzudb/extension-repo
     pull_policy: always
     ports:
