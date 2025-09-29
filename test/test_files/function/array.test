@@ -66,7 +66,11 @@
 -LOG ArrayCrossProductTypeError
 -STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE('test','test1'), ARRAY_VALUE('test2', 'test3'))
 ---- error
-Binder exception: ARRAY_CROSS_PRODUCT can only be applied on array of floating points or integers
+Binder exception: ARRAY_CROSS_PRODUCT can only be applied on array of floating points or signed integers
+
+-STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(to_uint128(1), to_uint128(2), to_uint128(3)), ARRAY_VALUE(to_uint128(4), to_uint128(5), to_uint128(6)));
+---- error
+Binder exception: ARRAY_CROSS_PRODUCT can only be applied on array of floating points or signed integers
 
 -LOG ArrayCrossProductInCorrectSize
 -STATEMENT RETURN ARRAY_CROSS_PRODUCT(ARRAY_VALUE(32, 54, 77), ARRAY_VALUE(31, 24))

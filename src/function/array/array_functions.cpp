@@ -63,7 +63,7 @@ std::unique_ptr<FunctionBindData> ArrayCrossProductBindFunc(const ScalarBindFunc
         break;
     default:
         throw BinderException{
-            stringFormat("{} can only be applied on array of floating points or integers",
+            stringFormat("{} can only be applied on array of floating points or signed integers",
                 ArrayCrossProductFunction::name)};
     }
     input.definition->ptrCast<ScalarFunction>()->execFunc = execFunc;

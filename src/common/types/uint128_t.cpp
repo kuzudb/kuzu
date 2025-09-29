@@ -6,6 +6,7 @@
 #include "common/type_utils.h"
 #include "common/types/int128_t.h"
 #include "function/cast/functions/numeric_limits.h"
+#include "function/hash/hash_functions.h"
 #include <bit>
 
 namespace kuzu::common {
@@ -663,3 +664,10 @@ uint128_t::operator int128_t() const {
 }
 
 } // namespace kuzu::common
+
+std::size_t std::hash<kuzu::common::uint128_t>::operator()(
+    const kuzu::common::uint128_t& v) const noexcept {
+    kuzu::common::hash_t hash = 0;
+    kuzu::function::Hash::operation(v, hash);
+    return hash;
+}
