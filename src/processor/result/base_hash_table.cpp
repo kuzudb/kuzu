@@ -249,9 +249,6 @@ static ft_compare_function_t getFactorizedTableCompareEntryFunc(const LogicalTyp
         TypeUtils::visit(
             type.getPhysicalType(),
             [&]<HashableTypes T>(T) { func = factorizedTableCompareEntry<T>; },
-            [&](uint128_t) {
-                func = factorizedTableCompareEntry<uint128_t>;
-            }, // TODO: remove when uint128_t hashing is implemented
             [](auto) { KU_UNREACHABLE; });
     }
     }

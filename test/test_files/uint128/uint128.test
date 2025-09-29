@@ -179,6 +179,15 @@ Overflow exception: Cannot cast negative value to UINT128.
 5
 190
 170141183460469231731687303715884105727
+-STATEMENT MATCH (z:tab) RETURN collect(z.value);
+---- 1
+[5,190,170141183460469231731687303715884105727]
+-STATEMENT MATCH (z:tab) RETURN count(z.value);
+---- 1
+3
+-STATEMENT MATCH (z:tab) WHERE z.value < 200 RETURN count(z.value);
+---- 1
+2
 -STATEMENT MATCH (z:tab) RETURN z.value / CAST(16 AS UINT128);
 ---- 3
 0

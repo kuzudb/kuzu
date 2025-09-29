@@ -1032,6 +1032,9 @@ uint64_t Value::computeHash() const {
     case PhysicalTypeID::INTERNAL_ID: {
         function::Hash::operation(val.internalIDVal, hashValue);
     } break;
+    case PhysicalTypeID::UINT128:{
+        function::Hash::operation(val.uint128Val, hashValue);
+    } break;
     case PhysicalTypeID::STRING: {
         function::Hash::operation(strVal, hashValue);
     } break;

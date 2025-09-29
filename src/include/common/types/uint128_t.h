@@ -214,3 +214,8 @@ bool UInt128_t::tryCastTo(long double value, uint128_t& result);
 
 } // namespace common
 } // namespace kuzu
+
+template<>
+struct std::hash<kuzu::common::uint128_t> {
+    std::size_t operator()(const kuzu::common::uint128_t& v) const noexcept;
+};
