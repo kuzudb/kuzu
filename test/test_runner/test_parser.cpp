@@ -513,6 +513,12 @@ void TestParser::parseBody() {
 #endif
             break;
         }
+        case TokenType::SKIP_DYNAMIC_LINK: {
+#ifndef __STATIC_LINK_EXTENSION_TEST__
+            testCaseName = "DISABLED_" + testCaseName;
+#endif
+            break;
+        }
         case TokenType::WASM_ONLY: {
 #ifndef __WASM__
             testCaseName = "DISABLED_" + testCaseName;

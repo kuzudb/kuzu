@@ -346,3 +346,12 @@ Binder exception: Cannot delete node table Documents because it is referenced by
 ---- ok
 -STATEMENT DROP TABLE Documents;
 ---- ok
+
+-CASE InstallExtensionInStaticLink
+-SKIP_DYNAMIC_LINK
+-STATEMENT INSTALL fts
+---- 1
+Extension fts is already static linked with kuzu core.
+-STATEMENT load fts
+---- 1
+Extension fts is already static linked with kuzu core.

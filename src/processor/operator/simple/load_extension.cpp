@@ -16,6 +16,12 @@ std::string LoadExtensionPrintInfo::toString() const {
 
 void LoadExtension::executeInternal(ExecutionContext* context) {
     auto clientContext = context->clientContext;
+    if (ExtensionUtils::isOfficialExtension(path) &&
+        clientContext->getExtensionManager()->isStaticLinkedExtension(path)) {
+        appendMessage(stringFormat("Extension {} is already static linked with kuzu core.", path),
+            context->clientContext->getMemoryManager());
+        return;
+    }
     clientContext->getExtensionManager()->loadExtension(path, clientContext);
     appendMessage(stringFormat("Extension: {} has been loaded.", path),
         clientContext->getMemoryManager());

@@ -4,6 +4,7 @@
 #include "common/file_system/local_file_system.h"
 #include "common/string_utils.h"
 #include "extension/extension.h"
+#include "extension/extension_manager.h"
 #include "parser/extension_statement.h"
 
 using namespace kuzu::parser;
@@ -23,6 +24,9 @@ static void bindInstallExtension(const ExtensionAuxInfo& auxInfo) {
 static void bindLoadExtension(main::ClientContext* context, const ExtensionAuxInfo& auxInfo) {
     auto localFileSystem = common::LocalFileSystem("");
     if (ExtensionUtils::isOfficialExtension(auxInfo.path)) {
+        if (context->getExtensionManager()->isStaticLinkedExtension(auxInfo.path)) {
+            return;
+        }
         auto extensionName = common::StringUtils::getLower(auxInfo.path);
         if (!localFileSystem.fileOrPathExists(
                 ExtensionUtils::getLocalPathForExtensionLib(context, extensionName))) {

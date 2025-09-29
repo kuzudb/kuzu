@@ -39,6 +39,8 @@ public:
 
     void autoLoadLinkedExtensions(main::ClientContext* context);
 
+    bool isStaticLinkedExtension(const std::string& extensionName);
+
 private:
     std::vector<LoadedExtension> loadedExtensions;
     std::unordered_map<std::string, main::ExtensionOption> extensionOptions;

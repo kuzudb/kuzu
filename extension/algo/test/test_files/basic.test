@@ -27,3 +27,12 @@ Catalog exception: function strongly_connected_components is not defined. This f
 -STATEMENT CALL weakly_connected_components('PK') RETURN node.fName, group_id;
 ---- error
 Catalog exception: function weakly_connected_components is not defined. This function exists in the ALGO extension. You can install and load the extension by running 'INSTALL ALGO; LOAD EXTENSION ALGO;'.
+
+-CASE InstallExtensionInStaticLink
+-SKIP_DYNAMIC_LINK
+-STATEMENT INSTALL algo
+---- 1
+Extension algo is already static linked with kuzu core.
+-STATEMENT load algo
+---- 1
+Extension algo is already static linked with kuzu core.
