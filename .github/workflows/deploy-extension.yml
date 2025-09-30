@@ -7,7 +7,13 @@ jobs:
   deploy-extensions:
     strategy:
       matrix:
-        runner: [ubuntu-22.04-arm, ubuntu-22.04]
+        include:
+          - runner: ubuntu-22.04
+            platform: linux/amd64
+            tag: amd64
+          - runner: ubuntu-22.04-arm
+            platform: linux/arm64
+            tag: arm64
     runs-on: ${{ matrix.runner }}
     permissions:
       packages: write
@@ -48,5 +54,25 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: ${{ matrix.platform }}
           push: true
-          tags: ghcr.io/kuzudb/extension-repo:latest
+          tags: ghcr.io/kuzudb/extension-repo:latest-${{ matrix.tag }}
+
+  create-manifest:
+    needs: deploy-extensions
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    steps:
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Create and push manifest
+        run: |
+          docker buildx imagetools create -t ghcr.io/kuzudb/extension-repo:latest \
+            ghcr.io/kuzudb/extension-repo:latest-amd64 \
+            ghcr.io/kuzudb/extension-repo:latest-arm64
