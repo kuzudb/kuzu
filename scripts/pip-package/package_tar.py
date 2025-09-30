@@ -57,7 +57,6 @@ if __name__ == "__main__":
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/examples"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/benchmark"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/logo"))
-        shutil.rmtree(os.path.join(tempdir, "kuzu-source/extension"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/test"))
         shutil.rmtree(os.path.join(tempdir, "kuzu-source/.github"))
 
