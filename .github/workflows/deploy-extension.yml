@@ -5,7 +5,10 @@ on:
 
 jobs:
   deploy-extensions:
-    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        runner: [ubuntu-22.04-arm, ubuntu-22.04]
+    runs-on: ${{ matrix.runner }}
     permissions:
       packages: write
     steps:
@@ -45,6 +48,5 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/kuzudb/extension-repo:latest
