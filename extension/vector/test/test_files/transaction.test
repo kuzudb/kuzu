@@ -390,3 +390,36 @@ embeddings|e_hnsw_index|HNSW|[vec]
 333
 444
 598
+
+-CASE DropHNSWUpdatePropertyRecovery
+-SKIP_IN_MEM
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CREATE NODE TABLE Person(id STRING, name STRING, embeddings FLOAT[8], PRIMARY KEY(id));
+---- ok
+-STATEMENT CREATE (p:Person {id: "person-1", name: "Alice", embeddings: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]});
+---- ok
+-STATEMENT CALL CREATE_VECTOR_INDEX('Person', 'person_embeddings_idx', 'embeddings', metric := 'cosine');
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *;
+---- 1
+Person|person_embeddings_idx|HNSW|[embeddings]|True|CALL CREATE_VECTOR_INDEX('Person', 'person_embeddings_idx', 'embeddings', mu := 30, ml := 60, pu := 0.050000, metric := 'cosine', alpha := 1.100000, efc := 200);
+-STATEMENT CALL DROP_VECTOR_INDEX('Person', 'person_embeddings_idx');
+---- ok
+-STATEMENT CALL SHOW_INDEXES() RETURN *;
+---- 0
+-STATEMENT MATCH (p:Person {id: "person-1"}) SET p.embeddings = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9] RETURN p.id;
+---- 1
+person-1
+-STATEMENT MATCH (p:Person {id: "person-1"}) RETURN p.embeddings;
+---- 1
+[0.200000,0.300000,0.400000,0.500000,0.600000,0.700000,0.800000,0.900000]
+-RELOADDB
+-LOAD_DYNAMIC_EXTENSION vector
+-STATEMENT CALL SHOW_INDEXES() RETURN *;
+---- 0
+-STATEMENT MATCH (p:Person {id: "person-1"}) SET p.embeddings = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] RETURN p.id;
+---- 1
+person-1
+-STATEMENT MATCH (p:Person {id: "person-1"}) RETURN p.embeddings;
+---- 1
+[0.300000,0.400000,0.500000,0.600000,0.700000,0.800000,0.900000,1.000000]
