@@ -15,6 +15,7 @@ namespace storage {
 class PageAllocator;
 class MemoryManager;
 class Column;
+struct ColumnChunkScanner;
 
 struct ChunkCheckpointState {
     std::unique_ptr<ColumnChunkData> chunkData;
@@ -49,10 +50,6 @@ std::pair<typename std::span<SegmentView>::iterator, common::offset_t> genericFi
     return std::make_pair(segments.end(), 0);
 }
 
-// dstOffset starts from 0 and is the offset in the output data for a given segment
-//  (it increases by lengthInSegment for each segment)
-// Returns the total number of values scanned (input length can be longer than the available
-// values)
 template<class SegmentView,
     std::invocable<SegmentView&, common::offset_t /*offsetInSegment*/,
         common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
@@ -62,6 +59,20 @@ common::offset_t genericRangeSegments(std::span<SegmentView> segments,
     // TODO(bmwinger): try binary search (might only make a difference for a very large number
     // of segments)
     auto [segment, offsetInSegment] = genericFindSegment(segments, offsetInChunk);
+    return genericRangeSegmentsFromIt(segments, segment, offsetInSegment, length, std::move(func));
+}
+
+// dstOffset starts from 0 and is the offset in the output data for a given segment
+//  (it increases by lengthInSegment for each segment)
+// Returns the total number of values scanned (input length can be longer than the available
+// values)
+template<class SegmentView,
+    std::invocable<SegmentView&, common::offset_t /*offsetInSegment*/,
+        common::offset_t /*lengthInSegment*/, common::offset_t /*dstOffset*/>
+        Func>
+common::offset_t genericRangeSegmentsFromIt(std::span<SegmentView> segments,
+    typename std::span<SegmentView>::iterator segment, common::offset_t offsetInSegment,
+    common::length_t length, Func func) {
     common::offset_t lengthScanned = 0;
     while (lengthScanned < length && segment != segments.end()) {
         KU_ASSERT((**segment).getNumValues() > offsetInSegment);
@@ -139,6 +150,10 @@ public:
     void initializeScanState(ChunkState& state, const Column* column) const;
     void scan(const transaction::Transaction* transaction, const ChunkState& state,
         common::ValueVector& output, common::offset_t offsetInChunk, common::length_t length) const;
+    template<ResidencyState SCAN_RESIDENCY_STATE>
+    void scanCommitted(const transaction::Transaction* transaction, ChunkState& chunkState,
+        ColumnChunkScanner& output, common::row_idx_t startRow = 0,
+        common::row_idx_t numRows = common::INVALID_ROW_IDX) const;
     template<ResidencyState SCAN_RESIDENCY_STATE>
     void scanCommitted(const transaction::Transaction* transaction, ChunkState& chunkState,
         ColumnChunkData& output, common::row_idx_t startRow = 0,
@@ -304,6 +319,9 @@ private:
     void rangeSegments(common::offset_t offsetInChunk, common::length_t length, Func func) const {
         genericRangeSegments(std::span(data), offsetInChunk, length, func);
     }
+
+    void scanInMemSegments(ColumnChunkScanner& output, common::offset_t startRow,
+        common::offset_t numRows) const;
 
 private:
     // TODO(Guodong): This field should be removed. Ideally it shouldn't be cached anywhere in

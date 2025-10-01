@@ -67,6 +67,9 @@ struct UpdateNode {
 
 class UpdateInfo {
 public:
+    using iterate_read_from_row_func_t =
+        std::function<void(const VectorUpdateInfo&, uint64_t, uint64_t)>;
+
     UpdateInfo() {}
 
     VectorUpdateInfo& update(MemoryManager& memoryManager,
@@ -112,16 +115,13 @@ public:
         updates.clear();
     }
 
-private:
-    using iterate_read_from_row_func_t =
-        std::function<void(const VectorUpdateInfo&, uint64_t, uint64_t)>;
-
-    UpdateNode& getUpdateNode(common::idx_t vectorIdx);
-    UpdateNode& getOrCreateUpdateNode(common::idx_t vectorIdx);
-
     void iterateScan(const transaction::Transaction* transaction, uint64_t startOffsetToScan,
         uint64_t numRowsToScan, uint64_t startPosInOutput,
         const iterate_read_from_row_func_t& readFromRowFunc) const;
+
+private:
+    UpdateNode& getUpdateNode(common::idx_t vectorIdx);
+    UpdateNode& getOrCreateUpdateNode(common::idx_t vectorIdx);
 
 private:
     mutable std::shared_mutex mtx;

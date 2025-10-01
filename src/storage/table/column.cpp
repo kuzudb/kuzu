@@ -284,7 +284,7 @@ void Column::scan(const ChunkState& state, ColumnChunkData* outputChunk, offset_
 }
 
 void Column::scanSegment(const SegmentState& state, offset_t startOffsetInSegment, offset_t length,
-    uint8_t* result) {
+    uint8_t* result) const {
     KU_ASSERT(startOffsetInSegment + length <= state.metadata.numValues);
     columnReadWriter->readCompressedValuesToPage(state, result, 0, startOffsetInSegment, length,
         readToPageFunc);

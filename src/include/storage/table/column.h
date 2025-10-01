@@ -63,7 +63,7 @@ public:
         common::offset_t offsetInSegment, common::offset_t numValue) const;
     // Scan to raw data (does not scan any nested data and should only be used on primitive columns)
     void scanSegment(const SegmentState& state, common::offset_t startOffsetInSegment,
-        common::offset_t length, uint8_t* result);
+        common::offset_t length, uint8_t* result) const;
 
     common::LogicalType& getDataType() { return dataType; }
     const common::LogicalType& getDataType() const { return dataType; }

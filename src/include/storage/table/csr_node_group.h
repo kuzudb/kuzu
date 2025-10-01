@@ -276,7 +276,7 @@ private:
 
     void checkpointColumn(const common::UniqLock& lock, common::column_id_t columnID,
         const CSRNodeGroupCheckpointState& csrState, const std::vector<CSRRegion>& regions) const;
-    ChunkCheckpointState checkpointColumnInRegion(const common::UniqLock& lock,
+    std::vector<ChunkCheckpointState> checkpointColumnInRegion(const common::UniqLock& lock,
         common::column_id_t columnID, const CSRNodeGroupCheckpointState& csrState,
         const CSRRegion& region) const;
     void checkpointCSRHeaderColumns(const CSRNodeGroupCheckpointState& csrState) const;

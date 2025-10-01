@@ -12,6 +12,8 @@
 #include "storage/page_allocator.h"
 #include "storage/table/column.h"
 #include "storage/table/column_chunk_data.h"
+#include "storage/table/column_chunk_scanner.h"
+#include "storage/table/combined_chunk_scanner.h"
 #include "transaction/transaction.h"
 
 using namespace kuzu::common;
@@ -86,9 +88,36 @@ void ColumnChunk::scan(const Transaction* transaction, const ChunkState& state, 
     updateInfo.scan(transaction, output, offsetInChunk, length);
 }
 
+static void scanPersistentSegments(ChunkState& chunkState, ColumnChunkScanner& output,
+    common::offset_t startRow, common::offset_t numRows) {
+    KU_ASSERT(output.getNumValues() == 0);
+    [[maybe_unused]] uint64_t numValuesScanned = chunkState.rangeSegments(startRow, numRows,
+        [&](auto& segmentState, auto offsetInSegment, auto lengthInSegment, auto) {
+            output.scanSegment(offsetInSegment, lengthInSegment,
+                [&chunkState, &segmentState](ColumnChunkData& outputChunk, offset_t offsetInSegment,
+                    offset_t lengthInSegment) {
+                    chunkState.column->scanSegment(segmentState, &outputChunk, offsetInSegment,
+                        lengthInSegment);
+                });
+        });
+    KU_ASSERT(output.getNumValues() == numValuesScanned);
+}
+
+void ColumnChunk::scanInMemSegments(ColumnChunkScanner& output, common::offset_t startRow,
+    common::offset_t numRows) const {
+    rangeSegments(startRow, numRows,
+        [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto) {
+            output.scanSegment(offsetInSegment, lengthInSegment,
+                [&segment](ColumnChunkData& outputChunk, offset_t offsetInSegment,
+                    offset_t lengthInSegment) {
+                    outputChunk.append(segment.get(), offsetInSegment, lengthInSegment);
+                });
+        });
+}
+
 template<ResidencyState SCAN_RESIDENCY_STATE>
 void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
-    ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const {
+    ColumnChunkScanner& output, row_idx_t startRow, row_idx_t numRows) const {
     auto numValuesInChunk = getNumValues();
     if (numRows == INVALID_ROW_IDX || startRow + numRows > numValuesInChunk) {
         numRows = numValuesInChunk - startRow;
@@ -96,28 +125,30 @@ void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chun
     if (numRows == 0 || startRow >= numValuesInChunk) {
         return;
     }
-    const auto numValuesBeforeScan = output.getNumValues();
-    switch (const auto residencyState = getResidencyState()) {
-    case ResidencyState::ON_DISK: {
-        if (SCAN_RESIDENCY_STATE == residencyState) {
-            chunkState.column->scan(chunkState, &output, startRow, numRows);
-            updateInfo.scanCommitted(transaction, output, numValuesBeforeScan, startRow, numRows);
+    const auto residencyState = getResidencyState();
+    if (SCAN_RESIDENCY_STATE == residencyState) {
+        if constexpr (SCAN_RESIDENCY_STATE == ResidencyState::ON_DISK) {
+            scanPersistentSegments(chunkState, output, startRow, numRows);
+        } else {
+            static_assert(SCAN_RESIDENCY_STATE == ResidencyState::IN_MEMORY);
+            scanInMemSegments(output, startRow, numRows);
         }
-    } break;
-    case ResidencyState::IN_MEMORY: {
-        if (SCAN_RESIDENCY_STATE == residencyState) {
-            rangeSegments(startRow, numRows,
-                [&](auto& segment, auto offsetInSegment, auto lengthInSegment, auto dstOffset) {
-                    output.append(segment.get(), startRow, lengthInSegment);
-                    updateInfo.scanCommitted(transaction, output, numValuesBeforeScan + dstOffset,
-                        offsetInSegment, lengthInSegment);
-                });
-        }
-    } break;
-    default: {
-        KU_UNREACHABLE;
+        output.applyCommittedUpdates(updateInfo, transaction, startRow, numRows);
     }
-    }
+}
+
+template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transaction* transaction,
+    ChunkState& chunkState, ColumnChunkScanner& output, row_idx_t startRow,
+    row_idx_t numRows) const;
+template void ColumnChunk::scanCommitted<ResidencyState::IN_MEMORY>(const Transaction* transaction,
+    ChunkState& chunkState, ColumnChunkScanner& output, row_idx_t startRow,
+    row_idx_t numRows) const;
+
+template<ResidencyState SCAN_RESIDENCY_STATE>
+void ColumnChunk::scanCommitted(const Transaction* transaction, ChunkState& chunkState,
+    ColumnChunkData& output, row_idx_t startRow, row_idx_t numRows) const {
+    CombinedChunkScanner scanner{output};
+    scanCommitted<SCAN_RESIDENCY_STATE>(transaction, chunkState, scanner, startRow, numRows);
 }
 
 template void ColumnChunk::scanCommitted<ResidencyState::ON_DISK>(const Transaction* transaction,
