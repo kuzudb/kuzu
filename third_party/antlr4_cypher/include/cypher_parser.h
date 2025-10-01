@@ -2097,7 +2097,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     OC_UpperBoundContext *oC_UpperBound();
-    OC_IntegerLiteralContext *oC_IntegerLiteral();
+    OC_ExpressionContext *oC_Expression();
 
    
   };
@@ -2138,7 +2138,7 @@ public:
   public:
     OC_LowerBoundContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *DecimalInteger();
+    OC_ExpressionContext *oC_Expression();
 
    
   };
@@ -2149,7 +2149,7 @@ public:
   public:
     OC_UpperBoundContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *DecimalInteger();
+    OC_ExpressionContext *oC_Expression();
 
    
   };
