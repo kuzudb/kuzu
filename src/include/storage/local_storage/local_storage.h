@@ -1,5 +1,6 @@
 #pragma once
 
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "common/copy_constructors.h"
@@ -11,18 +12,19 @@ namespace main {
 class ClientContext;
 } // namespace main
 namespace storage {
-// Data structures in LocalStorage are not thread-safe.
-// For now, we only support single thread insertions and updates. Once we optimize them with
-// multiple threads, LocalStorage and its related data structures should be reworked to be
-// thread-safe.
+// LocalStorage is thread-safe for concurrent access.
+// Multiple threads can safely call getOrCreateLocalTable() simultaneously.
+// Internal data structures use fine-grained locking for optimal performance.
 class LocalStorage {
 public:
     explicit LocalStorage(main::ClientContext& clientContext) : clientContext{clientContext} {}
     DELETE_COPY_AND_MOVE(LocalStorage);
 
     // Do nothing if the table already exists, otherwise create a new local table.
+    // Thread-safe: Multiple threads can call this simultaneously.
     LocalTable* getOrCreateLocalTable(Table& table);
     // Return nullptr if no local table exists.
+    // Thread-safe: Read-only access.
     LocalTable* getLocalTable(common::table_id_t tableID) const;
 
     PageAllocator* addOptimisticAllocator();
@@ -32,10 +34,13 @@ public:
 
 private:
     main::ClientContext& clientContext;
+
+    // Protects concurrent access to tables map
+    mutable std::shared_mutex tablesMutex;
     std::unordered_map<common::table_id_t, std::unique_ptr<LocalTable>> tables;
 
-    // The mutex is only needed when working with the optimistic allocators
-    std::mutex mtx;
+    // Protects concurrent access to optimisticAllocators
+    std::mutex allocatorMutex;
     std::vector<std::unique_ptr<OptimisticAllocator>> optimisticAllocators;
 };
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "common/copy_constructors.h"
 #include "storage/local_storage/local_hash_index.h"
 #include "storage/local_storage/local_table.h"
@@ -57,6 +59,9 @@ private:
     OverflowFileHandle* overflowFileHandle;
     std::unique_ptr<LocalHashIndex> hashIndex;
     NodeGroupCollection nodeGroups;
+
+    // Protects concurrent access to LocalNodeTable operations
+    mutable std::mutex tableMutex;
 };
 
 } // namespace storage

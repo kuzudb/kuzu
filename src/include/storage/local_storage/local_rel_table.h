@@ -1,6 +1,8 @@
 #pragma once
 
 #include <map>
+#include <mutex>
+#include <shared_mutex>
 
 #include "common/enums/rel_direction.h"
 #include "storage/local_storage/local_table.h"
@@ -23,11 +25,36 @@ struct DirectedCSRIndex {
 
     explicit DirectedCSRIndex(common::RelDataDirection direction) : direction(direction) {}
 
-    bool isEmpty() const { return index.empty(); }
-    void clear() { index.clear(); }
+    // Move constructor
+    DirectedCSRIndex(DirectedCSRIndex&& other) noexcept
+        : direction(other.direction), index(std::move(other.index)) {}
+
+    // Move assignment operator
+    DirectedCSRIndex& operator=(DirectedCSRIndex&& other) noexcept {
+        if (this != &other) {
+            direction = other.direction;
+            index = std::move(other.index);
+        }
+        return *this;
+    }
+
+    // Delete copy constructor and copy assignment
+    DirectedCSRIndex(const DirectedCSRIndex&) = delete;
+    DirectedCSRIndex& operator=(const DirectedCSRIndex&) = delete;
+
+    bool isEmpty() const {
+        std::shared_lock<std::shared_mutex> lock(indexMutex);
+        return index.empty();
+    }
+
+    void clear() {
+        std::unique_lock<std::shared_mutex> lock(indexMutex);
+        index.clear();
+    }
 
     common::RelDataDirection direction;
     index_t index;
+    mutable std::shared_mutex indexMutex;
 };
 
 class LocalRelTable final : public LocalTable {
@@ -91,6 +118,9 @@ private:
     // NodeID.
     std::vector<DirectedCSRIndex> directedIndices;
     std::unique_ptr<NodeGroup> localNodeGroup;
+
+    // Protects concurrent access to LocalRelTable operations
+    mutable std::mutex tableMutex;
 };
 
 } // namespace storage

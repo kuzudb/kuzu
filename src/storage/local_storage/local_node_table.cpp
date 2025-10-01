@@ -53,12 +53,14 @@ bool LocalNodeTable::isVisible(const Transaction* transaction, offset_t offset) 
 
 offset_t LocalNodeTable::validateUniquenessConstraint(const Transaction* transaction,
     const ValueVector& pkVector) const {
+    std::lock_guard<std::mutex> lock(tableMutex);
     KU_ASSERT(pkVector.state->getSelVector().getSelSize() == 1);
     return hashIndex->lookup(pkVector,
         [&](offset_t offset_) { return isVisible(transaction, offset_); });
 }
 
 bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    std::lock_guard<std::mutex> lock(tableMutex);
     auto& nodeInsertState = insertState.constCast<NodeTableInsertState>();
     const auto nodeOffset = startOffset + nodeGroups.getNumTotalRows();
     KU_ASSERT(nodeInsertState.pkVector.state->getSelVector().getSelSize() == 1);
@@ -76,6 +78,7 @@ bool LocalNodeTable::insert(Transaction* transaction, TableInsertState& insertSt
 }
 
 bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
+    std::lock_guard<std::mutex> lock(tableMutex);
     KU_ASSERT(transaction->isDummy());
     const auto& nodeUpdateState = updateState.cast<NodeTableUpdateState>();
     KU_ASSERT(nodeUpdateState.nodeIDVector.state->getSelVector().getSelSize() == 1);
@@ -92,6 +95,7 @@ bool LocalNodeTable::update(Transaction* transaction, TableUpdateState& updateSt
 }
 
 bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+    std::lock_guard<std::mutex> lock(tableMutex);
     KU_ASSERT(transaction->isDummy());
     const auto& nodeDeleteState = deleteState.cast<NodeTableDeleteState>();
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
@@ -106,11 +110,13 @@ bool LocalNodeTable::delete_(Transaction* transaction, TableDeleteState& deleteS
 }
 
 bool LocalNodeTable::addColumn(TableAddColumnState& addColumnState) {
+    std::lock_guard<std::mutex> lock(tableMutex);
     nodeGroups.addColumn(addColumnState);
     return true;
 }
 
 void LocalNodeTable::clear(MemoryManager& mm) {
+    std::lock_guard<std::mutex> lock(tableMutex);
     auto& nodeTable = ku_dynamic_cast<const NodeTable&>(table);
     hashIndex = std::make_unique<LocalHashIndex>(mm,
         nodeTable.getColumn(nodeTable.getPKColumnID()).getDataType().getPhysicalType(),
@@ -120,6 +126,7 @@ void LocalNodeTable::clear(MemoryManager& mm) {
 
 bool LocalNodeTable::lookupPK(const Transaction* transaction, const ValueVector* keyVector,
     sel_t pos, offset_t& result) const {
+    std::lock_guard<std::mutex> lock(tableMutex);
     result = hashIndex->lookup(*keyVector, pos,
         [&](offset_t offset) { return isVisible(transaction, offset); });
     return result != INVALID_OFFSET;
