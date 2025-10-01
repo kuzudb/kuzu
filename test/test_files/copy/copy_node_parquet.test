@@ -3,7 +3,7 @@
 
 --
 
--CASE CopyNodeTest
+-CASE CopyNodeTest_SLOW
 
 -LOG SubsetTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN row.*;
@@ -59,7 +59,7 @@
 ---- error
 Binder exception: Copy from Parquet cannot have options other than IGNORE_ERRORS.
 
--CASE IgnoreErrorsTest
+-CASE IgnoreErrorsTest_SLOW
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/invalid_pk_col.parquet" (IGNORE_ERRORS=true);
 ---- ok
 -STATEMENT CALL show_warnings() RETURN message

@@ -158,6 +158,12 @@ test-build:
 test: test-build
 	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS}
 
+test-fast: test-build
+	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS} -E ".*_SLOW"
+
+test-slow: test-build
+	ctest --test-dir build/$(call get-build-path,RelWithDebInfo)/test --output-on-failure -j ${TEST_JOBS} -R ".*_SLOW"
+
 lcov:
 	$(call run-cmake-release, -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE)
 	ctest --test-dir build/$(call get-build-path,Release)/test --output-on-failure -j ${TEST_JOBS}

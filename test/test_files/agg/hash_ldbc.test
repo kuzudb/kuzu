@@ -2,7 +2,7 @@
 -BUFFER_POOL_SIZE 1073741824
 
 --
--CASE AggHash
+-CASE AggHash_SLOW
 -LOG TestAggregateListsWithNulls
 # p.language, p.content and p.imageFile both include nulls
 -STATEMENT MATCH (p:Post) RETURN [p.language], [p.language, p.content], COUNT(p) as n ORDER BY n DESC LIMIT 5;
