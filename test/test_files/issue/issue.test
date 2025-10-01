@@ -663,3 +663,17 @@ alice
              MATCH (n)
              DELETE n;
 ---- 0
+
+-CASE 6023
+-STATEMENT CREATE NODE TABLE TestNode (id STRING PRIMARY KEY, grids STRUCT(`type` STRING)[]);
+---- ok
+-STATEMENT CREATE (n:TestNode { `id`: 'test_0_0_0', `grids`: [] });
+---- ok
+-STATEMENT match (t:TestNode) where t.id = 'test_0_0_0' return t.grids
+---- 1
+[]
+-STATEMENT CREATE (n:TestNode { `id`: 'test_0_0_1', `grids`: [{ `type`: "column"}] });
+---- ok
+-STATEMENT match (t:TestNode) where t.id = 'test_0_0_1' return t.grids
+---- 1
+[{type: column}]

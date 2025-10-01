@@ -37,6 +37,9 @@ protected:
     void lookupInternal(const SegmentState& state, common::offset_t offsetInSegment,
         common::ValueVector* resultVector, uint32_t posInVector) const override;
 
+    bool canCheckpointInPlace(const SegmentState& state,
+        const ColumnCheckpointState& checkpointState) const override;
+
 private:
     std::vector<std::unique_ptr<Column>> childColumns;
 };
