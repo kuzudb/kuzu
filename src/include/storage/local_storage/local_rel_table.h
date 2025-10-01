@@ -76,24 +76,16 @@ public:
     static void initializeScan(TableScanState& state);
     bool scan(const transaction::Transaction* transaction, TableScanState& state) const;
 
-    void clear(MemoryManager&) override {
-        localNodeGroup.reset();
-        for (auto& index : directedIndices) {
-            index.clear();
-        }
-    }
-    bool isEmpty() const {
-        KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index
-                           : directedIndices) {
-            KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
-        });
-        return directedIndices[0].isEmpty();
-    }
+    void clear(MemoryManager&) override;
+    bool isEmpty() const;
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
     common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
 
+    // WARNING: This method returns a non-const reference to the internal index without
+    // acquiring tableMutex. The caller MUST ensure exclusive access to this LocalRelTable.
+    // This is only safe during commit/rollback when LocalStorage holds tablesMutex.
+    // TODO: Replace with a thread-safe iterator method.
     DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) {
         const auto directionIdx = common::RelDirectionUtils::relDirectionToKeyIdx(direction);
         KU_ASSERT(directionIdx < directedIndices.size());

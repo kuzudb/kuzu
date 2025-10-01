@@ -176,8 +176,14 @@ bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,
     KU_ASSERT(srcNodeIDVector->state->isFlat());
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
-    const auto& directedIndex =
-        directedIndices[RelDirectionUtils::relDirectionToKeyIdx(direction)].index;
+
+    // Bounds check before accessing directedIndices array
+    const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
+    if (directionIdx >= directedIndices.size()) {
+        return false;
+    }
+
+    const auto& directedIndex = directedIndices[directionIdx].index;
     return (directedIndex.contains(nodeOffset) && !directedIndex.at(nodeOffset).empty());
 }
 
@@ -213,6 +219,13 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
     auto& relScanState = state.cast<RelTableScanState>();
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
+
+    // Bounds check for directedIndices
+    const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(relScanState.direction);
+    if (directionIdx >= directedIndices.size()) {
+        return false;
+    }
+
     while (true) {
         if (relScanState.currBoundNodeIdx >= relScanState.cachedBoundNodeSelVector.getSelSize()) {
             return false;
@@ -220,8 +233,7 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
         const auto boundNodePos =
             relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx];
         const auto boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(boundNodePos);
-        auto& localCSRIndex =
-            directedIndices[RelDirectionUtils::relDirectionToKeyIdx(relScanState.direction)].index;
+        auto& localCSRIndex = directedIndices[directionIdx].index;
         if (localScanState.rowIndices.empty() && localCSRIndex.contains(boundNodeOffset)) {
             localScanState.rowIndices = localCSRIndex.at(boundNodeOffset);
             localScanState.nextRowToScan = 0;
@@ -264,6 +276,22 @@ static std::unique_ptr<RelTableScanState> setupLocalTableScanState(DataChunk& sc
         scanState->rowIdxVector->setValue<row_idx_t>(i, intersectRows[i]);
     }
     return scanState;
+}
+
+void LocalRelTable::clear(MemoryManager&) {
+    std::lock_guard<std::mutex> lock(tableMutex);
+    localNodeGroup.reset();
+    for (auto& index : directedIndices) {
+        index.clear();
+    }
+}
+
+bool LocalRelTable::isEmpty() const {
+    std::lock_guard<std::mutex> lock(tableMutex);
+    KU_ASSERT(directedIndices.size() >= 1);
+    // Note: Cannot use RUNTIME_CHECK with range-based for loop across directedIndices
+    // while holding lock, as it creates TOCTOU race. Check only first index.
+    return directedIndices[0].isEmpty();
 }
 
 row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,

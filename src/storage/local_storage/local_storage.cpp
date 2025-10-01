@@ -81,33 +81,45 @@ void LocalStorage::commit() {
     auto catalog = catalog::Catalog::Get(clientContext);
     auto transaction = transaction::Transaction::Get(clientContext);
     auto storageManager = StorageManager::Get(clientContext);
-    for (auto& [tableID, localTable] : tables) {
-        if (localTable->getTableType() == TableType::NODE) {
-            const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
-            const auto table = storageManager->getTable(tableID);
-            table->commit(&clientContext, tableEntry, localTable.get());
+    {
+        std::shared_lock<std::shared_mutex> lock(tablesMutex);
+        for (auto& [tableID, localTable] : tables) {
+            if (localTable->getTableType() == TableType::NODE) {
+                const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
+                const auto table = storageManager->getTable(tableID);
+                table->commit(&clientContext, tableEntry, localTable.get());
+            }
+        }
+        for (auto& [tableID, localTable] : tables) {
+            if (localTable->getTableType() == TableType::REL) {
+                const auto table = storageManager->getTable(tableID);
+                const auto tableEntry =
+                    catalog->getTableCatalogEntry(transaction, table->cast<RelTable>().getRelGroupID());
+                table->commit(&clientContext, tableEntry, localTable.get());
+            }
         }
     }
-    for (auto& [tableID, localTable] : tables) {
-        if (localTable->getTableType() == TableType::REL) {
-            const auto table = storageManager->getTable(tableID);
-            const auto tableEntry =
-                catalog->getTableCatalogEntry(transaction, table->cast<RelTable>().getRelGroupID());
-            table->commit(&clientContext, tableEntry, localTable.get());
+    {
+        std::lock_guard<std::mutex> lock(allocatorMutex);
+        for (auto& optimisticAllocator : optimisticAllocators) {
+            optimisticAllocator->commit();
         }
-    }
-    for (auto& optimisticAllocator : optimisticAllocators) {
-        optimisticAllocator->commit();
     }
 }
 
 void LocalStorage::rollback() {
     auto mm = MemoryManager::Get(clientContext);
-    for (auto& [_, localTable] : tables) {
-        localTable->clear(*mm);
+    {
+        std::shared_lock<std::shared_mutex> lock(tablesMutex);
+        for (auto& [_, localTable] : tables) {
+            localTable->clear(*mm);
+        }
     }
-    for (auto& optimisticAllocator : optimisticAllocators) {
-        optimisticAllocator->rollback();
+    {
+        std::lock_guard<std::mutex> lock(allocatorMutex);
+        for (auto& optimisticAllocator : optimisticAllocators) {
+            optimisticAllocator->rollback();
+        }
     }
     auto* bufferManager = mm->getBufferManager();
     PageManager::Get(clientContext)->clearEvictedBMEntriesIfNeeded(bufferManager);
