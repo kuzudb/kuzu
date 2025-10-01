@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "common/types/int128_t.h"
+#include "common/types/uint128_t.h"
 
 namespace kuzu {
 namespace function {
@@ -26,6 +27,11 @@ inline void Floor::operation(common::int128_t& input, common::int128_t& result) 
     result = input;
 }
 
+template<>
+inline void Floor::operation(common::uint128_t& input, common::uint128_t& result) {
+    result = input;
+}
+
 struct Ceil {
     template<class T>
     static inline void operation(T& input, T& result) {
@@ -35,6 +41,11 @@ struct Ceil {
 
 template<>
 inline void Ceil::operation(common::int128_t& input, common::int128_t& result) {
+    result = input;
+}
+
+template<>
+inline void Ceil::operation(common::uint128_t& input, common::uint128_t& result) {
     result = input;
 }
 

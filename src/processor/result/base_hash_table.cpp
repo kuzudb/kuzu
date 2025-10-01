@@ -227,6 +227,9 @@ static compare_function_t getCompareEntryFunc(const LogicalType& type) {
     default: {
         TypeUtils::visit(
             type.getPhysicalType(), [&]<HashableTypes T>(T) { func = compareEntry<T>; },
+            [&](uint128_t) {
+                func = compareEntry<uint128_t>;
+            }, // TODO: remove when uint128_t hashing is implemented
             [](auto) { KU_UNREACHABLE; });
     }
     }

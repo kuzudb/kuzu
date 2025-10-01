@@ -78,15 +78,18 @@ False|-4325||18446744073709551616.000000|  dfsa
 -STATEMENT RETURN cast("[[1,2,3]]", "INT64[][]");
 ---- 1
 [[1,2,3]]
+-STATEMENT RETURN cast("[    2,4, 16, 256  ,65536   ,        18446744073709551616 ]   ", "UINT128[]");
+---- 1
+[2,4,16,256,65536,18446744073709551616]
 -STATEMENT RETURN cast("[this, is, a, list, of,  string]", "STRING[]");
 ---- 1
 [this,is,a,list,of,string]
 -STATEMENT RETURN cast("[x\', ,\',6]", "STRING[]");
 ---- 1
 [x',,',6]
--STATEMENT RETURN cast("[1,2,3]", "UINT8[]"), cast("[1,2,3]", "UINT16[]"), cast("[1,2,3]", "UINT32[]"), cast("[1,2,3]", "UINT64[]"), cast("[1,2,3]", "INT8[]"), cast("[1,2,3]", "INT16[]"), cast("[1,2,3]", "INT32[]"), cast("[1,2,3]", "INT64[]"), cast("[1,2,3]", "INT128[]"), cast("[1,2,3]", "FLOAT[]"), cast("[1,2,3]", "DOUBLE[]");
+-STATEMENT RETURN cast("[1,2,3]", "UINT8[]"), cast("[1,2,3]", "UINT16[]"), cast("[1,2,3]", "UINT32[]"), cast("[1,2,3]", "UINT64[]"), cast("[1,2,3]", "INT8[]"), cast("[1,2,3]", "INT16[]"), cast("[1,2,3]", "INT32[]"), cast("[1,2,3]", "INT64[]"), cast("[1,2,3]", "INT128[]"), cast("[1,2,3]", "UINT128[]"), cast("[1,2,3]", "FLOAT[]"), cast("[1,2,3]", "DOUBLE[]");
 ---- 1
-[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1.000000,2.000000,3.000000]
+[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1,2,3]|[1.000000,2.000000,3.000000]|[1.000000,2.000000,3.000000]
 # timestamp/date/... list
 
 -LOG CastToArray
@@ -131,6 +134,9 @@ Conversion exception: Each array should have fixed number of elements. Expected:
 -STATEMENT LOAD WITH HEADERS (map STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/load-from-test/map/nested_map2.csv" RETURN cast(map, "MAP(MAP(INT64, INT64), MAP(STRING, STRING))");
 ---- error
 Conversion exception: Map does not allow duplicate keys.
+-STATEMENT RETURN cast("{12987=  123, 333333333333333333333  =33333333333333333333333}", "MAP(INT128, UINT128)");
+---- 1
+{12987=123, 333333333333333333333=33333333333333333333333}
 -STATEMENT RETURN cast("{[432,24,12]={c: okay}, [90,11,43,54]={c: bad}, [0]={c: good}}", "MAP(INT32[], STRUCT(c STRING))"), cast("{[1000,143245,432,43241,-43214324,-432423,-4324324,-41412,-131242143,0,-4324324,0]={}}", "MAP(INT32[], STRUCT(c STRING))");
 ---- 1
 {[432,24,12]={c: okay}, [90,11,43,54]={c: bad}, [0]={c: good}}|{[1000,143245,432,43241,-43214324,-432423,-4324324,-41412,-131242143,0,-4324324,0]={c: }}
@@ -145,9 +151,15 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN cast("{a: 432412343242343241}", "STRUCT(a INT128)"), cast("{a: -44332412343242343241}", "STRUCT(a INT128)");
 ---- 1
 {a: 432412343242343241}|{a: -44332412343242343241}
+-STATEMENT RETURN cast("{a: 340282366920938463463374607431768211455}", "STRUCT(a UINT128)");
+---- 1
+{a: 340282366920938463463374607431768211455}
 
 -LOG CastToUnion
 -STATEMENT RETURN cast("324324", "UNION(uint64, int128, BOOLEAN)"), cast("-324324", "UNION(uint64, int128, BOOLEAN)"), cast("false", "UNION(uint64, int128, BOOLEAN)");
+---- 1
+324324|-324324|False
+-STATEMENT RETURN cast("324324", "UNION(int64, uint128, BOOLEAN)"), cast("-324324", "UNION(int64, uint128, BOOLEAN)"), cast("false", "UNION(int64, uint128, BOOLEAN)");
 ---- 1
 324324|-324324|False
 -STATEMENT LOAD WITH HEADERS (u STRING, u2 STRING, u3 STRING, u4 STRING, u5 STRING) FROM "${KUZU_ROOT_DIRECTORY}/dataset/reader/union_correct.csv" RETURN cast(u, "UNION(v1 INT64, v2 BOOLEAN)"), cast(u2, "UNION(v1 UINT32, v2 INT32, v3 DATE)"), cast(u3, "UNION(v1 UINT8, v2 UINT16, v3 TIMESTAMP, v4 FLOAT)"), cast(u4, "UNION(v1 UINT64, v2 INT8, v3 INT16, v4 DOUBLE)"), cast(u5, "UNION(v1 STRING)");
@@ -329,7 +341,7 @@ Conversion exception: Map does not allow null as key.
 -STATEMENT RETURN cast({a: 12, b: {a: [[NULL]]}, c: 2132}, "STRUCT(a INT64, b STRUCT(a INT64[1][]), c INT64)");
 ---- 1
 {a: 12, b: {a: [[]]}, c: 2132}
--STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d STRING)), e INT128[3])");
+-STATEMENT RETURN cast({a: {b: {c: [[1, 3, 4]], d: "str"}}, e: [1, 9, NULL]}, "STRUCT(a STRUCT(b STRUCT(c INT64[3][], d STRING)), e UINT128[3])");
 ---- 1
 {a: {b: {c: [[1,3,4]], d: str}}, e: [1,9,]}
 

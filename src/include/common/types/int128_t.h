@@ -6,22 +6,22 @@
 
 #include <cstdint>
 #include <functional>
-#include <stdexcept>
 #include <string>
 
 #include "common/api.h"
+#include "common/exception/overflow.h"
 
 namespace kuzu {
 namespace common {
 
-struct KUZU_API int128_t;
+struct uint128_t;
 
 // System representation for int128_t.
-struct int128_t {
+struct KUZU_API int128_t {
     uint64_t low;
     int64_t high;
 
-    int128_t() = default;
+    int128_t() noexcept = default;
     int128_t(int64_t value);  // NOLINT: Allow implicit conversion from numeric values
     int128_t(int32_t value);  // NOLINT: Allow implicit conversion from numeric values
     int128_t(int16_t value);  // NOLINT: Allow implicit conversion from numeric values
@@ -33,12 +33,12 @@ struct int128_t {
     int128_t(double value);   // NOLINT: Allow implicit conversion from numeric values
     int128_t(float value);    // NOLINT: Allow implicit conversion from numeric values
 
-    constexpr int128_t(uint64_t low, int64_t high) : low(low), high(high) {}
+    constexpr int128_t(uint64_t low, int64_t high) noexcept : low(low), high(high) {}
 
-    constexpr int128_t(const int128_t&) = default;
-    constexpr int128_t(int128_t&&) = default;
-    int128_t& operator=(const int128_t&) = default;
-    int128_t& operator=(int128_t&&) = default;
+    constexpr int128_t(const int128_t&) noexcept = default;
+    constexpr int128_t(int128_t&&) noexcept = default;
+    int128_t& operator=(const int128_t&) noexcept = default;
+    int128_t& operator=(int128_t&&) noexcept = default;
 
     int128_t operator-() const;
 
@@ -59,6 +59,8 @@ struct int128_t {
     explicit operator uint8_t() const;
     explicit operator double() const;
     explicit operator float() const;
+
+    explicit operator uint128_t() const;
 };
 
 // arithmetic operators
@@ -84,13 +86,13 @@ KUZU_API bool operator<=(const int128_t& lhs, const int128_t& rhs);
 
 class Int128_t {
 public:
-    static std::string ToString(int128_t input);
+    static std::string toString(int128_t input);
 
     template<class T>
     static bool tryCast(int128_t input, T& result);
 
     template<class T>
-    static T Cast(int128_t input) {
+    static T cast(int128_t input) {
         T result;
         tryCast(input, result);
         return result;
@@ -103,7 +105,7 @@ public:
     static int128_t castTo(T value) {
         int128_t result{};
         if (!tryCastTo(value, result)) {
-            throw std::overflow_error("INT128 is out of range");
+            throw common::OverflowException("INT128 is out of range");
         }
         return result;
     }
@@ -111,7 +113,7 @@ public:
     // negate
     static void negateInPlace(int128_t& input) {
         if (input.high == INT64_MIN && input.low == 0) {
-            throw std::overflow_error("INT128 is out of range: cannot negate INT128_MIN");
+            throw common::OverflowException("INT128 is out of range: cannot negate INT128_MIN");
         }
         input.low = UINT64_MAX + 1 - input.low;
         input.high = -input.high - 1 + (input.low == 0);
@@ -143,7 +145,7 @@ public:
     static bool subInPlace(int128_t& lhs, int128_t rhs);
 
     // comparison operators
-    static bool Equals(int128_t lhs, int128_t rhs) {
+    static bool equals(int128_t lhs, int128_t rhs) {
         return lhs.low == rhs.low && lhs.high == rhs.high;
     }
 
@@ -166,7 +168,6 @@ public:
     static bool lessThanOrEquals(int128_t lhs, int128_t rhs) {
         return (lhs.high < rhs.high) || (lhs.high == rhs.high && lhs.low <= rhs.low);
     }
-    static const int128_t powerOf10[40];
 };
 
 template<>
@@ -185,6 +186,8 @@ template<>
 bool Int128_t::tryCast(int128_t input, uint32_t& result);
 template<>
 bool Int128_t::tryCast(int128_t input, uint64_t& result);
+template<>
+bool Int128_t::tryCast(int128_t input, uint128_t& result); // signed to unsigned
 template<>
 bool Int128_t::tryCast(int128_t input, float& result);
 template<>
@@ -216,8 +219,6 @@ template<>
 bool Int128_t::tryCastTo(double value, int128_t& result);
 template<>
 bool Int128_t::tryCastTo(long double value, int128_t& result);
-
-// TODO: const char to int128
 
 } // namespace common
 } // namespace kuzu

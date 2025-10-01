@@ -13,44 +13,44 @@
 5|5|5|5|5.000000|5.000000
 
 -LOG CastFromINT16
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.length), to_int32(e.length), to_int64(e.length), to_int128(e.length), to_float(e.length), to_double(e.length)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int8(e.length), to_int32(e.length), to_int64(e.length), to_int128(e.length), to_uint128(e.length), to_float(e.length), to_double(e.length)
 ---- 1
-5|5|5|5|5.000000|5.000000
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN cast(e.length, "int8"), cast(e.length, "int32"), cast(e.length, "int64"), cast(e.length, "int128"), cast(e.length, "float"), cast(e.length, "double")
+5|5|5|5|5|5.000000|5.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN cast(e.length, "int8"), cast(e.length, "int32"), cast(e.length, "int64"), cast(e.length, "int128"), cast(e.length, "uint128"), cast(e.length, "float"), cast(e.length, "double")
 ---- 1
-5|5|5|5|5.000000|5.000000
+5|5|5|5|5|5.000000|5.000000
 
 -LOG CastFromINT32
--STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_int128(m.length), to_float(m.length), to_double(m.length)
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_int128(m.length), to_uint128(m.length), to_float(m.length), to_double(m.length)
 ---- 1
-298|298|298|298.000000|298.000000
+298|298|298|298|298.000000|298.000000
 -STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN cast(m.length, "int16"), cast(m.length, "int64"), cast(m.length, "int128"), cast(m.length, "float"), cast(m.length, "double")
 ---- 1
 298|298|298|298.000000|298.000000
 
 -LOG CastFromINT64
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int8(p.gender), to_int16(p.gender), to_int32(p.gender), to_int128(p.gender), to_float(p.gender), to_double(p.gender)
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int8(p.gender), to_int16(p.gender), to_int32(p.gender), to_int128(p.gender), to_uint128(p.gender), to_float(p.gender), to_double(p.gender)
 ---- 1
-1|1|1|1|1.000000|1.000000
+1|1|1|1|1|1.000000|1.000000
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.gender, "int8"), cast(p.gender, "int16"), cast(p.gender, "int32"), cast(p.gender, "int64"), cast(p.gender, "int128"), cast(p.gender, "float"), cast(p.gender, "double")
 ---- 1
 1|1|1|1|1|1.000000|1.000000
 
 -LOG CastFromUINT8
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.ulevel), to_int32(e.ulevel), to_int64(e.ulevel), to_int128(e.ulevel), to_float(e.ulevel), to_double(e.ulevel)
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int16(e.ulevel), to_int32(e.ulevel), to_int64(e.ulevel), to_int128(e.ulevel), to_uint128(e.ulevel), to_float(e.ulevel), to_double(e.ulevel)
 ---- 1
-250|250|250|250|250.000000|250.000000
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN cast(e.ulevel, "int16"), cast(e.ulevel, "int32"), cast(e.ulevel, "int64"), cast(e.ulevel, "int128"), cast(e.ulevel, "float"), cast(e.ulevel, "double")
+250|250|250|250|250|250.000000|250.000000
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN cast(e.ulevel, "int16"), cast(e.ulevel, "int32"), cast(e.ulevel, "int64"), cast(e.ulevel, "int128"), cast(e.ulevel, "uint128"), cast(e.ulevel, "float"), cast(e.ulevel, "double")
 ---- 1
-250|250|250|250|250.000000|250.000000
+250|250|250|250|250|250.000000|250.000000
 
 -LOG CastFromUINT16
 -STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.ulength), to_int32(e.ulength), to_int64(e.ulength), to_int128(e.ulength), to_float(e.ulength), to_double(e.ulength)
 ---- 1
 90|90|90|90|90.000000|90.000000
--STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN cast(e.ulength, "uint8"), cast(e.ulength, "uint16"), cast(e.ulength, "uint32"), cast(e.ulength, "uint64"), cast(e.ulength, "float"), cast(e.ulength, "double")
+-STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN cast(e.ulength, "uint8"), cast(e.ulength, "uint16"), cast(e.ulength, "uint32"), cast(e.ulength, "uint64"), cast(e.ulength, "uint128"), cast(e.ulength, "float"), cast(e.ulength, "double")
 ---- 1
-90|90|90|90|90.000000|90.000000
+90|90|90|90|90|90.000000|90.000000
 
 -LOG CastFromUINT32
 -STATEMENT MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=2 RETURN to_int8(e.temperature), to_int16(e.temperature), to_int32(e.temperature), to_int128(e.temperature), to_float(e.temperature), to_double(e.temperature)
@@ -64,14 +64,14 @@
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_int128(p.height), to_double(p.height)
 ---- 1
 2|2|2|2|1.731000
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.height, "uint8"), cast(p.height, "int16"), cast(p.height, "int32"), cast(p.height, "int64"), cast(p.height, "int128"), cast(p.height, "double"), cast(p.height, "float")
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.height, "uint8"), cast(p.height, "int16"), cast(p.height, "int32"), cast(p.height, "int64"), cast(p.height, "int128"), cast(p.height, "uint128"), cast(p.height, "double"), cast(p.height, "float")
 ---- 1
-2|2|2|2|2|1.731000|1.731000
+2|2|2|2|2|2|1.731000|1.731000
 
 -LOG CastFromDOUBLE
--STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_int128(p.eyeSight), to_float(p.eyeSight)
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_int128(p.eyeSight), to_uint128(p.eyeSight), to_float(p.eyeSight)
 ---- 1
-5|5|5|5|5.000000
+5|5|5|5|5|5.000000
 -STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN cast(p.eyeSight, "uint8"), cast(p.eyeSight, "uint16"), cast(p.eyeSight, "uint32"), cast(p.eyeSight, "int32"), cast(p.eyeSight, "int64"), cast(p.eyeSight, "int128"), cast(p.eyeSight, "float"), cast(p.eyeSight, "double")
 ---- 1
 5|5|5|5|5|5|5.000000|5.000000
@@ -741,6 +741,18 @@ abcd
 120
 2
 
+-LOG CastInt8ToUInt128
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_uint128(e.level)
+---- 3
+5
+120
+2
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN cast(e.level, "uint128")
+---- 3
+5
+120
+2
+
 -LOG CastInt16ToDouble
 -STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.length)
 ---- 3
@@ -893,6 +905,12 @@ abcd
 -STATEMENT RETURN cast(cast("43242", "uint32"), "int32");
 ---- 1
 43242
+-STATEMENT RETURN TO_INT128(TO_UINT128("85070591730234615865843651857942052864"));
+---- 1
+85070591730234615865843651857942052864
+-STATEMENT RETURN cast(cast("85070591730234615865843651857942052864", "uint128"), "int128");
+---- 1
+85070591730234615865843651857942052864
 
 -LOG CastInt64ToInt8
 -STATEMENT MATCH (p:person) RETURN to_int8(p.age)
@@ -926,57 +944,65 @@ abcd
 
 
 -LOG CastNumericalToInt8
--STATEMENT Return to_int8(to_int64(1)), to_int8(to_int32(2)), to_int8(to_int16(3)), to_int8(to_int8(4)), to_int8(to_uint8(5)), to_int8(to_uint16(6)), to_int8(to_uint32(7)), to_int8(to_uint64(8)), to_int8(to_int128(9))
+-STATEMENT Return to_int8(to_int64(1)), to_int8(to_int32(2)), to_int8(to_int16(3)), to_int8(to_int8(4)), to_int8(to_uint8(5)), to_int8(to_uint16(6)), to_int8(to_uint32(7)), to_int8(to_uint64(8)), to_int8(to_int128(9)), to_int8(to_uint128(10))
 ---- 1
-1|2|3|4|5|6|7|8|9
--STATEMENT Return cast(cast(1, "int64"), "int8"), cast(cast(2, "int32"), "int8"), cast(cast(3, "int16"), "int8"), cast(cast(4, "int8"), "int8"), cast(cast(5, "uint8"), "int8"), cast(cast(6, "uint16"), "int8"), cast(cast(7, "uint32"), "int8"), cast(cast(8, "uint64"), "int8"), cast(cast(9, "int128"), "int8"), cast(cast(10, "float"), "int8"), cast(cast(11, "double"), "int8")
+1|2|3|4|5|6|7|8|9|10
+-STATEMENT Return cast(cast(1, "int64"), "int8"), cast(cast(2, "int32"), "int8"), cast(cast(3, "int16"), "int8"), cast(cast(4, "int8"), "int8"), cast(cast(5, "uint8"), "int8"), cast(cast(6, "uint16"), "int8"), cast(cast(7, "uint32"), "int8"), cast(cast(8, "uint64"), "int8"), cast(cast(9, "int128"), "int8"), cast(cast(10, "uint128"), "int8"), cast(cast(11, "float"), "int8"), cast(cast(12, "double"), "int8")
 ---- 1
-1|2|3|4|5|6|7|8|9|10|11
+1|2|3|4|5|6|7|8|9|10|11|12
 
 -LOG CastNumericalToUInt8
--STATEMENT Return to_uint8(to_int64(1)), to_uint8(to_int32(2)), to_uint8(to_int16(3)), to_uint8(to_int8(4)), to_uint8(to_uint16(6)), to_uint8(to_uint32(7)), to_uint8(to_uint64(8)), to_uint8(to_int128(9))
+-STATEMENT Return to_uint8(to_int64(1)), to_uint8(to_int32(2)), to_uint8(to_int16(3)), to_uint8(to_int8(4)), to_uint8(to_uint16(6)), to_uint8(to_uint32(7)), to_uint8(to_uint64(8)), to_uint8(to_int128(9)), to_uint8(to_uint128(10))
 ---- 1
-1|2|3|4|6|7|8|9
--STATEMENT Return cast(cast(1, "int64"), "uint8"), cast(cast(2, "int32"), "uint8"), cast(cast(3, "int16"), "uint8"), cast(cast(4, "int8"), "uint8"), cast(cast(5, "uint8"), "uint8"), cast(cast(6, "uint16"), "uint8"), cast(cast(7, "uint32"), "uint8"), cast(cast(8, "uint64"), "uint8"), cast(cast(9, "int128"), "uint8"), cast(cast(10, "float"), "uint8"), cast(cast(11, "double"), "uint8")
+1|2|3|4|6|7|8|9|10
+-STATEMENT Return cast(cast(1, "int64"), "uint8"), cast(cast(2, "int32"), "uint8"), cast(cast(3, "int16"), "uint8"), cast(cast(4, "int8"), "uint8"), cast(cast(5, "uint8"), "uint8"), cast(cast(6, "uint16"), "uint8"), cast(cast(7, "uint32"), "uint8"), cast(cast(8, "uint64"), "uint8"), cast(cast(9, "int128"), "uint8"), cast(cast(10, "uint128"), "uint8"), cast(cast(11, "float"), "uint8"), cast(cast(12, "double"), "uint8")
 ---- 1
-1|2|3|4|5|6|7|8|9|10|11
+1|2|3|4|5|6|7|8|9|10|11|12
 
 -LOG CastNumericalToUInt16
--STATEMENT Return to_uint16(to_int64(1)), to_uint16(to_int32(2)), to_uint16(to_int16(3)), to_uint16(to_int8(4)), to_uint16(to_uint8(5)), to_uint16(to_uint32(7)), to_uint16(to_uint64(8)), to_uint16(to_int128(9))
+-STATEMENT Return to_uint16(to_int64(1)), to_uint16(to_int32(2)), to_uint16(to_int16(3)), to_uint16(to_int8(4)), to_uint16(to_uint8(5)), to_uint16(to_uint32(7)), to_uint16(to_uint64(8)), to_uint16(to_int128(9)), to_uint16(to_uint128(10))
 ---- 1
-1|2|3|4|5|7|8|9
--STATEMENT Return cast(cast(1, "int64"), "uint16"), cast(cast(2, "int32"), "uint16"), cast(cast(3, "int16"), "uint16"), cast(cast(4, "int8"), "uint16"), cast(cast(5, "uint8"), "uint16"), cast(cast(6, "uint16"), "uint16"), cast(cast(7, "uint32"), "uint16"), cast(cast(8, "uint64"), "uint16"), cast(cast(9, "int128"), "uint16"), cast(cast(10, "float"), "uint16"), cast(cast(11, "double"), "uint16")
+1|2|3|4|5|7|8|9|10
+-STATEMENT Return cast(cast(1, "int64"), "uint16"), cast(cast(2, "int32"), "uint16"), cast(cast(3, "int16"), "uint16"), cast(cast(4, "int8"), "uint16"), cast(cast(5, "uint8"), "uint16"), cast(cast(6, "uint16"), "uint16"), cast(cast(7, "uint32"), "uint16"), cast(cast(8, "uint64"), "uint16"), cast(cast(9, "int128"), "uint16"), cast(cast(10, "uint128"), "uint16"), cast(cast(11, "float"), "uint16"), cast(cast(12, "double"), "uint16")
 ---- 1
-1|2|3|4|5|6|7|8|9|10|11
+1|2|3|4|5|6|7|8|9|10|11|12
 
 -LOG CastUnsignedIntToFLoatDouble
--STATEMENT Return to_float(to_uint64(1)), to_double(to_uint64(2)), to_float(to_uint32(3)), to_double(to_uint32(4)), to_float(to_uint16(5)), to_double(to_uint16(6)), to_float(to_uint8(7)), to_double(to_uint8(8))
+-STATEMENT Return to_float(to_uint64(1)), to_double(to_uint64(2)), to_float(to_uint32(3)), to_double(to_uint32(4)), to_float(to_uint16(5)), to_double(to_uint16(6)), to_float(to_uint8(7)), to_double(to_uint8(8)), to_float(to_uint128(9)), to_double(to_uint128(10))
 ---- 1
-1.000000|2.000000|3.000000|4.000000|5.000000|6.000000|7.000000|8.000000
+1.000000|2.000000|3.000000|4.000000|5.000000|6.000000|7.000000|8.000000|9.000000|10.000000
 
 -LOG CastNumericalToUInt32
--STATEMENT Return to_uint32(to_int64(1)), to_uint32(to_int32(2)), to_uint32(to_int16(3)), to_uint32(to_int8(4)), to_uint32(to_uint8(5)), to_uint32(to_uint16(6)), to_uint32(to_uint64(8)), to_uint32(to_int128(9))
+-STATEMENT Return to_uint32(to_int64(1)), to_uint32(to_int32(2)), to_uint32(to_int16(3)), to_uint32(to_int8(4)), to_uint32(to_uint8(5)), to_uint32(to_uint16(6)), to_uint32(to_uint64(8)), to_uint32(to_int128(9)), to_uint32(to_uint128(10))
 ---- 1
-1|2|3|4|5|6|8|9
--STATEMENT Return cast(cast(1, "int64"), "uint32"), cast(cast(2, "int32"), "uint32"), cast(cast(3, "int16"), "uint32"), cast(cast(4, "int8"), "uint32"), cast(cast(5, "uint16"), "uint32"), cast(cast(6, "uint8"), "uint32"), cast(cast(7, "uint32"), "uint32"), cast(cast(8, "uint64"), "uint32"), cast(cast(9, "int128"), "uint32"), cast(cast(10, "float"), "uint32"), cast(cast(11, "double"), "uint32")
+1|2|3|4|5|6|8|9|10
+-STATEMENT Return cast(cast(1, "int64"), "uint32"), cast(cast(2, "int32"), "uint32"), cast(cast(3, "int16"), "uint32"), cast(cast(4, "int8"), "uint32"), cast(cast(5, "uint16"), "uint32"), cast(cast(6, "uint8"), "uint32"), cast(cast(7, "uint32"), "uint32"), cast(cast(8, "uint64"), "uint32"), cast(cast(9, "int128"), "uint32"), cast(cast(10, "uint128"), "uint32"), cast(cast(11, "float"), "uint32"), cast(cast(12, "double"), "uint32")
 ---- 1
-1|2|3|4|5|6|7|8|9|10|11
+1|2|3|4|5|6|7|8|9|10|11|12
 
 -LOG CastNumericalToUInt64
--STATEMENT Return to_uint64(to_int64(1)), to_uint64(to_int32(2)), to_uint64(to_int16(3)), to_uint64(to_int8(4)), to_uint64(to_uint8(5)), to_uint64(to_uint32(6)), to_uint64(to_uint32(7)), to_uint64(to_int128(9))
+-STATEMENT Return to_uint64(to_int64(1)), to_uint64(to_int32(2)), to_uint64(to_int16(3)), to_uint64(to_int8(4)), to_uint64(to_uint8(5)), to_uint64(to_uint32(6)), to_uint64(to_uint32(7)), to_uint64(to_int128(9)), to_uint64(to_uint128(10))
 ---- 1
-1|2|3|4|5|6|7|9
--STATEMENT Return cast(cast(1, "int64"), "uint64"), cast(cast(2, "int32"), "uint64"), cast(cast(3, "int64"), "uint64"), cast(cast(4, "int64"), "uint64"), cast(cast(5, "uint8"), "uint64"), cast(cast(6, "uint16"), "uint64"), cast(cast(7, "uint64"), "uint64"), cast(cast(8, "uint64"), "uint64"), cast(cast(9, "int128"), "uint64"), cast(cast(10, "float"), "uint64"), cast(cast(11, "double"), "uint64")
+1|2|3|4|5|6|7|9|10
+-STATEMENT Return cast(cast(1, "int64"), "uint64"), cast(cast(2, "int32"), "uint64"), cast(cast(3, "int64"), "uint64"), cast(cast(4, "int64"), "uint64"), cast(cast(5, "uint8"), "uint64"), cast(cast(6, "uint16"), "uint64"), cast(cast(7, "uint64"), "uint64"), cast(cast(8, "uint64"), "uint64"), cast(cast(9, "int128"), "uint64"), cast(cast(10, "uint128"), "uint64"), cast(cast(11, "float"), "uint64"), cast(cast(12, "double"), "uint64")
 ---- 1
-1|2|3|4|5|6|7|8|9|10|11
+1|2|3|4|5|6|7|8|9|10|11|12
 
 -LOG CastNumericalToInt128
--STATEMENT Return to_int128(to_int64(1)), to_int128(to_int32(2)), to_int128(to_int16(3)), to_int128(to_int8(4)), to_int128(to_uint8(5)), to_int128(to_uint16(6)), to_int128(to_uint32(7)), to_int128(to_uint64(8))
+-STATEMENT Return to_int128(to_int64(1)), to_int128(to_int32(2)), to_int128(to_int16(3)), to_int128(to_int8(4)), to_int128(to_uint8(5)), to_int128(to_uint16(6)), to_int128(to_uint32(7)), to_int128(to_uint64(8)), to_int128(to_uint128(9))
 ---- 1
-1|2|3|4|5|6|7|8
--STATEMENT Return cast(cast(1, "int64"), "int128"), cast(cast(2, "int32"), "int128"), cast(cast(3, "int64"), "int128"), cast(cast(4, "int64"), "int128"), cast(cast(5, "uint8"), "int128"), cast(cast(6, "uint16"), "int128"), cast(cast(7, "uint64"), "int128"), cast(cast(8, "uint64"), "int128"), cast(cast(9, "int128"), "int128"), cast(cast(10, "float"), "int128"), cast(cast(11, "double"), "int128")
+1|2|3|4|5|6|7|8|9
+-STATEMENT Return cast(cast(1, "int64"), "int128"), cast(cast(2, "int32"), "int128"), cast(cast(3, "int64"), "int128"), cast(cast(4, "int64"), "int128"), cast(cast(5, "uint8"), "int128"), cast(cast(6, "uint16"), "int128"), cast(cast(7, "uint64"), "int128"), cast(cast(8, "uint64"), "int128"), cast(cast(9, "int128"), "int128"), cast(cast(10, "uint128"), "int128"), cast(cast(11, "float"), "int128"), cast(cast(12, "double"), "int128")
 ---- 1
-1|2|3|4|5|6|7|8|9|10|11
+1|2|3|4|5|6|7|8|9|10|11|12
+
+-LOG CastNumericalToUINT128
+-STATEMENT Return to_uint128(to_int64(1)), to_uint128(to_int32(2)), to_uint128(to_int16(3)), to_uint128(to_int8(4)), to_uint128(to_uint8(5)), to_uint128(to_uint16(6)), to_uint128(to_uint32(7)), to_uint128(to_uint64(8)), to_uint128(to_int128(9))
+---- 1
+1|2|3|4|5|6|7|8|9
+-STATEMENT Return cast(cast(1, "int64"), "uint128"), cast(cast(2, "int32"), "uint128"), cast(cast(3, "int64"), "uint128"), cast(cast(4, "int64"), "uint128"), cast(cast(5, "uint8"), "uint128"), cast(cast(6, "uint16"), "uint128"), cast(cast(7, "uint64"), "uint128"), cast(cast(8, "uint64"), "uint128"), cast(cast(9, "int128"), "uint128"), cast(cast(10, "uint128"), "uint128"), cast(cast(11, "float"), "uint128"), cast(cast(12, "double"), "uint128")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11|12
 
 -LOG CastInt64ToDouble
 -STATEMENT MATCH (p:person) RETURN to_double(p.age)
@@ -1035,19 +1061,19 @@ abcd
 2
 
 -LOG CastDoubleToUInt
--STATEMENT RETURN to_uint8(to_double(1)), to_uint16(to_double(2)), to_uint32(to_double(3)), to_uint64(to_double(4)), to_int128(to_double(5))
+-STATEMENT RETURN to_uint8(to_double(1)), to_uint16(to_double(2)), to_uint32(to_double(3)), to_uint64(to_double(4)), to_uint128(to_double(5))
 ---- 1
 1|2|3|4|5
--STATEMENT RETURN cast(cast(1, "double"), "uint8"), cast(cast(2, "double"), "uint16"), cast(cast(3, "double"), "uint32"), cast(cast(4, "double"), "uint64"), cast(cast(5, "double"), "int128")
+-STATEMENT RETURN cast(cast(1, "double"), "uint8"), cast(cast(2, "double"), "uint16"), cast(cast(3, "double"), "uint32"), cast(cast(4, "double"), "uint64"), cast(cast(5, "double"), "uint128")
 ---- 1
 1|2|3|4|5
 
 -LOG CastFloatToUInt
--STATEMENT RETURN to_uint8(to_float(1)), to_uint16(to_float(2)), to_uint32(to_float(3)), to_uint64(to_float(4)), to_int128(to_float(5))
+-STATEMENT RETURN to_uint8(to_float(1)), to_uint16(to_float(2)), to_uint32(to_float(3)), to_uint64(to_float(4)), to_uint128(to_float(5))
 ---- 1
 1|2|3|4|5
 -LOG CastFloatToUInt
--STATEMENT RETURN cast(cast(1, "float"), "uint8"), cast(cast(2, "float"), "uint16"), cast(cast(3, "float"), "uint32"), cast(cast(4, "float"), "uint64"), cast(cast(5, "float"), "int128")
+-STATEMENT RETURN cast(cast(1, "float"), "uint8"), cast(cast(2, "float"), "uint16"), cast(cast(3, "float"), "uint32"), cast(cast(4, "float"), "uint64"), cast(cast(5, "float"), "uint128")
 ---- 1
 1|2|3|4|5
 
@@ -1122,6 +1148,9 @@ abcd
 -STATEMENT RETURN TO_INT128("1844674407370955161811111111");
 ---- 1
 1844674407370955161811111111
+-STATEMENT RETURN TO_UINT128("255211775190703847597530955573826158592");
+---- 1
+255211775190703847597530955573826158592
 -STATEMENT RETURN TO_FLOAT("   3.294");
 ---- 1
 3.294000
@@ -1218,6 +1247,9 @@ False
 -STATEMENT RETURN cast("1844674407370955161811111111", "int128");
 ---- 1
 1844674407370955161811111111
+-STATEMENT RETURN cast("255211775190703847597530955573826158592", "uint128");
+---- 1
+255211775190703847597530955573826158592
 -STATEMENT RETURN cast("   3.294", "float");
 ---- 1
 3.294000
@@ -1287,12 +1319,12 @@ False
 4.900000
 
 -LOG CastNumericalToINT128Test
--STATEMENT RETURN to_int8(to_int128(1)), to_int16(to_int128(2)), to_int32(to_int128(3)), to_int64(to_int128(4)), to_uint8(to_int128(5)), to_uint16(to_int128(6)), to_uint32(to_int128(7)), to_uint64(to_int128(8))
+-STATEMENT RETURN to_int8(to_int128(1)), to_int16(to_int128(2)), to_int32(to_int128(3)), to_int64(to_int128(4)), to_uint8(to_int128(5)), to_uint16(to_int128(6)), to_uint32(to_int128(7)), to_uint64(to_int128(8)), to_uint128(to_int128(9))
 ---- 1
-1|2|3|4|5|6|7|8
--STATEMENT RETURN cast(cast(1, "int128"), "int8"), cast(cast(2, "int128"), "int16"), cast(cast(3, "int128"), "int32"), cast(cast(4, "int128"), "int64"), cast(cast(5, "int128"), "int128"), cast(cast(6, "int128"), "uint8"), cast(cast(7, "int128"), "uint16"), cast(cast(8, "int128"), "uint32"), cast(cast(9, "int128"), "uint64"), cast(cast(10, "int128"), "double"), cast(cast(11, "int128"), "float"), cast(cast(12, "int128"), "string")
+1|2|3|4|5|6|7|8|9
+-STATEMENT RETURN cast(cast(1, "int128"), "int8"), cast(cast(2, "int128"), "int16"), cast(cast(3, "int128"), "int32"), cast(cast(4, "int128"), "int64"), cast(cast(5, "int128"), "int128"), cast(cast(6, "int128"), "uint8"), cast(cast(7, "int128"), "uint16"), cast(cast(8, "int128"), "uint32"), cast(cast(9, "int128"), "uint64"), cast(cast(10, "int128"), "uint128"), cast(cast(11, "int128"), "double"), cast(cast(12, "int128"), "float"), cast(cast(13, "int128"), "string")
 ---- 1
-1|2|3|4|5|6|7|8|9|10.000000|11.000000|12
+1|2|3|4|5|6|7|8|9|10|11.000000|12.000000|13
 
 -LOG CastInt128ToOtherTypes
 -STATEMENT RETURN TO_FLOAT(170141183460469231731687303715884105727), TO_INT64(-4324324);
@@ -1321,7 +1353,49 @@ False
 ---- 1
 -4324324
 
+-LOG CastNumericalToUINT128Test
+-STATEMENT RETURN to_int8(to_uint128(1)), to_int16(to_uint128(2)), to_int32(to_uint128(3)), to_int64(to_uint128(4)), to_uint8(to_uint128(5)), to_uint16(to_uint128(6)), to_uint32(to_uint128(7)), to_uint64(to_uint128(8)), to_int128(to_uint128(9))
+---- 1
+1|2|3|4|5|6|7|8|9
+-STATEMENT RETURN cast(cast(1, "uint128"), "int8"), cast(cast(2, "uint128"), "int16"), cast(cast(3, "uint128"), "int32"), cast(cast(4, "uint128"), "int64"), cast(cast(5, "uint128"), "int128"), cast(cast(6, "uint128"), "uint8"), cast(cast(7, "uint128"), "uint16"), cast(cast(8, "uint128"), "uint32"), cast(cast(9, "uint128"), "uint64"), cast(cast(10, "uint128"), "int128"), cast(cast(11, "uint128"), "double"), cast(cast(12, "uint128"), "float"), cast(cast(13, "uint128"), "string")
+---- 1
+1|2|3|4|5|6|7|8|9|10|11.000000|12.000000|13
+
+-LOG CastUInt128ToFloatDouble
+-STATEMENT RETURN TO_FLOAT(170141183460469231731687303715884105728), TO_DOUBLE(170141183460469231731687303715884105728);
+---- 1
+170141183460469231731687303715884105728.000000|170141183460469231731687303715884105728.000000
+-STATEMENT RETURN cast(170141183460469231731687303715884105728, "float"), cast(170141183460469231731687303715884105728, "double");
+---- 1
+170141183460469231731687303715884105728.000000|170141183460469231731687303715884105728.000000
+-STATEMENT RETURN to_float(340282366900938463463300000000000000000), cast(340282366900938463463300000000000000000, "float");
+---- 1
+inf|inf
+
+-LOG CastFloatDoubleToUInt128
+-STATEMENT Return to_uint128(to_float(15)), to_uint128(to_double(1)), to_uint128(170141183460469231731687303715884105728.000000);
+---- 1
+15|1|170141183460469231731687303715884105728
+-STATEMENT Return cast(cast(15, "float"), "uint128"), cast(cast(1, "double"), "uint128"), cast(170141183460469231731687303715884105728.000000, "uint128");
+---- 1
+15|1|170141183460469231731687303715884105728
+-STATEMENT RETURN to_uint128(1.49), to_uint128(1.50), to_uint128(908661448.3902037585), cast(3141592653589.793238462, "uint128");
+---- 1
+1|2|908661448|3141592653590
+-STATEMENT RETURN to_uint128(255211775190703847597530955573826158592.0), cast(255211775190703847597530955573826158592.0, "uint128");
+---- 1
+255211775190703847597530955573826158592|255211775190703847597530955573826158592
+-STATEMENT RETURN to_uint128(to_double(319014718988379809496913694467282698240)), cast(cast(319014718988379809496913694467282698240, "double"), "uint128");
+---- 1
+319014718988379809496913694467282698240|319014718988379809496913694467282698240
+-STATEMENT RETURN to_uint128(to_float(340282366900938463463300000000000000000));
+---- 1
+0
+
 -LOG CastSameType
+-STATEMENT RETURN cast(340282366920938463463374607431768211455, "uint128");
+---- 1
+340282366920938463463374607431768211455
 -STATEMENT RETURN cast(false, "BOOL") as bar;
 ---- 1
 False

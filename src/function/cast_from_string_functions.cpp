@@ -23,7 +23,13 @@ struct CastStringHelper {
 template<>
 inline void CastStringHelper::cast(const char* input, uint64_t len, int128_t& result,
     ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
-    simpleInt128Cast(input, len, result);
+    simpleIntegerCast<int128_t>(input, len, result, LogicalTypeID::INT128);
+}
+
+template<>
+inline void CastStringHelper::cast(const char* input, uint64_t len, uint128_t& result,
+    ValueVector* /*vector*/, uint64_t /*rowToAdd*/, const CSVOption* /*option*/) {
+    simpleIntegerCast<uint128_t, false>(input, len, result, LogicalTypeID::UINT128);
 }
 
 template<>
@@ -678,7 +684,12 @@ static bool tryCastUnionField(ValueVector* vector, uint64_t rowToAdd, const char
     } break;
     case LogicalTypeID::INT128: {
         int128_t result = 0;
-        success = function::trySimpleInt128Cast(input, len, result);
+        success = function::trySimpleIntegerCast(input, len, result);
+        testAndSetValue(vector, rowToAdd, result, success);
+    } break;
+    case LogicalTypeID::UINT128: {
+        uint128_t result = 0;
+        success = function::trySimpleIntegerCast<uint128_t, false>(input, len, result);
         testAndSetValue(vector, rowToAdd, result, success);
     } break;
     case LogicalTypeID::INT64: {
@@ -1010,6 +1021,11 @@ void CastString::copyStringToVector(ValueVector* vector, uint64_t vectorPos,
     } break;
     case LogicalTypeID::INTERVAL: {
         interval_t val;
+        CastStringHelper::cast(strVal.data(), strVal.length(), val);
+        vector->setValue(vectorPos, val);
+    } break;
+    case LogicalTypeID::UINT128: {
+        uint128_t val = 0;
         CastStringHelper::cast(strVal.data(), strVal.length(), val);
         vector->setValue(vectorPos, val);
     } break;

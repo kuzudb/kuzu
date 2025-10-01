@@ -94,6 +94,15 @@
 ---- 1
 0
 
+-LOG UINT128Test
+-STATEMENT RETURN count_if(cast(1, "UINT128"));
+---- 1
+1
+
+-STATEMENT RETURN count_if(cast(0, "UINT128"));
+---- 1
+0
+
 -LOG DoubleTest
 -STATEMENT RETURN count_if(cast(1, "DOUBLE"));
 ---- 1

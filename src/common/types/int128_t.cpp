@@ -1,81 +1,27 @@
 #include "common/types/int128_t.h"
 
 #include <cmath>
+#include <cstdint>
 
-#include "common/exception/overflow.h"
 #include "common/exception/runtime.h"
 #include "common/numeric_utils.h"
 #include "common/type_utils.h"
+#include "common/types/uint128_t.h"
 #include "function/cast/functions/numeric_limits.h"
 #include "function/hash/hash_functions.h"
+#include <bit>
 
 namespace kuzu::common {
 
-// NOLINTNEXTLINE(cert-err58-cpp): This initialization won't actually throw.
-const int128_t Int128_t::powerOf10[]{
-    int128_t((int64_t)1),
-    int128_t((int64_t)10),
-    int128_t((int32_t)100),
-    int128_t((int64_t)1000),
-    int128_t((int64_t)10000),
-    int128_t((int64_t)100000),
-    int128_t((int64_t)1000000),
-    int128_t((int64_t)10000000),
-    int128_t((int64_t)100000000),
-    int128_t((int64_t)1000000000),
-    int128_t((int64_t)10000000000),
-    int128_t((int64_t)100000000000),
-    int128_t((int64_t)1000000000000),
-    int128_t((int64_t)10000000000000),
-    int128_t((int64_t)100000000000000),
-    int128_t((int64_t)1000000000000000),
-    int128_t((int64_t)10000000000000000),
-    int128_t((int64_t)100000000000000000),
-    int128_t((int64_t)1000000000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)10000000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)100000000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000000),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000000) *
-        int128_t((int64_t)10),
-    int128_t((int64_t)1000000000000000000) * int128_t((int64_t)1000000000000000000) *
-        int128_t((int64_t)100),
-};
-
-static uint8_t PositiveInt128BitsAmount(int128_t input) {
-    uint8_t result = 0;
+static uint8_t positiveInt128BitsAmount(int128_t input) {
     if (input.high) {
-        result = 64;
-        uint64_t high = input.high;
-        while (high) {
-            high >>= 1;
-            result++;
-        }
+        return 128 - std::countl_zero((uint64_t)input.high);
     } else {
-        uint64_t low = input.low;
-        while (low) {
-            low >>= 1;
-            result++;
-        }
+        return 64 - std::countl_zero(input.low);
     }
-    return result;
 }
 
-static bool PositiveInt128IsBitSet(int128_t input, uint8_t bit) {
+static bool positiveInt128IsBitSet(int128_t input, uint8_t bit) {
     if (bit < 64) {
         return input.low & (1ULL << uint64_t(bit));
     } else {
@@ -83,7 +29,7 @@ static bool PositiveInt128IsBitSet(int128_t input, uint8_t bit) {
     }
 }
 
-int128_t PositiveInt128LeftShift(int128_t lhs, uint32_t amount) {
+int128_t positiveInt128LeftShift(int128_t lhs, uint32_t amount) {
     int128_t result{};
     result.low = lhs.low << amount;
     result.high = (lhs.high << amount) + (lhs.low >> (64 - amount));
@@ -91,15 +37,13 @@ int128_t PositiveInt128LeftShift(int128_t lhs, uint32_t amount) {
 }
 
 int128_t Int128_t::divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainder) {
-    int128_t result{};
-    result.low = 0;
-    result.high = 0;
+    int128_t result{0};
     remainder = 0;
 
-    for (uint8_t i = PositiveInt128BitsAmount(lhs); i > 0; i--) {
-        result = PositiveInt128LeftShift(result, 1);
+    for (uint8_t i = positiveInt128BitsAmount(lhs); i > 0; i--) {
+        result = positiveInt128LeftShift(result, 1);
         remainder <<= 1;
-        if (PositiveInt128IsBitSet(lhs, i - 1)) {
+        if (positiveInt128IsBitSet(lhs, i - 1)) {
             remainder++;
         }
         if (remainder >= rhs) {
@@ -113,7 +57,7 @@ int128_t Int128_t::divModPositive(int128_t lhs, uint64_t rhs, uint64_t& remainde
     return result;
 }
 
-std::string Int128_t::ToString(int128_t input) {
+std::string Int128_t::toString(int128_t input) {
     bool isMin = (input.high == INT64_MIN && input.low == 0);
     bool negative = input.high < 0;
 
@@ -122,7 +66,7 @@ std::string Int128_t::ToString(int128_t input) {
         uint64_t remainder = 0;
         int128_t quotient = divModPositive(input, 10, remainder);
 
-        std::string result = ToString(quotient);
+        std::string result = toString(quotient);
 
         result += static_cast<char>('0' + remainder);
 
@@ -229,6 +173,7 @@ bool Int128_t::tryMultiply(int128_t lhs, int128_t rhs, int128_t& result) {
 #else
     // Multiply code adapted from:
     // https://github.com/calccrypto/uint128_t/blob/master/uint128_t.cpp
+    // License: https://github.com/calccrypto/uint128_t/blob/c%2B%2B11_14/LICENSE
     uint64_t top[4] = {uint64_t(lhs.high) >> 32, uint64_t(lhs.high) & 0xffffffff, lhs.low >> 32,
         lhs.low & 0xffffffff};
     uint64_t bottom[4] = {uint64_t(rhs.high) >> 32, uint64_t(rhs.high) & 0xffffffff, rhs.low >> 32,
@@ -319,22 +264,20 @@ int128_t Int128_t::divMod(int128_t lhs, int128_t rhs, int128_t& remainder) {
 
     // divMod code adapted from:
     // https://github.com/calccrypto/uint128_t/blob/master/uint128_t.cpp
-
+    // License: https://github.com/calccrypto/uint128_t/blob/c%2B%2B11_14/LICENSE
     // initialize the result and remainder to 0
-    int128_t div_result{};
-    div_result.low = 0;
-    div_result.high = 0;
+    int128_t div_result{0};
     remainder.low = 0;
     remainder.high = 0;
 
     // now iterate over the amount of bits that are set in the LHS
-    for (uint8_t x = PositiveInt128BitsAmount(lhs); x > 0; x--) {
+    for (uint8_t x = positiveInt128BitsAmount(lhs); x > 0; x--) {
         // left-shift the current result and remainder by 1
-        div_result = PositiveInt128LeftShift(div_result, 1);
-        remainder = PositiveInt128LeftShift(remainder, 1);
+        div_result = positiveInt128LeftShift(div_result, 1);
+        remainder = positiveInt128LeftShift(remainder, 1);
 
         // we get the value of the bit at position X, where position 0 is the least-significant bit
-        if (PositiveInt128IsBitSet(lhs, x - 1)) {
+        if (positiveInt128IsBitSet(lhs, x - 1)) {
             // increment the remainder
             addInPlace(remainder, 1);
         }
@@ -425,7 +368,7 @@ bool TryCastInt128Template(int128_t input, DST& result) {
     case -1:
         if constexpr (!SIGNED) {
             throw common::OverflowException(
-                "Cast failed. Cannot cast " + Int128_t::ToString(input) + " to unsigned type.");
+                "Cast failed. Cannot cast " + Int128_t::toString(input) + " to unsigned type.");
         }
         if (input.low >= function::NumericLimits<uint64_t>::maximum() -
                              uint64_t(function::NumericLimits<DST>::maximum())) {
@@ -481,6 +424,16 @@ bool Int128_t::tryCast(int128_t input, uint64_t& result) {
 }
 
 template<>
+bool Int128_t::tryCast(int128_t input, uint128_t& result) {
+    if (input.high < 0) {
+        return false;
+    }
+    result.low = input.low;
+    result.high = uint64_t(input.high);
+    return true;
+}
+
+template<>
 bool Int128_t::tryCast(int128_t input, float& result) {
     double temp_res = NAN;
     tryCast(input, temp_res);
@@ -512,8 +465,8 @@ bool Int128_t::tryCast(int128_t input, long double& result) {
     return CastInt128ToFloating<long double>(input, result);
 }
 
-template<class DST>
-int128_t tryCastToTemplate(DST value) {
+template<class SRC>
+int128_t tryCastToTemplate(SRC value) {
     int128_t result{};
     result.low = (uint64_t)value;
     result.high = (value < 0) * -1;
@@ -610,69 +563,56 @@ bool Int128_t::tryCastTo(long double value, int128_t& result) {
 }
 //===============================================================================================
 
-int128_t::int128_t(int64_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+template<NumericTypes T>
+void constructInt128Template(T value, int128_t& result) {
+    int128_t casted = Int128_t::castTo(value);
+    result.low = casted.low;
+    result.high = casted.high;
 }
 
-int128_t::int128_t(int32_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(int64_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(int16_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(int32_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(int8_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(int16_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(uint64_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(int8_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(uint32_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(uint64_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(uint16_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(uint32_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(uint8_t value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(uint16_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(double value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(uint8_t value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
-int128_t::int128_t(float value) {
-    auto result = Int128_t::castTo(value);
-    this->low = result.low;
-    this->high = result.high;
+int128_t::int128_t(double value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
+}
+
+int128_t::int128_t(float value) { // NOLINT: fields are constructed by the template
+    constructInt128Template(value, *this);
 }
 
 //============================================================================================
 bool operator==(const int128_t& lhs, const int128_t& rhs) {
-    return Int128_t::Equals(lhs, rhs);
+    return Int128_t::equals(lhs, rhs);
 }
 
 bool operator!=(const int128_t& lhs, const int128_t& rhs) {
@@ -816,6 +756,15 @@ int128_t::operator float() const {
         throw common::OverflowException(common::stringFormat("Value {} is not within FLOAT range",
             common::TypeUtils::toString(*this)));
     } // LCOV_EXCL_STOP
+    return result;
+}
+
+int128_t::operator uint128_t() const {
+    uint128_t result{};
+    if (!Int128_t::tryCast(*this, result)) {
+        throw common::OverflowException(common::stringFormat(
+            "Cannot cast negative INT128 value {} to UINT128", common::TypeUtils::toString(*this)));
+    }
     return result;
 }
 

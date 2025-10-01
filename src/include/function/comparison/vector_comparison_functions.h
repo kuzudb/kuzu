@@ -3,6 +3,7 @@
 #include "common/exception/runtime.h"
 #include "common/types/int128_t.h"
 #include "common/types/interval_t.h"
+#include "common/types/uint128_t.h"
 #include "comparison_functions.h"
 #include "function/scalar_function.h"
 
@@ -126,6 +127,10 @@ private:
         case common::PhysicalTypeID::INTERNAL_ID: {
             func = BinaryComparisonExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
         } break;
+        case common::PhysicalTypeID::UINT128: {
+            func =
+                BinaryComparisonExecFunction<common::uint128_t, common::uint128_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INTERVAL: {
             func =
                 BinaryComparisonExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
@@ -192,6 +197,9 @@ private:
         } break;
         case common::PhysicalTypeID::INTERNAL_ID: {
             func = BinaryComparisonSelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
+        } break;
+        case common::PhysicalTypeID::UINT128: {
+            func = BinaryComparisonSelectFunction<common::uint128_t, common::uint128_t, FUNC>;
         } break;
         case common::PhysicalTypeID::INTERVAL: {
             func = BinaryComparisonSelectFunction<common::interval_t, common::interval_t, FUNC>;

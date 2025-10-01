@@ -142,7 +142,8 @@ FunctionCollection* FunctionCollection::getFunctions() {
         SCALAR_FUNCTION(CastToInt8Function), SCALAR_FUNCTION(CastToUInt64Function),
         SCALAR_FUNCTION(CastToUInt32Function), SCALAR_FUNCTION(CastToUInt16Function),
         SCALAR_FUNCTION(CastToUInt8Function), SCALAR_FUNCTION(CastToInt128Function),
-        SCALAR_FUNCTION(CastToBoolFunction), SCALAR_FUNCTION(CastAnyFunction),
+        SCALAR_FUNCTION(CastToUInt128Function), SCALAR_FUNCTION(CastToBoolFunction),
+        SCALAR_FUNCTION(CastAnyFunction),
 
         // Comparison functions
         SCALAR_FUNCTION(EqualsFunction), SCALAR_FUNCTION(NotEqualsFunction),

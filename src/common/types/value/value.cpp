@@ -52,6 +52,8 @@ bool Value::operator==(const Value& rhs) const {
         return val.intervalVal == rhs.val.intervalVal;
     case PhysicalTypeID::INTERNAL_ID:
         return val.internalIDVal == rhs.val.internalIDVal;
+    case PhysicalTypeID::UINT128:
+        return val.uint128Val == rhs.val.uint128Val;
     case PhysicalTypeID::STRING:
         return strVal == rhs.strVal;
     case PhysicalTypeID::ARRAY:
@@ -125,7 +127,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::UINT8:
         return Value((uint8_t)0);
     case LogicalTypeID::INT128:
-        return Value(int128_t((int32_t)0));
+        return Value(int128_t(0));
     case LogicalTypeID::BOOL:
         return Value(true);
     case LogicalTypeID::DOUBLE:
@@ -146,6 +148,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(interval_t());
     case LogicalTypeID::INTERNAL_ID:
         return Value(nodeID_t());
+    case LogicalTypeID::UINT128:
+        return Value(uint128_t(0));
     case LogicalTypeID::BLOB:
         return Value(LogicalType::BLOB(), std::string(""));
     case LogicalTypeID::UUID:
@@ -302,6 +306,11 @@ Value::Value(internalID_t val_) : isNull_{false}, childrenSize{0} {
     val.internalIDVal = val_;
 }
 
+Value::Value(uint128_t val_) : isNull_{false}, childrenSize{0} {
+    dataType = LogicalType::UINT128();
+    val.uint128Val = val_;
+}
+
 Value::Value(const char* val_) : isNull_{false}, childrenSize{0} {
     dataType = LogicalType::STRING();
     strVal = std::string(val_);
@@ -403,6 +412,9 @@ void Value::copyFromRowLayout(const uint8_t* value) {
     case LogicalTypeID::INTERNAL_ID: {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
+    case LogicalTypeID::UINT128: {
+        val.uint128Val = *((uint128_t*)value);
+    } break;
     case LogicalTypeID::BLOB: {
         strVal = ((blob_t*)value)->value.getAsString();
     } break;
@@ -491,6 +503,9 @@ void Value::copyFromColLayout(const uint8_t* value, ValueVector* vector) {
     case PhysicalTypeID::INTERNAL_ID: {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
+    case PhysicalTypeID::UINT128: {
+        val.uint128Val = *((uint128_t*)value);
+    } break;
     default:
         KU_UNREACHABLE;
     }
@@ -545,6 +560,9 @@ void Value::copyValueFrom(const Value& other) {
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
         val.internalIDVal = other.val.internalIDVal;
+    } break;
+    case PhysicalTypeID::UINT128: {
+        val.uint128Val = other.val.uint128Val;
     } break;
     case PhysicalTypeID::STRING: {
         strVal = other.strVal;
@@ -614,6 +632,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.intervalVal);
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(val.internalIDVal);
+    case LogicalTypeID::UINT128:
+        return TypeUtils::toString(val.uint128Val);
     case LogicalTypeID::BLOB:
         return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
     case LogicalTypeID::UUID:
@@ -801,6 +821,9 @@ void Value::serialize(Serializer& serializer) const {
     case PhysicalTypeID::INTERNAL_ID: {
         serializer.serializeValue(val.internalIDVal);
     } break;
+    case PhysicalTypeID::UINT128: {
+        serializer.serializeValue(val.uint128Val);
+    } break;
     case PhysicalTypeID::STRING: {
         serializer.serializeValue(strVal);
     } break;
@@ -870,6 +893,9 @@ std::unique_ptr<Value> Value::deserialize(Deserializer& deserializer) {
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
         deserializer.deserializeValue(val->val.internalIDVal);
+    } break;
+    case PhysicalTypeID::UINT128: {
+        deserializer.deserializeValue(val->val.uint128Val);
     } break;
     case PhysicalTypeID::STRING: {
         deserializer.deserializeValue(val->strVal);
@@ -1005,6 +1031,9 @@ uint64_t Value::computeHash() const {
     } break;
     case PhysicalTypeID::INTERNAL_ID: {
         function::Hash::operation(val.internalIDVal, hashValue);
+    } break;
+    case PhysicalTypeID::UINT128: {
+        function::Hash::operation(val.uint128Val, hashValue);
     } break;
     case PhysicalTypeID::STRING: {
         function::Hash::operation(strVal, hashValue);

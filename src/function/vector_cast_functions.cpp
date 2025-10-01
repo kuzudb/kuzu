@@ -379,6 +379,10 @@ static std::unique_ptr<ScalarFunction> bindCastFromStringFunction(const std::str
         execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, int128_t, CastString,
             EXECUTOR>;
     } break;
+    case LogicalTypeID::UINT128: {
+        execFunc = ScalarFunction::UnaryCastStringExecFunction<ku_string_t, uint128_t, CastString,
+            EXECUTOR>;
+    } break;
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         execFunc =
@@ -469,6 +473,10 @@ static std::unique_ptr<ScalarFunction> bindCastToStringFunction(const std::strin
     } break;
     case LogicalTypeID::INT128: {
         func = ScalarFunction::UnaryCastExecFunction<int128_t, ku_string_t, CastToString, EXECUTOR>;
+    } break;
+    case LogicalTypeID::UINT128: {
+        func =
+            ScalarFunction::UnaryCastExecFunction<uint128_t, ku_string_t, CastToString, EXECUTOR>;
     } break;
     case LogicalTypeID::UINT8: {
         func = ScalarFunction::UnaryCastExecFunction<uint8_t, ku_string_t, CastToString, EXECUTOR>;
@@ -626,6 +634,9 @@ static std::unique_ptr<ScalarFunction> bindCastToNumericFunction(const std::stri
     } break;
     case LogicalTypeID::INT128: {
         func = ScalarFunction::UnaryExecFunction<int128_t, DST_TYPE, OP, EXECUTOR>;
+    } break;
+    case LogicalTypeID::UINT128: {
+        func = ScalarFunction::UnaryExecFunction<uint128_t, DST_TYPE, OP, EXECUTOR>;
     } break;
     case LogicalTypeID::FLOAT: {
         func = ScalarFunction::UnaryExecFunction<float, DST_TYPE, OP, EXECUTOR>;
@@ -853,6 +864,10 @@ std::unique_ptr<ScalarFunction> CastFunction::bindCastFunction(const std::string
         return bindCastToNumericFunction<int128_t, CastToInt128, EXECUTOR>(functionName, sourceType,
             targetType);
     }
+    case LogicalTypeID::UINT128: {
+        return bindCastToNumericFunction<uint128_t, CastToUInt128, EXECUTOR>(functionName,
+            sourceType, targetType);
+    }
     case LogicalTypeID::SERIAL: {
         return bindCastToNumericFunction<int64_t, CastToSerial, EXECUTOR>(functionName, sourceType,
             targetType);
@@ -1071,6 +1086,17 @@ function_set CastToInt8Function::getFunctionSet() {
     }
     result.push_back(
         CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::INT8()));
+    return result;
+}
+
+function_set CastToUInt128Function::getFunctionSet() {
+    function_set result;
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
+        result.push_back(
+            CastFunction::bindCastFunction(name, LogicalType(typeID), LogicalType::UINT128()));
+    }
+    result.push_back(
+        CastFunction::bindCastFunction(name, LogicalType::STRING(), LogicalType::UINT128()));
     return result;
 }
 

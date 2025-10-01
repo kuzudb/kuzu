@@ -77,6 +77,8 @@ std::string TypeUtils::entryToString(const LogicalType& dataType, const uint8_t*
         return TypeUtils::toString(*reinterpret_cast<const ku_string_t*>(value));
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(*reinterpret_cast<const internalID_t*>(value));
+    case LogicalTypeID::UINT128:
+        return TypeUtils::toString(*reinterpret_cast<const uint128_t*>(value));
     case LogicalTypeID::ARRAY:
     case LogicalTypeID::LIST:
         return TypeUtils::toString(*reinterpret_cast<const list_entry_t*>(value), valueVector);
@@ -109,7 +111,12 @@ static std::string entryToStringWithPos(sel_t pos, ValueVector* vector) {
 
 template<>
 std::string TypeUtils::toString(const int128_t& val, void* /*valueVector*/) {
-    return Int128_t::ToString(val);
+    return Int128_t::toString(val);
+}
+
+template<>
+std::string TypeUtils::toString(const uint128_t& val, void* /*valueVector*/) {
+    return UInt128_t::toString(val);
 }
 
 template<>

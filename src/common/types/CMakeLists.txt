@@ -11,6 +11,7 @@ add_library(kuzu_common_types
         timestamp_t.cpp
         types.cpp
         int128_t.cpp
+        uint128_t.cpp
         uuid.cpp)
 
 set(ALL_OBJECT_FILES

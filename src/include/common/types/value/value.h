@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <utility>
 
 #include "common/api.h"
@@ -8,6 +9,7 @@
 #include "common/types/interval_t.h"
 #include "common/types/ku_list.h"
 #include "common/types/timestamp_t.h"
+#include "common/types/uint128_t.h"
 #include "common/types/uuid.h"
 
 namespace kuzu {
@@ -130,6 +132,10 @@ public:
      * @param val_ the internalID value to set.
      */
     KUZU_API explicit Value(internalID_t val_);
+    /**
+     * @param val_ the uint128_t value to set.
+     */
+    KUZU_API explicit Value(uint128_t val_);
     /**
      * @param val_ the string value to set.
      */
@@ -282,6 +288,7 @@ public:
         uint8_t* pointer;
         interval_t intervalVal;
         internalID_t internalIDVal;
+        uint128_t uint128Val;
     } val;
     std::string strVal;
 
@@ -477,6 +484,15 @@ KUZU_API inline internalID_t Value::getValue() const {
 }
 
 /**
+ * @return uint128 value.
+ */
+template<>
+KUZU_API inline uint128_t Value::getValue() const {
+    KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::UINT128);
+    return val.uint128Val;
+}
+
+/**
  * @return string value.
  */
 template<>
@@ -668,6 +684,15 @@ KUZU_API inline interval_t& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the uint128 value.
+ */
+template<>
+KUZU_API inline uint128_t& Value::getValueReference() {
+    KU_ASSERT(dataType.getPhysicalType() == PhysicalTypeID::UINT128);
+    return val.uint128Val;
+}
+
+/**
  * @return the reference to the internal_id value.
  */
 template<>
@@ -813,6 +838,15 @@ KUZU_API inline Value Value::createValue(timestamp_t val) {
  */
 template<>
 KUZU_API inline Value Value::createValue(interval_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the uint128_t value
+ * @return a Value with UINT128 type and val value.
+ */
+template<>
+KUZU_API inline Value Value::createValue(uint128_t val) {
     return Value(val);
 }
 

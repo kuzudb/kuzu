@@ -134,5 +134,11 @@ void Modulo::operation(common::int128_t& left, common::int128_t& right, common::
     result = left % right;
 }
 
+template<>
+void Modulo::operation(common::uint128_t& left, common::uint128_t& right,
+    common::uint128_t& result) {
+    result = left % right;
+}
+
 } // namespace function
 } // namespace kuzu
