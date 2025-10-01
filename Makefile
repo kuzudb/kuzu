@@ -290,6 +290,7 @@ extension-release:
 	$(call run-cmake-release, \
 		-DBUILD_EXTENSIONS="$(EXTENSION_LIST)" \
 		-DBUILD_KUZU=FALSE \
+		-DBUILD_EXTENSION_RELEASE=TRUE \
 	)
 
 # pytest expects a `Release` build path.
