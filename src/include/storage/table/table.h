@@ -182,7 +182,7 @@ public:
 
     virtual common::row_idx_t getNumTotalRows(const transaction::Transaction* transaction) = 0;
 
-    void setHasChanges() { hasChanges = true; }
+    void setHasChanges() { hasChanges.store(true, std::memory_order_release); }
 
     template<class TARGET>
     TARGET& cast() {

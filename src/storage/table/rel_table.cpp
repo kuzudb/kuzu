@@ -167,6 +167,13 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
+    // Read operation: Use shared lock (multiple threads can scan concurrently)
+    std::shared_lock<std::shared_mutex> lock(tableMutex);
+    return scanState.scanNext(transaction);
+}
+
+bool RelTable::scanInternalUnsafe(Transaction* transaction, TableScanState& scanState) {
+    // NOTE: tableMutex must be held by caller (for use inside detachDelete, etc.)
     return scanState.scanNext(transaction);
 }
 
@@ -176,27 +183,52 @@ static void throwRelMultiplicityConstraintError(const std::string& tableName, of
         std::to_string(nodeOffset), RelDirectionUtils::relDirectionToString(direction)));
 }
 
-void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
-    const TableInsertState& state) const {
+void RelTable::checkRelMultiplicityConstraintSafe(Transaction* transaction,
+    const TableInsertState& state, LocalTable* localTable) const {
     const auto& insertState = state.constCast<RelTableInsertState>();
     KU_ASSERT(insertState.srcNodeIDVector.state->getSelVector().getSelSize() == 1 &&
               insertState.dstNodeIDVector.state->getSelVector().getSelSize() == 1);
 
     for (auto& relData : directedRelData) {
-        if (relData->getMultiplicity() == RelMultiplicity::ONE) {
-            throwIfNodeHasRels(transaction, relData->getDirection(),
-                &insertState.getBoundNodeIDVector(relData->getDirection()),
-                throwRelMultiplicityConstraintError);
+        if (relData->getMultiplicity() != RelMultiplicity::ONE) {
+            continue;
         }
+
+        const auto direction = relData->getDirection();
+        auto* boundNodeVector = &insertState.getBoundNodeIDVector(direction);
+        const auto nodeIDPos = boundNodeVector->state->getSelVector()[0];
+        const auto nodeOffset = boundNodeVector->getValue<nodeID_t>(nodeIDPos).offset;
+
+        // Check 1: Local data (acquires LocalRelTable::tableMutex internally)
+        if (localTable && localTable->cast<LocalRelTable>().checkIfNodeHasRels(
+                boundNodeVector, direction)) {
+            throwRelMultiplicityConstraintError(tableName, nodeOffset, direction);
+        }
+
+        // Check 2: Persistent data (acquire tableMutex only for this check)
+        {
+            std::shared_lock<std::shared_mutex> lock(tableMutex);  // Level 2
+            if (relData->checkIfNodeHasRels(transaction, boundNodeVector)) {
+                throwRelMultiplicityConstraintError(tableName, nodeOffset, direction);
+            }
+        }  // Release tableMutex
     }
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
-    checkRelMultiplicityConstraint(transaction, insertState);
-
+    // Phase 1: Get LocalTable (acquires Level 5 briefly)
     KU_ASSERT(transaction->getLocalStorage());
     const auto localTable = transaction->getLocalStorage()->getOrCreateLocalTable(*this);
+    // Level 5 lock released here
+
+    // Phase 2: Check multiplicity constraints
+    // This helper acquires locks in correct order internally
+    checkRelMultiplicityConstraintSafe(transaction, insertState, localTable);
+
+    // Phase 3: Insert to local table (acquires LocalRelTable::tableMutex)
     localTable->insert(transaction, insertState);
+
+    // Phase 4: WAL logging (no locks needed)
     if (insertState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         const auto& relInsertState = insertState.cast<RelTableInsertState>();
@@ -210,25 +242,37 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
         wal.logTableInsertion(tableID, TableType::REL,
             relInsertState.srcNodeIDVector.state->getSelVector().getSelSize(), vectorsToLog);
     }
-    hasChanges = true;
+
+    hasChanges.store(true, std::memory_order_release);
 }
 
 void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
     const auto& relUpdateState = updateState.cast<RelTableUpdateState>();
     KU_ASSERT(relUpdateState.relIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDPos = relUpdateState.relIDVector.state->getSelVector()[0];
-    if (const auto relOffset = relUpdateState.relIDVector.readNodeOffset(relIDPos);
-        relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+    const auto relOffset = relUpdateState.relIDVector.readNodeOffset(relIDPos);
+
+    // Determine target BEFORE any locking
+    const bool isLocalUpdate = (relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE);
+
+    if (isLocalUpdate) {
+        // Path 1: Update local data (acquires Level 5 briefly, then LocalRelTable lock)
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         KU_ASSERT(localTable);
         localTable->update(&DUMMY_TRANSACTION, updateState);
+        // No tableMutex needed for local updates
     } else {
+        // Path 2: Update persistent data (acquires Level 2 only)
+        std::unique_lock<std::shared_mutex> lock(tableMutex);  // Level 2
         for (auto& relData : directedRelData) {
             relData->update(transaction,
                 relUpdateState.getBoundNodeIDVector(relData->getDirection()),
-                relUpdateState.relIDVector, relUpdateState.columnID, relUpdateState.propertyVector);
+                relUpdateState.relIDVector, relUpdateState.columnID,
+                relUpdateState.propertyVector);
         }
     }
+
+    // WAL logging
     if (updateState.logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         auto& wal = transaction->getLocalWAL();
@@ -236,20 +280,29 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
             &relUpdateState.dstNodeIDVector, &relUpdateState.relIDVector,
             &relUpdateState.propertyVector);
     }
-    hasChanges = true;
+
+    hasChanges.store(true, std::memory_order_release);
 }
 
 bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
     const auto& relDeleteState = deleteState.cast<RelTableDeleteState>();
     KU_ASSERT(relDeleteState.relIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDPos = relDeleteState.relIDVector.state->getSelVector()[0];
+    const auto relOffset = relDeleteState.relIDVector.readNodeOffset(relIDPos);
+
+    // Determine target BEFORE any locking
+    const bool isLocalDelete = (relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE);
+
     bool isDeleted = false;
-    if (const auto relOffset = relDeleteState.relIDVector.readNodeOffset(relIDPos);
-        relOffset >= StorageConstants::MAX_NUM_ROWS_IN_TABLE) {
+    if (isLocalDelete) {
+        // Path 1: Delete from local data (acquires Level 5 briefly, then LocalRelTable lock)
         const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
         KU_ASSERT(localTable);
         isDeleted = localTable->delete_(transaction, deleteState);
+        // No tableMutex needed
     } else {
+        // Path 2: Delete from persistent data (acquires Level 2 only)
+        std::unique_lock<std::shared_mutex> lock(tableMutex);  // Level 2
         for (auto& relData : directedRelData) {
             isDeleted = relData->delete_(transaction,
                 relDeleteState.getBoundNodeIDVector(relData->getDirection()),
@@ -259,8 +312,9 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
             }
         }
     }
+
     if (isDeleted) {
-        hasChanges = true;
+        hasChanges.store(true, std::memory_order_release);
         if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
             auto& wal = transaction->getLocalWAL();
@@ -272,18 +326,30 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 }
 
 void RelTable::detachDelete(Transaction* transaction, RelTableDeleteState* deleteState) {
+    // Phase 1: Get LocalTable reference FIRST (acquires Level 5 briefly)
+    LocalTable* localTable = nullptr;
+    if (transaction->getLocalStorage()) {
+        localTable = transaction->getLocalStorage()->getLocalTable(tableID);
+    }
+    // Level 5 lock released here
+
+    // Phase 2: Acquire tableMutex for persistent operations
+    std::unique_lock<std::shared_mutex> lock(tableMutex);  // Level 2
+
     auto direction = deleteState->detachDeleteDirection;
     if (std::ranges::count(getStorageDirections(), direction) == 0) {
         throw RuntimeException(
             stringFormat("Cannot delete edges of direction {} from table {} as they do not exist.",
                 RelDirectionUtils::relDirectionToString(direction), tableName));
     }
+
     KU_ASSERT(deleteState->srcNodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto tableData = getDirectedTableData(direction);
     const auto reverseTableData =
         directedRelData.size() == NUM_REL_DIRECTIONS ?
             getDirectedTableData(RelDirectionUtils::getOppositeDirection(direction)) :
             nullptr;
+
     auto relReadState =
         std::make_unique<RelTableScanState>(*memoryManager, &deleteState->srcNodeIDVector,
             std::vector{&deleteState->dstNodeIDVector, &deleteState->relIDVector},
@@ -291,14 +357,16 @@ void RelTable::detachDelete(Transaction* transaction, RelTableDeleteState* delet
     relReadState->setToTable(transaction, this, {NBR_ID_COLUMN_ID, REL_ID_COLUMN_ID}, {},
         direction);
     initScanState(transaction, *relReadState);
+
     detachDeleteForCSRRels(transaction, tableData, reverseTableData, relReadState.get(),
-        deleteState);
+                          deleteState, localTable);
+
     if (deleteState->logToWAL && transaction->shouldLogToWAL()) {
         KU_ASSERT(transaction->isWriteTransaction());
         auto& wal = transaction->getLocalWAL();
         wal.logRelDetachDelete(tableID, direction, &deleteState->srcNodeIDVector);
     }
-    hasChanges = true;
+    hasChanges.store(true, std::memory_order_release);
 }
 
 std::vector<RelDataDirection> RelTable::getStorageDirections() const {
@@ -311,20 +379,30 @@ std::vector<RelDataDirection> RelTable::getStorageDirections() const {
 
 bool RelTable::checkIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector) const {
-    bool hasRels = false;
-    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
-    if (localTable) {
-        hasRels = localTable->cast<LocalRelTable>().checkIfNodeHasRels(srcNodeIDVector, direction);
+    // Phase 1: Check local data first (acquires Level 5 briefly)
+    bool hasLocalRels = false;
+    if (auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
+        // getLocalTable() acquires Level 5, then releases it
+        hasLocalRels = localTable->cast<LocalRelTable>().checkIfNodeHasRels(
+            srcNodeIDVector, direction);
+        // checkIfNodeHasRels() acquires LocalRelTable::tableMutex
     }
-    hasRels = hasRels ||
-              getDirectedTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector);
-    return hasRels;
+
+    if (hasLocalRels) {
+        return true;  // Short-circuit: found rels in local data
+    }
+
+    // Phase 2: Check persistent data (acquires Level 2 AFTER Level 5)
+    std::shared_lock<std::shared_mutex> lock(tableMutex);  // Level 2
+    return getDirectedTableData(direction)->checkIfNodeHasRels(transaction, srcNodeIDVector);
 }
 
 void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection direction,
     ValueVector* srcNodeIDVector, const rel_multiplicity_constraint_throw_func_t& throwFunc) const {
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
+
+    // Use the already-fixed checkIfNodeHasRels() which handles lock ordering correctly
     if (checkIfNodeHasRels(transaction, direction, srcNodeIDVector)) {
         throwFunc(tableName, nodeOffset, direction);
     }
@@ -332,10 +410,12 @@ void RelTable::throwIfNodeHasRels(Transaction* transaction, RelDataDirection dir
 
 void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* tableData,
     RelTableData* reverseTableData, RelTableScanState* relDataReadState,
-    RelTableDeleteState* deleteState) {
-    const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID);
+    RelTableDeleteState* deleteState, LocalTable* localTable) {
+    // NOTE: tableMutex is already held by detachDelete()
+    // localTable was fetched BEFORE tableMutex acquisition - NO VIOLATION
+
     const auto tempState = deleteState->dstNodeIDVector.state.get();
-    while (scan(transaction, *relDataReadState)) {
+    while (scanInternalUnsafe(transaction, *relDataReadState)) {
         const auto numRelsScanned = tempState->getSelVector().getSelSize();
 
         // rel table data delete_() expects the input to be flat
@@ -372,17 +452,26 @@ void RelTable::detachDeleteForCSRRels(Transaction* transaction, RelTableData* ta
 
 void RelTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
     PageAllocator& pageAllocator) {
+    // Phase 1: Get LocalTable reference FIRST (acquires Level 5 briefly)
     LocalTable* localTable = nullptr;
     if (transaction->getLocalStorage()) {
         localTable = transaction->getLocalStorage()->getLocalTable(tableID);
     }
+    // Level 5 lock released here
+
+    // Phase 2: Update local table (if exists)
     if (localTable) {
         localTable->addColumn(addColumnState);
+        // ↑ Acquires LocalRelTable::tableMutex
     }
+
+    // Phase 3: Acquire tableMutex for persistent operations
+    std::unique_lock<std::shared_mutex> lock(tableMutex);  // Level 2 AFTER Level 5
     for (auto& directedRelData : directedRelData) {
         directedRelData->addColumn(addColumnState, pageAllocator);
     }
-    hasChanges = true;
+
+    hasChanges.store(true, std::memory_order_release);
 }
 
 RelTableData* RelTable::getDirectedTableData(RelDataDirection direction) const {
@@ -413,6 +502,10 @@ void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntr
         localTable->clear(*MemoryManager::Get(*context));
         return;
     }
+
+    // Acquire tableMutex for persistent operations (Level 2 AFTER Level 5 from LocalStorage::commit)
+    std::unique_lock<std::shared_mutex> lock(tableMutex);
+
     // Update relID in local storage.
     updateRelOffsets(localRelTable);
     // For both forward and backward directions, re-org local storage into compact CSR node groups.
@@ -503,8 +596,8 @@ void RelTable::prepareCommitForNodeGroup(const Transaction* transaction,
 
 bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry,
     PageAllocator& pageAllocator) {
-    bool ret = hasChanges;
-    if (hasChanges) {
+    bool ret = hasChanges.load(std::memory_order_acquire);
+    if (ret) {
         // Deleted columns are vacuumed and not checkpointed or serialized.
         std::vector<column_id_t> columnIDs;
         columnIDs.push_back(0);
@@ -514,7 +607,7 @@ bool RelTable::checkpoint(main::ClientContext*, TableCatalogEntry* tableEntry,
         for (auto& directedRelData : directedRelData) {
             directedRelData->checkpoint(columnIDs, pageAllocator);
         }
-        hasChanges = false;
+        hasChanges.store(false, std::memory_order_release);
     }
     return ret;
 }
