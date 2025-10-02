@@ -1,7 +1,5 @@
 #pragma once
 
-#include <shared_mutex>
-
 #include "common/types/types.h"
 #include "storage/index/hash_index.h"
 #include "storage/table/node_group_collection.h"
@@ -226,11 +224,6 @@ private:
     common::column_id_t pkColumnID;
     std::vector<IndexHolder> indexes;
     NodeTableVersionRecordHandler versionRecordHandler;
-
-    // Protects concurrent access to table operations
-    // Read operations use shared_lock (multiple readers allowed)
-    // Write operations use unique_lock (exclusive access)
-    mutable std::shared_mutex tableMutex;
 };
 
 } // namespace storage

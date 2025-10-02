@@ -167,8 +167,6 @@ void RelTable::initScanState(Transaction* transaction, TableScanState& scanState
 }
 
 bool RelTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
-    // Read operation: Use shared lock (multiple threads can scan concurrently)
-    std::shared_lock<std::shared_mutex> lock(tableMutex);
     return scanState.scanNext(transaction);
 }
 
@@ -194,8 +192,6 @@ void RelTable::checkRelMultiplicityConstraint(Transaction* transaction,
 }
 
 void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
-    // Write operation: Use unique lock (exclusive access)
-    std::unique_lock<std::shared_mutex> lock(tableMutex);
     checkRelMultiplicityConstraint(transaction, insertState);
 
     KU_ASSERT(transaction->getLocalStorage());
@@ -218,8 +214,6 @@ void RelTable::insert(Transaction* transaction, TableInsertState& insertState) {
 }
 
 void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
-    // Write operation: Use unique lock (exclusive access)
-    std::unique_lock<std::shared_mutex> lock(tableMutex);
     const auto& relUpdateState = updateState.cast<RelTableUpdateState>();
     KU_ASSERT(relUpdateState.relIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDPos = relUpdateState.relIDVector.state->getSelVector()[0];
@@ -246,8 +240,6 @@ void RelTable::update(Transaction* transaction, TableUpdateState& updateState) {
 }
 
 bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
-    // Write operation: Use unique lock (exclusive access)
-    std::unique_lock<std::shared_mutex> lock(tableMutex);
     const auto& relDeleteState = deleteState.cast<RelTableDeleteState>();
     KU_ASSERT(relDeleteState.relIDVector.state->getSelVector().getSelSize() == 1);
     const auto relIDPos = relDeleteState.relIDVector.state->getSelVector()[0];
@@ -280,8 +272,6 @@ bool RelTable::delete_(Transaction* transaction, TableDeleteState& deleteState) 
 }
 
 void RelTable::detachDelete(Transaction* transaction, RelTableDeleteState* deleteState) {
-    // Write operation: Use unique lock (exclusive access)
-    std::unique_lock<std::shared_mutex> lock(tableMutex);
     auto direction = deleteState->detachDeleteDirection;
     if (std::ranges::count(getStorageDirections(), direction) == 0) {
         throw RuntimeException(
@@ -418,8 +408,6 @@ void RelTable::pushInsertInfo(const Transaction* transaction, RelDataDirection d
 
 void RelTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntry,
     LocalTable* localTable) {
-    // Write operation: Use unique lock (exclusive access)
-    std::unique_lock<std::shared_mutex> lock(tableMutex);
     auto& localRelTable = localTable->cast<LocalRelTable>();
     if (localRelTable.isEmpty()) {
         localTable->clear(*MemoryManager::Get(*context));

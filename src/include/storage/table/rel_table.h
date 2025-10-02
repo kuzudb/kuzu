@@ -1,7 +1,5 @@
 #pragma once
 
-#include <shared_mutex>
-
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "storage/table/rel_table_data.h"
 #include "storage/table/table.h"
@@ -251,11 +249,6 @@ private:
     std::mutex relOffsetMtx;
     common::offset_t nextRelOffset;
     std::vector<std::unique_ptr<RelTableData>> directedRelData;
-
-    // Protects concurrent access to table operations
-    // Read operations use shared_lock (multiple readers allowed)
-    // Write operations use unique_lock (exclusive access)
-    mutable std::shared_mutex tableMutex;
 };
 
 } // namespace storage
