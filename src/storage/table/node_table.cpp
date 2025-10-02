@@ -251,6 +251,8 @@ NodeTable::NodeTable(const StorageManager* storageManager,
 }
 
 row_idx_t NodeTable::getNumTotalRows(const Transaction* transaction) {
+    // Read operation: Use shared lock (multiple readers allowed)
+    std::shared_lock<std::shared_mutex> lock(tableMutex);
     auto numLocalRows = 0u;
     if (transaction && transaction->getLocalStorage()) {
         if (const auto localTable = transaction->getLocalStorage()->getLocalTable(tableID)) {
@@ -298,6 +300,8 @@ void NodeTable::initScanState(Transaction* transaction, TableScanState& scanStat
 }
 
 bool NodeTable::scanInternal(Transaction* transaction, TableScanState& scanState) {
+    // Read operation: Use shared lock (multiple threads can scan concurrently)
+    std::shared_lock<std::shared_mutex> lock(tableMutex);
     scanState.resetOutVectors();
     return scanState.scanNext(transaction);
 }
@@ -417,6 +421,8 @@ void NodeTable::initInsertState(main::ClientContext* context, TableInsertState& 
 }
 
 void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) {
+    // Write operation: Use unique lock (exclusive access)
+    std::unique_lock<std::shared_mutex> lock(tableMutex);
     const auto& nodeInsertState = insertState.cast<NodeTableInsertState>();
     auto& nodeIDSelVector = nodeInsertState.nodeIDVector.state->getSelVector();
     KU_ASSERT(nodeInsertState.propertyVectors[0]->state->getSelVector().getSelSize() == 1);
@@ -464,6 +470,8 @@ void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& 
 }
 
 void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) {
+    // Write operation: Use unique lock (exclusive access)
+    std::unique_lock<std::shared_mutex> lock(tableMutex);
     // NOTE: We assume all inputs are flattened now. This is to simplify the implementation.
     // We should optimize this to take unflattened input later.
     auto& nodeUpdateState = updateState.constCast<NodeTableUpdateState>();
@@ -508,6 +516,8 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
 }
 
 bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
+    // Write operation: Use unique lock (exclusive access)
+    std::unique_lock<std::shared_mutex> lock(tableMutex);
     const auto& nodeDeleteState = ku_dynamic_cast<NodeTableDeleteState&>(deleteState);
     KU_ASSERT(nodeDeleteState.nodeIDVector.state->getSelVector().getSelSize() == 1);
     const auto pos = nodeDeleteState.nodeIDVector.state->getSelVector()[0];
@@ -547,6 +557,8 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
 
 void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColumnState,
     PageAllocator& pageAllocator) {
+    // Write operation: Use unique lock (exclusive access)
+    std::unique_lock<std::shared_mutex> lock(tableMutex);
     auto& definition = addColumnState.propertyDefinition;
     columns.push_back(ColumnFactory::createColumn(definition.getName(), definition.getType().copy(),
         pageAllocator.getDataFH(), memoryManager, shadowFile, enableCompression));
@@ -580,6 +592,8 @@ DataChunk NodeTable::constructDataChunkForColumns(const std::vector<column_id_t>
 
 void NodeTable::commit(main::ClientContext* context, TableCatalogEntry* tableEntry,
     LocalTable* localTable) {
+    // Write operation: Use unique lock (exclusive access)
+    std::unique_lock<std::shared_mutex> lock(tableMutex);
     const auto startNodeOffset = nodeGroups->getNumTotalRows();
     auto& localNodeTable = localTable->cast<LocalNodeTable>();
 
@@ -714,6 +728,8 @@ TableStats NodeTable::getStats(const Transaction* transaction) const {
 }
 
 bool NodeTable::isVisible(const Transaction* transaction, offset_t offset) const {
+    // Read operation: Use shared lock (multiple readers allowed)
+    std::shared_lock<std::shared_mutex> lock(tableMutex);
     auto [nodeGroupIdx, offsetInGroup] = StorageUtils::getNodeGroupIdxAndOffsetInChunk(offset);
     const auto* nodeGroup = getNodeGroup(nodeGroupIdx);
     return nodeGroup->isVisible(transaction, offsetInGroup);
