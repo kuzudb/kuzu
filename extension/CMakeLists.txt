@@ -7,16 +7,30 @@ endfunction()
 include(extension_config.cmake)
 set(STATICALLY_LINKED_EXTENSIONS "${STATICALLY_LINKED_EXTENSIONS}" PARENT_SCOPE)
 
+option(EXTENSION_OUTPUT_DIR "Output directory for binary extensions. If unset, defaults to src/extension/*/build" OFF)
+
 function(set_extension_properties target_name output_name extension_name)
-    set_target_properties(${target_name}
-            PROPERTIES
-            ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
-            LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
-            RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
-            OUTPUT_NAME ${output_name}
-            PREFIX "lib"
-            SUFFIX ".kuzu_extension"
-    )
+    if (EXISTS ${EXTENSION_OUTPUT_DIR})
+        set_target_properties(${target_name}
+                PROPERTIES
+                ARCHIVE_OUTPUT_DIRECTORY "${EXTENSION_OUTPUT_DIR}"
+                LIBRARY_OUTPUT_DIRECTORY "${EXTENSION_OUTPUT_DIR}"
+                RUNTIME_OUTPUT_DIRECTORY "${EXTENSION_OUTPUT_DIR}"
+                OUTPUT_NAME ${output_name}
+                PREFIX "lib"
+                SUFFIX ".kuzu_extension"
+        )
+    else()
+        set_target_properties(${target_name}
+                PROPERTIES
+                ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
+                LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
+                RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
+                OUTPUT_NAME ${output_name}
+                PREFIX "lib"
+                SUFFIX ".kuzu_extension"
+        )
+    endif()
 endfunction()
 
 function(set_apple_dynamic_lookup target_name)
