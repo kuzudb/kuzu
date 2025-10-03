@@ -385,6 +385,33 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
     }
 
     extension_tests! {
-        fts, duckdb, httpfs, postgres, sqlite, json, delta, iceberg, vector,
+        azure, delta, duckdb, fts, httpfs, iceberg, json, llm, postgres, sqlite, unity_catalog, vector, neo4j, algo,
+    }
+
+    mod static_extension {
+        use crate::database::SYSTEM_CONFIG_FOR_TESTS;
+        use crate::{Connection, Database};
+        use anyhow::Result;
+
+        macro_rules! static_extension_tests {
+            ($($name:ident, $literal:expr,)*) => {
+            $(
+                #[test]
+                #[cfg(feature = $literal)]
+                fn $name() -> Result<()> {
+                    let temp_dir = tempfile::tempdir()?;
+                    let db = Database::new(temp_dir.path().join("testdb"), SYSTEM_CONFIG_FOR_TESTS)?;
+                    let conn = Connection::new(&db)?;
+                    let name = stringify!($name);
+                    conn.query(&format!("LOAD EXTENSION {}", name))?;
+                    Ok(())
+                }
+            )*
+            }
+        }
+
+        static_extension_tests! {
+            algo, "algo", fts, "fts", httpfs, "httpfs", json, "json", vector, "vector", llm, "llm", neo4j, "neo4j",
+        }
     }
 }

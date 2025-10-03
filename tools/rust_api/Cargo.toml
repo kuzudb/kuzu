@@ -45,8 +45,26 @@ tempfile = "3"
 time = { version = "0.3", features = ["macros"] }
 
 [features]
-default = []
+default = ["algo", "fts", "json", "vector"]
 arrow = ["dep:arrow"]
+# Extensions. If enabled, they will be built into the library
+algo = []
+fts = []
+json = []
+vector = []
+httpfs = []
+llm = []
+neo4j = []
+# Duckdb and dependent extensions don't appear to be statically linkable due to linking some of the
+# same third_party symbols
+# duckdb = []
+# azure = []
+# delta = []
+# iceberg = []
+# postgres = []
+# sqlite = []
+# unity_catalog = []
+
 extension_tests = []
 
 [package.metadata.docs.rs]
