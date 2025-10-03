@@ -3,6 +3,7 @@
 #include <map>
 #include <mutex>
 #include <shared_mutex>
+#include <unordered_map>
 
 #include "common/enums/rel_direction.h"
 #include "storage/local_storage/local_table.h"
@@ -87,9 +88,8 @@ public:
     // This is only safe during commit/rollback when LocalStorage holds tablesMutex.
     // TODO: Replace with a thread-safe iterator method.
     DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) {
-        const auto directionIdx = common::RelDirectionUtils::relDirectionToKeyIdx(direction);
-        KU_ASSERT(directionIdx < directedIndices.size());
-        return directedIndices[directionIdx].index;
+        KU_ASSERT(directedIndices.contains(direction));
+        return directedIndices.at(direction).index;
     }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 
@@ -108,7 +108,7 @@ private:
     // [srcNodeID, dstNodeID, relID, property1, property2, ...]
     // All local rel tuples are stored in a single node group, and they are indexed by src/dst
     // NodeID.
-    std::vector<DirectedCSRIndex> directedIndices;
+    std::unordered_map<common::RelDataDirection, DirectedCSRIndex> directedIndices;
     std::unique_ptr<NodeGroup> localNodeGroup;
 
     // Protects concurrent access to LocalRelTable operations

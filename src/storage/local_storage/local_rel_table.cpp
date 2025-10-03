@@ -32,7 +32,7 @@ LocalRelTable::LocalRelTable(const catalog::TableCatalogEntry* tableEntry, const
         getTypesForLocalRelTable(*tableEntry), INVALID_ROW_IDX);
     const auto& relTable = table.cast<RelTable>();
     for (auto relDirection : relTable.getStorageDirections()) {
-        directedIndices.emplace_back(relDirection);
+        directedIndices.emplace(relDirection, DirectedCSRIndex(relDirection));
     }
 }
 
@@ -41,8 +41,8 @@ bool LocalRelTable::insert(Transaction*, TableInsertState& state) {
     const auto& insertState = state.cast<RelTableInsertState>();
 
     std::vector<row_idx_vec_t*> rowIndicesToInsertTo;
-    for (auto& directedIndex : directedIndices) {
-        const auto& nodeIDVector = insertState.getBoundNodeIDVector(directedIndex.direction);
+    for (auto& [direction, directedIndex] : directedIndices) {
+        const auto& nodeIDVector = insertState.getBoundNodeIDVector(direction);
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
         if (nodeIDVector.isNull(nodePos)) {
@@ -81,8 +81,8 @@ bool LocalRelTable::update(Transaction* transaction, TableUpdateState& state) {
     const auto& updateState = state.cast<RelTableUpdateState>();
 
     std::vector<row_idx_vec_t*> rowIndicesToUpdate;
-    for (auto& directedIndex : directedIndices) {
-        const auto& nodeIDVector = updateState.getBoundNodeIDVector(directedIndex.direction);
+    for (auto& [direction, directedIndex] : directedIndices) {
+        const auto& nodeIDVector = updateState.getBoundNodeIDVector(direction);
         KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector.state->getSelVector()[0];
         if (nodeIDVector.isNull(nodePos)) {
@@ -113,38 +113,30 @@ bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
     std::lock_guard<std::mutex> lock(tableMutex);
     const auto& deleteState = state.cast<RelTableDeleteState>();
 
-    // Bounds check before accessing directedIndices array
-    auto directedIndexPos =
-        RelDirectionUtils::relDirectionToKeyIdx(deleteState.detachDeleteDirection);
-    if (directedIndexPos >= directedIndices.size()) {
-        // Direction not initialized yet (can happen during HNSW index creation)
-        return false;
-    }
-
-    auto reverseDirectedIndexPos = RelDirectionUtils::relDirectionToKeyIdx(
-        RelDirectionUtils::getOppositeDirection(deleteState.detachDeleteDirection));
-    if (reverseDirectedIndexPos >= directedIndices.size()) {
-        // Reverse direction not initialized yet
-        return false;
-    }
-
     std::vector<row_idx_vec_t*> rowIndicesToDeleteFrom;
-    auto& directedIndex = directedIndices[directedIndexPos];
-    auto& reverseDirectedIndex = directedIndices[reverseDirectedIndexPos];
-    std::vector<std::pair<DirectedCSRIndex&, ValueVector&>> directedIndicesAndNodeIDVectors;
+    const auto direction = deleteState.detachDeleteDirection;
+    const auto reverseDirection = RelDirectionUtils::getOppositeDirection(direction);
 
-    directedIndicesAndNodeIDVectors.emplace_back(directedIndex, deleteState.srcNodeIDVector);
-    directedIndicesAndNodeIDVectors.emplace_back(reverseDirectedIndex,
-        deleteState.dstNodeIDVector);
+    std::vector<std::pair<DirectedCSRIndex*, ValueVector*>> directedIndicesAndNodeIDVectors;
+
+    // Only access directions that actually exist in the map
+    if (directedIndices.contains(direction)) {
+        directedIndicesAndNodeIDVectors.emplace_back(
+            &directedIndices.at(direction), &deleteState.srcNodeIDVector);
+    }
+    if (directedIndices.contains(reverseDirection)) {
+        directedIndicesAndNodeIDVectors.emplace_back(
+            &directedIndices.at(reverseDirection), &deleteState.dstNodeIDVector);
+    }
     for (auto& [csrIndex, nodeIDVector] : directedIndicesAndNodeIDVectors) {
-        KU_ASSERT(nodeIDVector.state->getSelVector().getSelSize() == 1);
-        auto nodePos = nodeIDVector.state->getSelVector()[0];
-        if (nodeIDVector.isNull(nodePos)) {
+        KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
+        auto nodePos = nodeIDVector->state->getSelVector()[0];
+        if (nodeIDVector->isNull(nodePos)) {
             return false;
         }
-        auto nodeOffset = nodeIDVector.readNodeOffset(nodePos);
-        KU_ASSERT(csrIndex.index.contains(nodeOffset));
-        rowIndicesToDeleteFrom.push_back(&csrIndex.index[nodeOffset]);
+        auto nodeOffset = nodeIDVector->readNodeOffset(nodePos);
+        KU_ASSERT(csrIndex->index.contains(nodeOffset));
+        rowIndicesToDeleteFrom.push_back(&csrIndex->index[nodeOffset]);
     }
 
     const auto relIDPos = deleteState.relIDVector.state->getSelVector()[0];
@@ -177,13 +169,12 @@ bool LocalRelTable::checkIfNodeHasRels(ValueVector* srcNodeIDVector,
     const auto nodeIDPos = srcNodeIDVector->state->getSelVector()[0];
     const auto nodeOffset = srcNodeIDVector->getValue<nodeID_t>(nodeIDPos).offset;
 
-    // Bounds check before accessing directedIndices array
-    const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(direction);
-    if (directionIdx >= directedIndices.size()) {
+    // Check if this direction exists in the map
+    if (!directedIndices.contains(direction)) {
         return false;
     }
 
-    const auto& directedIndex = directedIndices[directionIdx].index;
+    const auto& directedIndex = directedIndices.at(direction).index;
     return (directedIndex.contains(nodeOffset) && !directedIndex.at(nodeOffset).empty());
 }
 
@@ -220,9 +211,8 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
     KU_ASSERT(relScanState.localTableScanState);
     auto& localScanState = *relScanState.localTableScanState;
 
-    // Bounds check for directedIndices
-    const auto directionIdx = RelDirectionUtils::relDirectionToKeyIdx(relScanState.direction);
-    if (directionIdx >= directedIndices.size()) {
+    // Check if this direction exists in the map
+    if (!directedIndices.contains(relScanState.direction)) {
         return false;
     }
 
@@ -233,7 +223,7 @@ bool LocalRelTable::scan(const Transaction* transaction, TableScanState& state) 
         const auto boundNodePos =
             relScanState.cachedBoundNodeSelVector[relScanState.currBoundNodeIdx];
         const auto boundNodeOffset = relScanState.nodeIDVector->readNodeOffset(boundNodePos);
-        auto& localCSRIndex = directedIndices[directionIdx].index;
+        auto& localCSRIndex = directedIndices.at(relScanState.direction).index;
         if (localScanState.rowIndices.empty() && localCSRIndex.contains(boundNodeOffset)) {
             localScanState.rowIndices = localCSRIndex.at(boundNodeOffset);
             localScanState.nextRowToScan = 0;
@@ -281,17 +271,21 @@ static std::unique_ptr<RelTableScanState> setupLocalTableScanState(DataChunk& sc
 void LocalRelTable::clear(MemoryManager&) {
     std::lock_guard<std::mutex> lock(tableMutex);
     localNodeGroup.reset();
-    for (auto& index : directedIndices) {
+    for (auto& [_, index] : directedIndices) {
         index.clear();
     }
 }
 
 bool LocalRelTable::isEmpty() const {
     std::lock_guard<std::mutex> lock(tableMutex);
-    KU_ASSERT(directedIndices.size() >= 1);
-    // Note: Cannot use RUNTIME_CHECK with range-based for loop across directedIndices
-    // while holding lock, as it creates TOCTOU race. Check only first index.
-    return directedIndices[0].isEmpty();
+    KU_ASSERT(!directedIndices.empty());
+    // Check if all indices are empty (should be consistent)
+    for (const auto& [_, index] : directedIndices) {
+        if (!index.isEmpty()) {
+            return false;
+        }
+    }
+    return true;
 }
 
 row_idx_t LocalRelTable::findMatchingRow(const Transaction* transaction,
