@@ -1,6 +1,8 @@
 use std::env;
 use std::path::{Path, PathBuf};
 
+const EXTENSIONS: &[&str; 7] = &["fts", "httpfs", "json", "llm", "vector", "neo4j", "algo"];
+
 fn link_mode() -> &'static str {
     if env::var("KUZU_SHARED").is_ok() {
         "dylib"
@@ -38,6 +40,11 @@ fn link_libraries() {
             println!("cargo:rustc-link-lib=dylib=stdc++");
         }
 
+        if cfg!(feature = "httpfs") {
+            println!("cargo:rustc-link-lib=dylib=ssl");
+            println!("cargo:rustc-link-lib=dylib=crypto");
+        }
+
         for lib in [
             "utf8proc",
             "antlr4_cypher",
@@ -55,11 +62,32 @@ fn link_libraries() {
             "lz4",
             "roaring_bitmap",
             "simsimd",
+            "yyjson",
         ] {
             if rustversion::cfg!(since(1.82)) {
                 println!("cargo:rustc-link-lib=static:+whole-archive={lib}");
             } else {
                 println!("cargo:rustc-link-lib=static={lib}");
+            }
+        }
+    }
+    if cfg!(feature = "fts") {
+        if rustversion::cfg!(since(1.82)) {
+            println!("cargo:rustc-link-lib=static:+whole-archive=snowball");
+        } else {
+            println!("cargo:rustc-link-lib=static=snowball");
+        }
+    }
+    for extension in EXTENSIONS {
+        if std::env::var(format!("CARGO_FEATURE_{}", extension.to_uppercase())).is_ok() {
+            if rustversion::cfg!(since(1.82)) {
+                println!(
+                    "cargo:rustc-link-lib=static:+whole-archive,+verbatim=lib{extension}_static.kuzu_extension"
+                );
+            } else {
+                println!(
+                    "cargo:rustc-link-lib=static:+verbatim=lib{extension}_static.kuzu_extension"
+                );
             }
         }
     }
@@ -92,6 +120,14 @@ fn build_bundled_cmake() -> Vec<PathBuf> {
     if let Ok(jobs) = std::env::var("NUM_JOBS") {
         std::env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", jobs);
     }
+    let mut enabled_extensions = vec![];
+    for extension in EXTENSIONS {
+        if std::env::var(format!("CARGO_FEATURE_{}", extension.to_uppercase())).is_ok() {
+            enabled_extensions.push(*extension);
+        }
+    }
+    build.define("STATICALLY_LINKED_EXTENSIONS", enabled_extensions.join(";"));
+
     let build_dir = build.build();
 
     let kuzu_lib_path = build_dir.join("build").join("src");
@@ -114,6 +150,7 @@ fn build_bundled_cmake() -> Vec<PathBuf> {
         "lz4",
         "roaring_bitmap",
         "simsimd",
+        "yyjson",
     ] {
         let lib_path = build_dir
             .join("build")
@@ -127,6 +164,65 @@ fn build_bundled_cmake() -> Vec<PathBuf> {
                     dir
                 )
             });
+        println!("cargo:rustc-link-search=native={}", lib_path.display());
+    }
+
+    for dir in [
+        "utf8proc",
+        "antlr4_cypher",
+        "antlr4_runtime",
+        "re2",
+        "brotli",
+        "alp",
+        "fastpfor",
+        "parquet",
+        "thrift",
+        "snappy",
+        "zstd",
+        "miniz",
+        "mbedtls",
+        "lz4",
+        "roaring_bitmap",
+        "simsimd",
+        "yyjson",
+    ] {
+        let lib_path = build_dir
+            .join("build")
+            .join("third_party")
+            .join(dir)
+            .canonicalize()
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Could not find {}/build/third_party/{}",
+                    build_dir.display(),
+                    dir
+                )
+            });
+        println!("cargo:rustc-link-search=native={}", lib_path.display());
+    }
+
+    for extension in EXTENSIONS {
+        let lib_path = kuzu_root.join("extension").join(extension).join("build");
+        if lib_path.exists() {
+            println!("cargo:rustc-link-search=native={}", lib_path.display());
+        }
+    }
+
+    if cfg!(feature = "fts") {
+        let lib_path = build_dir
+            .join("build")
+            .join("extension")
+            .join("fts")
+            .join("third_party")
+            .join("snowball")
+            .canonicalize()
+            .unwrap_or_else(|_| {
+                panic!(
+                    "Could not find {}/build/extension/fts/third_party/snowball",
+                    build_dir.display(),
+                )
+            });
+
         println!("cargo:rustc-link-search=native={}", lib_path.display());
     }
 

@@ -36,7 +36,7 @@ pub(crate) mod ffi {
         type StringView<'a> = crate::ffi::StringView<'a>;
 
         #[namespace = "kuzu_rs"]
-        fn string_view_from_str(s: &str) -> StringView;
+        fn string_view_from_str(s: &str) -> StringView<'_>;
     }
 
     // From types.h
