@@ -1,5 +1,7 @@
 #pragma once
 
+#include <shared_mutex>
+
 #include "catalog/catalog_entry/rel_group_catalog_entry.h"
 #include "storage/table/rel_table_data.h"
 #include "storage/table/table.h"
@@ -237,10 +239,13 @@ private:
 
     void detachDeleteForCSRRels(transaction::Transaction* transaction, RelTableData* tableData,
         RelTableData* reverseTableData, RelTableScanState* relDataReadState,
-        RelTableDeleteState* deleteState);
+        RelTableDeleteState* deleteState, LocalTable* localTable);
 
-    void checkRelMultiplicityConstraint(transaction::Transaction* transaction,
-        const TableInsertState& state) const;
+    void checkRelMultiplicityConstraintSafe(transaction::Transaction* transaction,
+        const TableInsertState& state, LocalTable* localTable) const;
+
+    // Internal scan without lock - for use when tableMutex is already held
+    bool scanInternalUnsafe(transaction::Transaction* transaction, TableScanState& scanState);
 
 private:
     common::table_id_t relGroupID;
@@ -249,6 +254,11 @@ private:
     std::mutex relOffsetMtx;
     common::offset_t nextRelOffset;
     std::vector<std::unique_ptr<RelTableData>> directedRelData;
+
+    // Protects concurrent access to table operations
+    // Read operations use shared_lock (multiple readers allowed)
+    // Write operations use unique_lock (exclusive access)
+    mutable std::shared_mutex tableMutex;
 };
 
 } // namespace storage

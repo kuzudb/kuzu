@@ -1,6 +1,9 @@
 #pragma once
 
 #include <map>
+#include <mutex>
+#include <shared_mutex>
+#include <unordered_map>
 
 #include "common/enums/rel_direction.h"
 #include "storage/local_storage/local_table.h"
@@ -23,7 +26,25 @@ struct DirectedCSRIndex {
 
     explicit DirectedCSRIndex(common::RelDataDirection direction) : direction(direction) {}
 
+    // Move constructor
+    DirectedCSRIndex(DirectedCSRIndex&& other) noexcept
+        : direction(other.direction), index(std::move(other.index)) {}
+
+    // Move assignment operator
+    DirectedCSRIndex& operator=(DirectedCSRIndex&& other) noexcept {
+        if (this != &other) {
+            direction = other.direction;
+            index = std::move(other.index);
+        }
+        return *this;
+    }
+
+    // Delete copy constructor and copy assignment
+    DirectedCSRIndex(const DirectedCSRIndex&) = delete;
+    DirectedCSRIndex& operator=(const DirectedCSRIndex&) = delete;
+
     bool isEmpty() const { return index.empty(); }
+
     void clear() { index.clear(); }
 
     common::RelDataDirection direction;
@@ -49,28 +70,19 @@ public:
     static void initializeScan(TableScanState& state);
     bool scan(const transaction::Transaction* transaction, TableScanState& state) const;
 
-    void clear(MemoryManager&) override {
-        localNodeGroup.reset();
-        for (auto& index : directedIndices) {
-            index.clear();
-        }
-    }
-    bool isEmpty() const {
-        KU_ASSERT(directedIndices.size() >= 1);
-        RUNTIME_CHECK(for (const auto& index
-                           : directedIndices) {
-            KU_ASSERT(index.index.empty() == directedIndices[0].index.empty());
-        });
-        return directedIndices[0].isEmpty();
-    }
+    void clear(MemoryManager&) override;
+    bool isEmpty() const;
 
     common::column_id_t getNumColumns() const { return localNodeGroup->getDataTypes().size(); }
     common::row_idx_t getNumTotalRows() override { return localNodeGroup->getNumRows(); }
 
+    // WARNING: This method returns a non-const reference to the internal index without
+    // acquiring tableMutex. The caller MUST ensure exclusive access to this LocalRelTable.
+    // This is only safe during commit/rollback when LocalStorage holds tablesMutex.
+    // TODO: Replace with a thread-safe iterator method.
     DirectedCSRIndex::index_t& getCSRIndex(common::RelDataDirection direction) {
-        const auto directionIdx = common::RelDirectionUtils::relDirectionToKeyIdx(direction);
-        KU_ASSERT(directionIdx < directedIndices.size());
-        return directedIndices[directionIdx].index;
+        KU_ASSERT(directedIndices.contains(direction));
+        return directedIndices.at(direction).index;
     }
     NodeGroup& getLocalNodeGroup() const { return *localNodeGroup; }
 
@@ -89,8 +101,11 @@ private:
     // [srcNodeID, dstNodeID, relID, property1, property2, ...]
     // All local rel tuples are stored in a single node group, and they are indexed by src/dst
     // NodeID.
-    std::vector<DirectedCSRIndex> directedIndices;
+    std::unordered_map<common::RelDataDirection, DirectedCSRIndex> directedIndices;
     std::unique_ptr<NodeGroup> localNodeGroup;
+
+    // Protects concurrent access to LocalRelTable operations
+    mutable std::mutex tableMutex;
 };
 
 } // namespace storage

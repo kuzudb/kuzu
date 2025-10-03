@@ -443,7 +443,7 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
             nodeInsertState.nodeIDVector.state->getSelVector().getSelSize(),
             insertState.propertyVectors);
     }
-    hasChanges = true;
+    hasChanges.store(true, std::memory_order_release);
 }
 
 void NodeTable::initUpdateState(main::ClientContext* context, TableUpdateState& updateState) const {
@@ -504,7 +504,7 @@ void NodeTable::update(Transaction* transaction, TableUpdateState& updateState) 
         wal.logNodeUpdate(tableID, nodeUpdateState.columnID, nodeOffset,
             &nodeUpdateState.propertyVector);
     }
-    hasChanges = true;
+    hasChanges.store(true, std::memory_order_release);
 }
 
 bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState) {
@@ -535,7 +535,7 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
         }
     }
     if (isDeleted) {
-        hasChanges = true;
+        hasChanges.store(true, std::memory_order_release);
         if (deleteState.logToWAL && transaction->shouldLogToWAL()) {
             KU_ASSERT(transaction->isWriteTransaction());
             auto& wal = transaction->getLocalWAL();
@@ -558,13 +558,13 @@ void NodeTable::addColumn(Transaction* transaction, TableAddColumnState& addColu
         localTable->addColumn(addColumnState);
     }
     nodeGroups->addColumn(addColumnState, &pageAllocator);
-    hasChanges = true;
+    hasChanges.store(true, std::memory_order_release);
 }
 
 std::pair<offset_t, offset_t> NodeTable::appendToLastNodeGroup(Transaction* transaction,
     const std::vector<column_id_t>& columnIDs, InMemChunkedNodeGroup& chunkedGroup,
     PageAllocator& pageAllocator) {
-    hasChanges = true;
+    hasChanges.store(true, std::memory_order_release);
     return nodeGroups->appendToLastNodeGroupAndFlushWhenFull(transaction, columnIDs, chunkedGroup,
         pageAllocator);
 }
@@ -650,8 +650,8 @@ visible_func NodeTable::getVisibleFunc(const Transaction* transaction) const {
 
 bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tableEntry,
     PageAllocator& pageAllocator) {
-    const bool ret = hasChanges;
-    if (hasChanges) {
+    const bool ret = hasChanges.load(std::memory_order_acquire);
+    if (ret) {
         // Deleted columns are vacuumed and not checkpointed.
         std::vector<std::unique_ptr<Column>> checkpointColumns;
         std::vector<column_id_t> columnIDs;
@@ -674,7 +674,7 @@ bool NodeTable::checkpoint(main::ClientContext* context, TableCatalogEntry* tabl
             index.checkpoint(context, pageAllocator);
         }
         tableEntry->vacuumColumnIDs(0 /*nextColumnID*/);
-        hasChanges = false;
+        hasChanges.store(false, std::memory_order_release);
     }
     return ret;
 }
@@ -775,7 +775,7 @@ void NodeTable::addIndex(std::unique_ptr<Index> index) {
         throw RuntimeException("Index with name " + index->getName() + " already exists.");
     }
     indexes.push_back(IndexHolder{std::move(index)});
-    hasChanges = true;
+    hasChanges.store(true, std::memory_order_release);
 }
 
 void NodeTable::dropIndex(const std::string& name) {

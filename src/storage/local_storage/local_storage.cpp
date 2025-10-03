@@ -15,31 +15,53 @@ namespace storage {
 
 LocalTable* LocalStorage::getOrCreateLocalTable(Table& table) {
     const auto tableID = table.getTableID();
+
+    // Fast path: Check if table exists with read lock
+    {
+        std::shared_lock<std::shared_mutex> readLock(tablesMutex);
+        if (auto it = tables.find(tableID); it != tables.end()) {
+            return it->second.get();
+        }
+    }
+
+    // Slow path: Create table with write lock
+    std::unique_lock<std::shared_mutex> writeLock(tablesMutex);
+
+    // Double-check: Another thread might have created it
+    if (auto it = tables.find(tableID); it != tables.end()) {
+        return it->second.get();
+    }
+
+    // Create new local table
     auto catalog = catalog::Catalog::Get(clientContext);
     auto transaction = transaction::Transaction::Get(clientContext);
     auto& mm = *MemoryManager::Get(clientContext);
-    if (!tables.contains(tableID)) {
-        switch (table.getTableType()) {
-        case TableType::NODE: {
-            auto tableEntry = catalog->getTableCatalogEntry(transaction, table.getTableID());
-            tables[tableID] = std::make_unique<LocalNodeTable>(tableEntry, table, mm);
-        } break;
-        case TableType::REL: {
-            // We have to fetch the rel group entry from the catalog to based on the relGroupID.
-            auto tableEntry =
-                catalog->getTableCatalogEntry(transaction, table.cast<RelTable>().getRelGroupID());
-            tables[tableID] = std::make_unique<LocalRelTable>(tableEntry, table, mm);
-        } break;
-        default:
-            KU_UNREACHABLE;
-        }
+
+    std::unique_ptr<LocalTable> localTable;
+    switch (table.getTableType()) {
+    case TableType::NODE: {
+        auto tableEntry = catalog->getTableCatalogEntry(transaction, table.getTableID());
+        localTable = std::make_unique<LocalNodeTable>(tableEntry, table, mm);
+    } break;
+    case TableType::REL: {
+        // We have to fetch the rel group entry from the catalog to based on the relGroupID.
+        auto tableEntry =
+            catalog->getTableCatalogEntry(transaction, table.cast<RelTable>().getRelGroupID());
+        localTable = std::make_unique<LocalRelTable>(tableEntry, table, mm);
+    } break;
+    default:
+        KU_UNREACHABLE;
     }
-    return tables.at(tableID).get();
+
+    auto* result = localTable.get();
+    tables.emplace(tableID, std::move(localTable));
+    return result;
 }
 
 LocalTable* LocalStorage::getLocalTable(table_id_t tableID) const {
-    if (tables.contains(tableID)) {
-        return tables.at(tableID).get();
+    std::shared_lock<std::shared_mutex> readLock(tablesMutex);
+    if (auto it = tables.find(tableID); it != tables.end()) {
+        return it->second.get();
     }
     return nullptr;
 }
@@ -49,7 +71,7 @@ PageAllocator* LocalStorage::addOptimisticAllocator() {
     if (dataFH->isInMemoryMode()) {
         return dataFH->getPageManager();
     }
-    UniqLock lck{mtx};
+    std::lock_guard<std::mutex> lock(allocatorMutex);
     optimisticAllocators.emplace_back(
         std::make_unique<OptimisticAllocator>(*dataFH->getPageManager()));
     return optimisticAllocators.back().get();
@@ -59,33 +81,45 @@ void LocalStorage::commit() {
     auto catalog = catalog::Catalog::Get(clientContext);
     auto transaction = transaction::Transaction::Get(clientContext);
     auto storageManager = StorageManager::Get(clientContext);
-    for (auto& [tableID, localTable] : tables) {
-        if (localTable->getTableType() == TableType::NODE) {
-            const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
-            const auto table = storageManager->getTable(tableID);
-            table->commit(&clientContext, tableEntry, localTable.get());
+    {
+        std::shared_lock<std::shared_mutex> lock(tablesMutex);
+        for (auto& [tableID, localTable] : tables) {
+            if (localTable->getTableType() == TableType::NODE) {
+                const auto tableEntry = catalog->getTableCatalogEntry(transaction, tableID);
+                const auto table = storageManager->getTable(tableID);
+                table->commit(&clientContext, tableEntry, localTable.get());
+            }
+        }
+        for (auto& [tableID, localTable] : tables) {
+            if (localTable->getTableType() == TableType::REL) {
+                const auto table = storageManager->getTable(tableID);
+                const auto tableEntry =
+                    catalog->getTableCatalogEntry(transaction, table->cast<RelTable>().getRelGroupID());
+                table->commit(&clientContext, tableEntry, localTable.get());
+            }
         }
     }
-    for (auto& [tableID, localTable] : tables) {
-        if (localTable->getTableType() == TableType::REL) {
-            const auto table = storageManager->getTable(tableID);
-            const auto tableEntry =
-                catalog->getTableCatalogEntry(transaction, table->cast<RelTable>().getRelGroupID());
-            table->commit(&clientContext, tableEntry, localTable.get());
+    {
+        std::lock_guard<std::mutex> lock(allocatorMutex);
+        for (auto& optimisticAllocator : optimisticAllocators) {
+            optimisticAllocator->commit();
         }
-    }
-    for (auto& optimisticAllocator : optimisticAllocators) {
-        optimisticAllocator->commit();
     }
 }
 
 void LocalStorage::rollback() {
     auto mm = MemoryManager::Get(clientContext);
-    for (auto& [_, localTable] : tables) {
-        localTable->clear(*mm);
+    {
+        std::shared_lock<std::shared_mutex> lock(tablesMutex);
+        for (auto& [_, localTable] : tables) {
+            localTable->clear(*mm);
+        }
     }
-    for (auto& optimisticAllocator : optimisticAllocators) {
-        optimisticAllocator->rollback();
+    {
+        std::lock_guard<std::mutex> lock(allocatorMutex);
+        for (auto& optimisticAllocator : optimisticAllocators) {
+            optimisticAllocator->rollback();
+        }
     }
     auto* bufferManager = mm->getBufferManager();
     PageManager::Get(clientContext)->clearEvictedBMEntriesIfNeeded(bufferManager);
