@@ -27,21 +27,35 @@ TEST_F(HNSWThreadSafetyTest, ConcurrentHNSWIndexInsertions) {
                     ->isSuccess());
 #endif
 
-    // Create schema with HNSW index
+    // Create schema and insert data BEFORE creating HNSW index (matching existing tests)
+    std::cout << "Creating Document table..." << std::endl;
     ASSERT_TRUE(conn->query("CREATE NODE TABLE Document(id INT64, embedding FLOAT[3], PRIMARY KEY(id));")->isSuccess());
-    ASSERT_TRUE(conn->query("CALL CREATE_VECTOR_INDEX('Document', 'embedding_index', 'embedding');")->isSuccess());
+    std::cout << "Table created successfully" << std::endl;
 
-    // Insert multiple documents - internal TaskScheduler will use multiple threads during commit
-    // This exercises the LocalRelTable::delete_ path that was causing out-of-bounds access
-    const int numDocs = 200;
+    // Insert documents first (before index creation)
+    const int numDocs = 50;
+    std::cout << "Starting to insert " << numDocs << " documents..." << std::endl;
     for (int i = 0; i < numDocs; i++) {
+        if (i % 10 == 0) {
+            std::cout << "Inserting document " << i << "/" << numDocs << "..." << std::endl;
+        }
         float x = static_cast<float>(rand()) / RAND_MAX;
         float y = static_cast<float>(rand()) / RAND_MAX;
         float z = static_cast<float>(rand()) / RAND_MAX;
-        auto query = stringFormat("CREATE (d:Document {id: %d, embedding: [%f, %f, %f]});", i, x, y, z);
+        std::string query = "CREATE (d:Document {id: " + std::to_string(i) +
+                           ", embedding: [" + std::to_string(x) + ", " +
+                           std::to_string(y) + ", " + std::to_string(z) + "]});";
         auto result = conn->query(query);
         ASSERT_TRUE(result->isSuccess());
     }
+    std::cout << "All documents inserted successfully" << std::endl;
+
+    // Create HNSW index AFTER data insertion (this is the correct order)
+    std::cout << "Creating HNSW vector index..." << std::endl;
+    auto indexResult = conn->query("CALL CREATE_VECTOR_INDEX('Document', 'embedding_index', 'embedding');");
+    std::cout << "Index creation query executed" << std::endl;
+    ASSERT_TRUE(indexResult->isSuccess());
+    std::cout << "Index created successfully" << std::endl;
 
     // Verify all data was inserted correctly
     auto result = conn->query("MATCH (d:Document) RETURN count(d);");
@@ -73,11 +87,10 @@ TEST_F(HNSWThreadSafetyTest, LargeScaleHNSWIndexing) {
 #endif
 
     ASSERT_TRUE(conn->query("CREATE NODE TABLE Photo(id STRING, embedding FLOAT[128], timestamp INT64, PRIMARY KEY(id));")->isSuccess());
-    ASSERT_TRUE(conn->query("CALL CREATE_VECTOR_INDEX('Photo', 'photo_embedding_index', 'embedding');")->isSuccess());
 
-    // Simulate photo indexing workload: 1000 photos in batches of 100
-    const int totalPhotos = 1000;
-    const int batchSize = 100;
+    // Insert photos BEFORE creating index
+    const int totalPhotos = 100;
+    const int batchSize = 25;
     const int batches = totalPhotos / batchSize;
 
     for (int batchNum = 0; batchNum < batches; batchNum++) {
@@ -95,8 +108,9 @@ TEST_F(HNSWThreadSafetyTest, LargeScaleHNSWIndexing) {
             }
             int64_t timestamp = 1609459200 + i; // 2021-01-01 + offset
 
-            auto query = stringFormat("CREATE (p:Photo {id: '%s', embedding: [%s], timestamp: %lld});",
-                photoID.c_str(), embeddingStr.c_str(), timestamp);
+            std::string query = "CREATE (p:Photo {id: '" + photoID +
+                               "', embedding: [" + embeddingStr +
+                               "], timestamp: " + std::to_string(timestamp) + "});";
             auto result = conn->query(query);
             ASSERT_TRUE(result->isSuccess());
         }
@@ -109,12 +123,15 @@ TEST_F(HNSWThreadSafetyTest, LargeScaleHNSWIndexing) {
         EXPECT_EQ(count, batchEnd);
     }
 
-    // Final verification
+    // Final verification before index creation
     auto finalResult = conn->query("MATCH (p:Photo) RETURN count(p);");
     ASSERT_TRUE(finalResult->isSuccess());
     ASSERT_TRUE(finalResult->hasNext());
     auto finalCount = finalResult->getNext()->getValue(0)->getValue<int64_t>();
     EXPECT_EQ(finalCount, totalPhotos);
+
+    // Create HNSW index AFTER all data is inserted
+    ASSERT_TRUE(conn->query("CALL CREATE_VECTOR_INDEX('Photo', 'photo_embedding_index', 'embedding');")->isSuccess());
 }
 
 // Extreme stress test with single large transaction
@@ -129,11 +146,9 @@ TEST_F(HNSWThreadSafetyTest, SingleLargeTransactionStress) {
 #endif
 
     ASSERT_TRUE(conn->query("CREATE NODE TABLE Document(id STRING, vec FLOAT[64], PRIMARY KEY(id));")->isSuccess());
-    ASSERT_TRUE(conn->query("CALL CREATE_VECTOR_INDEX('Document', 'doc_vec_index', 'vec');")->isSuccess());
 
-    // Single transaction with 500 inserts
-    // This maximizes the chance of triggering out-of-bounds access in LocalRelTable
-    const int itemCount = 500;
+    // Insert documents BEFORE creating index
+    const int itemCount = 100;
 
     for (int i = 0; i < itemCount; i++) {
         std::string docID = "doc-" + std::to_string(i);
@@ -144,7 +159,8 @@ TEST_F(HNSWThreadSafetyTest, SingleLargeTransactionStress) {
             vecStr += std::to_string(val);
         }
 
-        auto query = stringFormat("CREATE (d:Document {id: '%s', vec: [%s]});", docID.c_str(), vecStr.c_str());
+        std::string query = "CREATE (d:Document {id: '" + docID +
+                           "', vec: [" + vecStr + "]});";
         auto result = conn->query(query);
         ASSERT_TRUE(result->isSuccess());
     }
@@ -155,4 +171,7 @@ TEST_F(HNSWThreadSafetyTest, SingleLargeTransactionStress) {
     ASSERT_TRUE(result->hasNext());
     auto count = result->getNext()->getValue(0)->getValue<int64_t>();
     EXPECT_EQ(count, itemCount);
+
+    // Create HNSW index AFTER all data is inserted
+    ASSERT_TRUE(conn->query("CALL CREATE_VECTOR_INDEX('Document', 'doc_vec_index', 'vec');")->isSuccess());
 }

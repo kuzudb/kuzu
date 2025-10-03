@@ -117,17 +117,18 @@ bool LocalRelTable::delete_(Transaction* transaction, TableDeleteState& state) {
     const auto direction = deleteState.detachDeleteDirection;
     const auto reverseDirection = RelDirectionUtils::getOppositeDirection(direction);
 
-    std::vector<std::pair<DirectedCSRIndex*, ValueVector*>> directedIndicesAndNodeIDVectors;
+    // Check if both directions exist (required for delete operation)
+    // For unidirectional relations like HNSW, this returns false
+    if (!directedIndices.contains(direction) || !directedIndices.contains(reverseDirection)) {
+        return false;
+    }
 
-    // Only access directions that actually exist in the map
-    if (directedIndices.contains(direction)) {
-        directedIndicesAndNodeIDVectors.emplace_back(
-            &directedIndices.at(direction), &deleteState.srcNodeIDVector);
-    }
-    if (directedIndices.contains(reverseDirection)) {
-        directedIndicesAndNodeIDVectors.emplace_back(
-            &directedIndices.at(reverseDirection), &deleteState.dstNodeIDVector);
-    }
+    std::vector<std::pair<DirectedCSRIndex*, ValueVector*>> directedIndicesAndNodeIDVectors;
+    directedIndicesAndNodeIDVectors.emplace_back(
+        &directedIndices.at(direction), &deleteState.srcNodeIDVector);
+    directedIndicesAndNodeIDVectors.emplace_back(
+        &directedIndices.at(reverseDirection), &deleteState.dstNodeIDVector);
+
     for (auto& [csrIndex, nodeIDVector] : directedIndicesAndNodeIDVectors) {
         KU_ASSERT(nodeIDVector->state->getSelVector().getSelSize() == 1);
         auto nodePos = nodeIDVector->state->getSelVector()[0];

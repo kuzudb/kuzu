@@ -43,19 +43,12 @@ struct DirectedCSRIndex {
     DirectedCSRIndex(const DirectedCSRIndex&) = delete;
     DirectedCSRIndex& operator=(const DirectedCSRIndex&) = delete;
 
-    bool isEmpty() const {
-        std::shared_lock<std::shared_mutex> lock(indexMutex);
-        return index.empty();
-    }
+    bool isEmpty() const { return index.empty(); }
 
-    void clear() {
-        std::unique_lock<std::shared_mutex> lock(indexMutex);
-        index.clear();
-    }
+    void clear() { index.clear(); }
 
     common::RelDataDirection direction;
     index_t index;
-    mutable std::shared_mutex indexMutex;
 };
 
 class LocalRelTable final : public LocalTable {
