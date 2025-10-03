@@ -127,6 +127,11 @@ fn build_bundled_cmake() -> Vec<PathBuf> {
         }
     }
     build.define("STATICALLY_LINKED_EXTENSIONS", enabled_extensions.join(";"));
+    build.define(
+        "EXTENSION_OUTPUT_DIR",
+        format!("{}/extensions", env::var("OUT_DIR").unwrap()),
+    );
+    std::fs::create_dir_all(format!("{}/extensions", env::var("OUT_DIR").unwrap()));
 
     let build_dir = build.build();
 
@@ -201,12 +206,10 @@ fn build_bundled_cmake() -> Vec<PathBuf> {
         println!("cargo:rustc-link-search=native={}", lib_path.display());
     }
 
-    for extension in EXTENSIONS {
-        let lib_path = kuzu_root.join("extension").join(extension).join("build");
-        if lib_path.exists() {
-            println!("cargo:rustc-link-search=native={}", lib_path.display());
-        }
-    }
+    println!(
+        "cargo:rustc-link-search=native={}/extensions",
+        env::var("OUT_DIR").unwrap()
+    );
 
     if cfg!(feature = "fts") {
         let lib_path = build_dir
