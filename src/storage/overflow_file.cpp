@@ -233,10 +233,17 @@ void OverflowFile::writePageToDisk(page_idx_t pageIdx, uint8_t* data, bool newPa
 
 void OverflowFile::checkpoint(PageAllocator& pageAllocator) {
     KU_ASSERT(fileHandle);
+    // If no data has been written to the overflow file, skip checkpoint.
+    // This follows the same design pattern as NodeTable, RelTable, and other components
+    // where checkpoint is skipped when there are no changes.
+    // The headerChanged flag is set to true only when actual string data (>12 bytes) is written
+    // via OverflowFileHandle::setStringOverflow().
+    if (!headerChanged) {
+        return;
+    }
     if (headerPageIdx == INVALID_PAGE_IDX) {
-        // Reserve a page for the header
+        // Reserve a page for the header (only when data has actually been written)
         this->headerPageIdx = getNewPageIdx(&pageAllocator);
-        headerChanged = true;
     }
     // TODO(bmwinger): Ideally this could be done separately and in parallel by each HashIndex
     // However fileHandle->addNewPages needs to be called beforehand,
@@ -244,13 +251,11 @@ void OverflowFile::checkpoint(PageAllocator& pageAllocator) {
     for (auto& handle : handles) {
         handle->checkpoint();
     }
-    if (headerChanged) {
-        uint8_t page[KUZU_PAGE_SIZE];
-        memcpy(page, &header, sizeof(header));
-        // Zero free space at the end of the header page
-        std::fill(page + sizeof(header), page + KUZU_PAGE_SIZE, 0);
-        writePageToDisk(headerPageIdx + HEADER_PAGE_IDX, page, false /*newPage*/);
-    }
+    uint8_t page[KUZU_PAGE_SIZE];
+    memcpy(page, &header, sizeof(header));
+    // Zero free space at the end of the header page
+    std::fill(page + sizeof(header), page + KUZU_PAGE_SIZE, 0);
+    writePageToDisk(headerPageIdx + HEADER_PAGE_IDX, page, false /*newPage*/);
 }
 
 void OverflowFile::checkpointInMemory() {
