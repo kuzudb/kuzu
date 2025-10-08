@@ -33,30 +33,115 @@
 -CASE UInt128PK
 -STATEMENT CREATE NODE TABLE tab(uint128key UINT128 PRIMARY KEY, value UINT128);
 ---- ok
--STATEMENT CREATE (n1:tab {uint128key: 0, value: 170141183460469231731687303715884105728}) return n1.*;
+-STATEMENT CREATE (n1:tab {uint128key: 0, value: 170141183460469231731687303715884105728}) RETURN n1.*;
 ---- 1
 0|170141183460469231731687303715884105728
--STATEMENT CREATE (n2:tab {uint128key: 170141183460469231731687303715884105737, value: 1869}) return n2.*;
+-STATEMENT CREATE (n2:tab {uint128key: 170141183460469231731687303715884105737, value: 1869}) RETURN n2.*;
 ---- 1
 170141183460469231731687303715884105737|1869
--STATEMENT CREATE (n3:tab {uint128key: -1, value: 12}) return n3.*;
+-STATEMENT CREATE (n3:tab {uint128key: -1, value: 12}) RETURN n3.*;
 ---- error
 Overflow exception: Cannot cast negative value to UINT128.
--STATEMENT CREATE (n4: tab {uint128key: 340282366920938463463374607431768211456, value: 0}) return n4.*;
+-STATEMENT CREATE (n4:tab {uint128key: 340282366920938463463374607431768211456, value: 0}) RETURN n4.*;
 ---- error
 Conversion exception: Cast failed. Could not convert "340282366920938463463374607431768211456" to UINT128.
--STATEMENT CREATE (n5: tab {uint128key: 0, value: 1}) return n5.*;
+-STATEMENT CREATE (n5:tab {uint128key: 0, value: 1}) RETURN n5.*;
 ---- error
 Runtime exception: Found duplicated primary key value 0, which violates the uniqueness constraint of the primary key column.
--STATEMENT CREATE (n6: tab {uint128key: 170141183460469231731687303715884105737, value: 1869}) return n6.*;
+-STATEMENT CREATE (n6:tab {uint128key: 170141183460469231731687303715884105737, value: 1869}) RETURN n6.*;
 ---- error
 Runtime exception: Found duplicated primary key value 170141183460469231731687303715884105737, which violates the uniqueness constraint of the primary key column.
--STATEMENT CREATE (n7: tab {uint128key: 2025, value: NULL}) return n7.*;
+-STATEMENT CREATE (n7:tab {uint128key: 2025, value: NULL}) RETURN n7.*;
 ---- 1
 2025|
--STATEMENT CREATE (n8: tab {uint128key: NULL, value: 1}) return n8.*;
+-STATEMENT CREATE (n8:tab {uint128key: NULL, value: 1}) RETURN n8.*;
 ---- error
 Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.
+
+-CASE UInt128PKMatch
+-STATEMENT CREATE NODE TABLE tab(uint128key UINT128 PRIMARY KEY, value UINT128);
+---- ok
+-STATEMENT CREATE (n1:tab {uint128key: 0, value: 0});
+---- ok
+-STATEMENT CREATE (n2:tab {uint128key: 11111, value: 1});
+---- ok
+-STATEMENT CREATE (n3:tab {uint128key: 22222, value: 2});
+---- ok
+-STATEMENT MATCH (z:tab {uint128key: 11111}) RETURN z.*;
+---- 1
+11111|1
+-STATEMENT MATCH (z:tab) WHERE z.uint128key = 22222 RETURN z.value;
+---- 1
+2
+-STATEMENT CREATE (n4:tab {uint128key: 15000, value: 3});
+---- ok
+-STATEMENT MATCH (z:tab) WHERE z.uint128key > 10000 AND z.uint128key < 20000 RETURN z.*;
+---- 2
+11111|1
+15000|3
+-STATEMENT MATCH (z:tab) WHERE z.uint128key = 99999 RETURN z.*;
+---- 0
+
+-CASE UInt128PKMatchAndDelete
+-STATEMENT CREATE NODE TABLE tab(uint128key UINT128 PRIMARY KEY, value UINT128);
+---- ok
+-STATEMENT CREATE (n1:tab {uint128key: 0, value: 0});
+---- ok
+-STATEMENT CREATE (n2:tab {uint128key: 11111, value: 1});
+---- ok
+-STATEMENT CREATE (n3:tab {uint128key: 22222, value: 2});
+---- ok
+-STATEMENT CREATE (n4:tab {uint128key: 15000, value: 3});
+---- ok
+-STATEMENT MATCH (z:tab) RETURN z.*;
+---- 4
+0|0
+11111|1
+22222|2
+15000|3
+-STATEMENT MATCH (z:tab {uint128key: 15000}) DELETE z;
+---- ok
+-STATEMENT MATCH (z:tab) RETURN z.*;
+---- 3
+0|0
+11111|1
+22222|2
+-STATEMENT CREATE (n4:tab {uint128key: 15000, value: 9876543210});
+---- ok
+-STATEMENT MATCH (z:tab) RETURN z.*;
+---- 4
+0|0
+11111|1
+22222|2
+15000|9876543210
+-STATEMENT MATCH (z:tab {uint128key: 12}) DELETE z;
+---- ok
+-STATEMENT MATCH (z:tab) RETURN z.*;
+---- 4
+0|0
+11111|1
+22222|2
+15000|9876543210
+-STATEMENT MATCH (z:tab) WHERE z.uint128key >= 0 DELETE z;
+---- 0
+-STATEMENT MATCH (z:tab) RETURN z.*;
+---- 0
+
+-CASE Set
+-STATEMENT CREATE NODE TABLE tab(uint128key UINT128 PRIMARY KEY, value1 UINT128, value2 UINT128);
+---- ok
+-STATEMENT CREATE (n1:tab {uint128key: 1024, value1: 2048, value2: 4096}) RETURN n1.*;
+---- 1
+1024|2048|4096
+-STATEMENT MATCH (z:tab {uint128key: 1024}) SET z.value1 = 9999999 RETURN z.*;
+---- 1
+1024|9999999|4096
+-STATEMENT MATCH (z:tab {uint128key: 1024}) SET z.value2 = z.value1 + to_uint128(1) RETURN z.*;
+---- 1
+1024|9999999|10000000
+-STATEMENT MATCH (z:tab {uint128key: 1024}) SET z.uint128key = 1234567;
+---- error
+Binder exception: Cannot set property uint128key in table tab because it is used as primary key. Try delete and then insert.
 
 -CASE Overflow
 -STATEMENT CREATE NODE TABLE tab(intkey INT64 PRIMARY KEY, value UINT128);
