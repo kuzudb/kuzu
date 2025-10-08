@@ -167,10 +167,10 @@ concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::
                          std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
 
 template<typename T>
-concept HashableNonNestedTypes = (std::integral<T> || std::floating_point<T> ||
-                                  std::is_same_v<T, int128_t> || std::is_same_v<T, uint128_t> ||
-                                  std::is_same_v<T, internalID_t> || std::is_same_v<T, interval_t> ||
-                                  std::is_same_v<T, ku_string_t>);
+concept HashableNonNestedTypes =
+    (std::integral<T> || std::floating_point<T> || std::is_same_v<T, int128_t> ||
+        std::is_same_v<T, uint128_t> || std::is_same_v<T, internalID_t> ||
+        std::is_same_v<T, interval_t> || std::is_same_v<T, ku_string_t>);
 
 template<typename T>
 concept HashableNestedTypes =
