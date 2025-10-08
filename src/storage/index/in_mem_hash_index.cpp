@@ -282,6 +282,7 @@ template class InMemHashIndex<uint8_t>;
 template class InMemHashIndex<double>;
 template class InMemHashIndex<float>;
 template class InMemHashIndex<int128_t>;
+template class InMemHashIndex<uint128_t>;
 template class InMemHashIndex<ku_string_t>;
 
 } // namespace storage

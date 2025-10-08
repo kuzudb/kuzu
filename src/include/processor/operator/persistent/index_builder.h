@@ -8,6 +8,7 @@
 #include "common/static_vector.h"
 #include "common/types/int128_t.h"
 #include "common/types/types.h"
+#include "common/types/uint128_t.h"
 #include "processor/operator/persistent/node_batch_insert_error_handler.h"
 #include "storage/index/hash_index.h"
 #include "storage/index/hash_index_utils.h"
@@ -76,7 +77,7 @@ private:
     // Queues for distributing primary keys.
     std::variant<Queue<std::string>, Queue<int64_t>, Queue<int32_t>, Queue<int16_t>, Queue<int8_t>,
         Queue<uint64_t>, Queue<uint32_t>, Queue<uint16_t>, Queue<uint8_t>, Queue<common::int128_t>,
-        Queue<float>, Queue<double>>
+        Queue<common::uint128_t>, Queue<float>, Queue<double>>
         queues;
     transaction::Transaction* transaction;
 };
@@ -128,7 +129,8 @@ private:
     std::variant<UniqueBuffers<std::string>, UniqueBuffers<int64_t>, UniqueBuffers<int32_t>,
         UniqueBuffers<int16_t>, UniqueBuffers<int8_t>, UniqueBuffers<uint64_t>,
         UniqueBuffers<uint32_t>, UniqueBuffers<uint16_t>, UniqueBuffers<uint8_t>,
-        UniqueBuffers<common::int128_t>, UniqueBuffers<float>, UniqueBuffers<double>>
+        UniqueBuffers<common::int128_t>, UniqueBuffers<common::uint128_t>, UniqueBuffers<float>,
+        UniqueBuffers<double>>
         buffers;
 };
 

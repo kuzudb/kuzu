@@ -159,12 +159,14 @@ concept ComparableTypes = NumericTypes<T> || std::is_same_v<T, ku_string_t> ||
                           std::is_same_v<T, interval_t> || std::is_same_v<T, bool>;
 
 template<typename T>
-concept HashablePrimitive = ((std::integral<T> && !std::is_same_v<T, bool>) ||
-                             std::floating_point<T> || std::is_same_v<T, int128_t>);
+concept HashablePrimitive =
+    ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
+        std::is_same_v<T, int128_t> || std::is_same_v<T, uint128_t>);
 template<typename T>
 concept IndexHashable = ((std::integral<T> && !std::is_same_v<T, bool>) || std::floating_point<T> ||
-                         std::is_same_v<T, int128_t> || std::is_same_v<T, ku_string_t> ||
-                         std::is_same_v<T, std::string_view> || std::same_as<T, std::string>);
+                         std::is_same_v<T, int128_t> || std::is_same_v<T, uint128_t> ||
+                         std::is_same_v<T, ku_string_t> || std::is_same_v<T, std::string_view> ||
+                         std::same_as<T, std::string>);
 
 template<typename T>
 concept HashableNonNestedTypes =

@@ -117,6 +117,13 @@ Bar|10020
 ---- ok
 -INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
 
+-CASE CopyUInt128PK
+-STATEMENT create node table person (ID UINT128, fName STRING, age INT64, PRIMARY KEY (ID));
+---- ok
+-STATEMENT create node table org (ID UINT128, PRIMARY KEY (ID));
+---- ok
+-INSERT_STATEMENT_BLOCK CREATE_REL_AND_COPY_NODES_AND_VALIDATE
+
 -CASE CopyDoublePK
 -STATEMENT create node table person (ID double, fName STRING, age INT64, PRIMARY KEY (ID));
 ---- ok

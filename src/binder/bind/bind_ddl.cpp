@@ -112,6 +112,7 @@ static void validatePrimaryKey(const std::string& pkColName,
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT128:
+    case PhysicalTypeID::UINT128:
     case PhysicalTypeID::STRING:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::DOUBLE:

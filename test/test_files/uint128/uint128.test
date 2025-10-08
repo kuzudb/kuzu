@@ -30,6 +30,34 @@
 2|340282366920938463463374607431768211455
 3|340282366920938463463374607431768211455
 
+-CASE UInt128PK
+-STATEMENT CREATE NODE TABLE tab(uint128key UINT128 PRIMARY KEY, value UINT128);
+---- ok
+-STATEMENT CREATE (n1:tab {uint128key: 0, value: 170141183460469231731687303715884105728}) return n1.*;
+---- 1
+0|170141183460469231731687303715884105728
+-STATEMENT CREATE (n2:tab {uint128key: 170141183460469231731687303715884105737, value: 1869}) return n2.*;
+---- 1
+170141183460469231731687303715884105737|1869
+-STATEMENT CREATE (n3:tab {uint128key: -1, value: 12}) return n3.*;
+---- error
+Overflow exception: Cannot cast negative value to UINT128.
+-STATEMENT CREATE (n4: tab {uint128key: 340282366920938463463374607431768211456, value: 0}) return n4.*;
+---- error
+Conversion exception: Cast failed. Could not convert "340282366920938463463374607431768211456" to UINT128.
+-STATEMENT CREATE (n5: tab {uint128key: 0, value: 1}) return n5.*;
+---- error
+Runtime exception: Found duplicated primary key value 0, which violates the uniqueness constraint of the primary key column.
+-STATEMENT CREATE (n6: tab {uint128key: 170141183460469231731687303715884105737, value: 1869}) return n6.*;
+---- error
+Runtime exception: Found duplicated primary key value 170141183460469231731687303715884105737, which violates the uniqueness constraint of the primary key column.
+-STATEMENT CREATE (n7: tab {uint128key: 2025, value: NULL}) return n7.*;
+---- 1
+2025|
+-STATEMENT CREATE (n8: tab {uint128key: NULL, value: 1}) return n8.*;
+---- error
+Runtime exception: Found NULL, which violates the non-null constraint of the primary key column.
+
 -CASE Overflow
 -STATEMENT CREATE NODE TABLE tab(intkey INT64 PRIMARY KEY, value UINT128);
 ---- ok
