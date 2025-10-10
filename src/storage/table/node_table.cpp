@@ -784,6 +784,7 @@ void NodeTable::dropIndex(const std::string& name) {
         if (StringUtils::caseInsensitiveEquals(it->getName(), name)) {
             KU_ASSERT(it->isLoaded());
             indexes.erase(it);
+            hasChanges = true;
             return;
         }
     }
