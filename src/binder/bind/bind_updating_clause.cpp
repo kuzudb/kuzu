@@ -13,11 +13,16 @@
 #include "common/assert.h"
 #include "common/exception/binder.h"
 #include "common/string_format.h"
+#include "main/client_context.h"
+#include "main/database.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/insert_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
 #include "transaction/transaction.h"
+
+#include <chrono>
+#include <thread>
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -193,11 +198,53 @@ void Binder::bindInsertNode(std::shared_ptr<NodeExpression> node,
     // Check extension secondary index loaded
     auto catalog = Catalog::Get(*clientContext);
     auto transaction = transaction::Transaction::Get(*clientContext);
+
+    // First pass: check if any indexes are not loaded
+    bool hasUnloadedIndexes = false;
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
         if (!indexEntry->isLoaded()) {
+            hasUnloadedIndexes = true;
+            break;
+        }
+    }
+
+    // If unloaded indexes exist, wait for vector index loading to complete
+    if (hasUnloadedIndexes) {
+        auto* database = clientContext->getDatabase();
+
+        // Wait for vector index loading to complete (with timeout)
+        if (!database->isVectorIndexesLoaded()) {
+            // Wait up to 30 seconds for background loading to complete
+            constexpr int maxWaitMs = 30000;
+            constexpr int checkIntervalMs = 100;
+            int waitedMs = 0;
+
+            while (!database->isVectorIndexesLoaded() && waitedMs < maxWaitMs) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(checkIntervalMs));
+                waitedMs += checkIntervalMs;
+            }
+
+            if (!database->isVectorIndexesLoaded()) {
+                throw BinderException(stringFormat(
+                    "Timed out waiting for vector indexes to load on table {}.",
+                    nodeEntry->getName()));
+            }
+        }
+
+        // Check if loading was successful
+        if (!database->isVectorIndexesReady()) {
             throw BinderException(stringFormat(
-                "Trying to insert into an index on table {} but its extension is not loaded.",
+                "Vector indexes failed to load on table {}.",
                 nodeEntry->getName()));
+        }
+
+        // Second pass: re-check after loading completed
+        for (auto indexEntry : catalog->getIndexEntries(transaction, nodeEntry->getTableID())) {
+            if (!indexEntry->isLoaded()) {
+                throw BinderException(stringFormat(
+                    "Trying to insert into an index on table {} but its extension is not loaded.",
+                    nodeEntry->getName()));
+            }
         }
     }
     infos.push_back(std::move(insertInfo));

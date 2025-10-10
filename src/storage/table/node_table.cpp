@@ -428,7 +428,15 @@ void NodeTable::insert(Transaction* transaction, TableInsertState& insertState) 
     validatePkNotExists(transaction, const_cast<ValueVector*>(&nodeInsertState.pkVector));
     localTable->insert(transaction, insertState);
     for (auto i = 0u; i < indexes.size(); i++) {
-        auto index = indexes[i].getIndex();
+        auto& indexHolder = indexes[i];
+        // Fail-fast assertion: Index must be loaded before insert
+        // During WAL replay, LoadExtensionRecord must complete synchronously before
+        // NodeInsertionRecord accesses the index
+        KU_ASSERT(indexHolder.isLoaded());
+        if (!indexHolder.isLoaded()) {
+            continue;
+        }
+        auto index = indexHolder.getIndex();
         std::vector<ValueVector*> indexedPropertyVectors;
         for (const auto columnID : index->getIndexInfo().columnIDs) {
             indexedPropertyVectors.push_back(insertState.propertyVectors[columnID]);
@@ -517,6 +525,13 @@ bool NodeTable::delete_(Transaction* transaction, TableDeleteState& deleteState)
     bool isDeleted = false;
     const auto nodeOffset = nodeDeleteState.nodeIDVector.readNodeOffset(pos);
     for (auto& index : indexes) {
+        // Fail-fast assertion: Index must be loaded before delete
+        // During WAL replay, LoadExtensionRecord must complete synchronously before
+        // NodeDeletionRecord accesses the index
+        KU_ASSERT(index.isLoaded());
+        if (!index.isLoaded()) {
+            continue;
+        }
         auto indexDeleteState = index.getIndex()->initDeleteState(transaction, memoryManager,
             getVisibleFunc(transaction));
         index.getIndex()->delete_(transaction, nodeDeleteState.nodeIDVector, *indexDeleteState);

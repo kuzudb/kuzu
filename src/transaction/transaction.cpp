@@ -93,11 +93,17 @@ void Transaction::pushCreateDropCatalogEntry(CatalogSet& catalogSet, CatalogEntr
     bool isInternal, bool skipLoggingToWAL) {
     undoBuffer->createCatalogEntry(catalogSet, catalogEntry);
     hasCatalogChanges = true;
+
     if (!shouldLogToWAL() || skipLoggingToWAL) {
         return;
     }
     KU_ASSERT(localWAL);
     const auto newCatalogEntry = catalogEntry.getNext();
+
+    if (!newCatalogEntry) {
+        return;
+    }
+
     switch (newCatalogEntry->getType()) {
     case CatalogEntryType::INDEX_ENTRY:
     case CatalogEntryType::NODE_TABLE_ENTRY:
@@ -214,9 +220,18 @@ Transaction* Transaction::Get(const main::ClientContext& context) {
     return TransactionContext::Get(context)->getActiveTransaction();
 }
 
-Transaction DUMMY_TRANSACTION = Transaction(TransactionType::DUMMY);
-Transaction DUMMY_CHECKPOINT_TRANSACTION = Transaction(TransactionType::CHECKPOINT,
-    Transaction::DUMMY_TRANSACTION_ID, Transaction::START_TRANSACTION_ID - 1);
+#if defined(__clang__) || defined(__GNUC__)
+#define KUZU_KEEP_SYMBOL __attribute__((used))
+#else
+#define KUZU_KEEP_SYMBOL
+#endif
+
+KUZU_API Transaction DUMMY_TRANSACTION KUZU_KEEP_SYMBOL = Transaction(TransactionType::DUMMY);
+KUZU_API Transaction DUMMY_CHECKPOINT_TRANSACTION KUZU_KEEP_SYMBOL = Transaction(
+    TransactionType::CHECKPOINT, Transaction::DUMMY_TRANSACTION_ID,
+    Transaction::START_TRANSACTION_ID - 1);
+
+#undef KUZU_KEEP_SYMBOL
 
 } // namespace transaction
 } // namespace kuzu

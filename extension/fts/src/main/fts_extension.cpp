@@ -28,7 +28,7 @@ static void initFTSEntries(main::ClientContext* context, catalog::Catalog& catal
             KU_ASSERT_UNCONDITIONAL(
                 optionalIndex.has_value() && !optionalIndex.value().get().isLoaded());
             auto& unloadedIndex = optionalIndex.value().get();
-            unloadedIndex.load(context, storageManager);
+            unloadedIndex.load(context, storageManager, indexEntry);
         }
     }
 }

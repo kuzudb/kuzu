@@ -91,10 +91,10 @@ std::vector<storage::StorageExtension*> ExtensionManager::getStorageExtensions()
 }
 
 void ExtensionManager::autoLoadLinkedExtensions(main::ClientContext* context) {
-    auto trxContext = transaction::TransactionContext::Get(*context);
-    trxContext->beginRecoveryTransaction();
+    // Extension loading happens after WAL replay completes, so no transaction wrapper needed.
+    // Extensions that need transactions (e.g., VectorExtension's background loading)
+    // will create their own transactions with appropriate types (READ_ONLY/WRITE).
     loadLinkedExtensions(context, loadedExtensions);
-    trxContext->commit();
 }
 
 ExtensionManager* ExtensionManager::Get(const main::ClientContext& context) {

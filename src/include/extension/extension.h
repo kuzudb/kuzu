@@ -46,15 +46,28 @@ struct ExtensionSourceUtils {
     static std::string toString(ExtensionSource source);
 };
 
+inline transaction::Transaction* getExtensionCatalogTransaction() {
+    static transaction::Transaction* dummy =
+        new transaction::Transaction(transaction::TransactionType::DUMMY);
+    return dummy;
+}
+
+inline transaction::Transaction* getExtensionCheckpointTransaction() {
+    static transaction::Transaction* checkpoint = new transaction::Transaction(
+        transaction::TransactionType::CHECKPOINT, transaction::Transaction::DUMMY_TRANSACTION_ID,
+        transaction::Transaction::START_TRANSACTION_ID - 1);
+    return checkpoint;
+}
+
 template<typename T>
 void addFunc(main::Database& database, std::string name, catalog::CatalogEntryType functionType,
     bool isInternal = false) {
     auto catalog = database.getCatalog();
-    if (catalog->containsFunction(&transaction::DUMMY_TRANSACTION, name, isInternal)) {
+    auto* txn = getExtensionCatalogTransaction();
+    if (catalog->containsFunction(txn, name, isInternal)) {
         return;
     }
-    catalog->addFunction(&transaction::DUMMY_TRANSACTION, functionType, std::move(name),
-        T::getFunctionSet(), isInternal);
+    catalog->addFunction(txn, functionType, std::move(name), T::getFunctionSet(), isInternal);
 }
 
 struct KUZU_API ExtensionUtils {

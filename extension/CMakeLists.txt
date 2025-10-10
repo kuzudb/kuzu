@@ -8,7 +8,7 @@ include(extension_config.cmake)
 set(STATICALLY_LINKED_EXTENSIONS "${STATICALLY_LINKED_EXTENSIONS}" PARENT_SCOPE)
 
 function(set_extension_properties target_name output_name extension_name)
-    set_target_properties(${target_name}
+set_target_properties(${target_name}
             PROPERTIES
             ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
             LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/extension/${extension_name}/build"
@@ -20,7 +20,9 @@ function(set_extension_properties target_name output_name extension_name)
 endfunction()
 
 function(set_apple_dynamic_lookup target_name)
-    set_target_properties(${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    if (APPLE)
+        set_target_properties(${target_name} PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+    endif ()
 endfunction()
 
 function(build_extension_lib build_static ext_name)
@@ -42,9 +44,10 @@ function(build_extension_lib build_static ext_name)
     if (WIN32 OR build_static)
         # See comments in extension/httpfs/CMakeLists.txt.
         target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension PRIVATE kuzu)
-    endif ()
-    if (APPLE AND NOT build_static)
-        set_apple_dynamic_lookup(kuzu_${EXTENSION_LIB_NAME}_extension)
+    elseif (APPLE AND NOT build_static)
+        # Two-level namespace on macOS prevents dlopen'ed libraries from seeing executable symbols.
+        # Link against the shared Kuzu library so extensions can resolve their dependencies.
+        target_link_libraries(kuzu_${EXTENSION_LIB_NAME}_extension PRIVATE kuzu_shared)
     endif ()
 endfunction()
 

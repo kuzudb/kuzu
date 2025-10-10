@@ -48,7 +48,8 @@ bool CatalogSet::containsEntryNoLock(const Transaction* transaction,
 
 CatalogEntry* CatalogSet::getEntry(const Transaction* transaction, const std::string& name) {
     std::shared_lock lck{mtx};
-    return getEntryNoLock(transaction, name);
+    auto result = getEntryNoLock(transaction, name);
+    return result;
 }
 
 CatalogEntry* CatalogSet::getEntryNoLock(const Transaction* transaction,
@@ -120,7 +121,13 @@ std::unique_ptr<CatalogEntry> CatalogSet::createDummyEntryNoLock(std::string nam
 
 CatalogEntry* CatalogSet::traverseVersionChainsForTransactionNoLock(const Transaction* transaction,
     CatalogEntry* currentEntry) {
+    int iterations = 0;
+    const int MAX_ITERATIONS = 100;
     while (currentEntry) {
+        if (++iterations > MAX_ITERATIONS) {
+            return nullptr; // Prevent infinite loop
+        }
+
         if (currentEntry->getTimestamp() == transaction->getID()) {
             // This entry is created by the current transaction.
             break;
@@ -212,7 +219,8 @@ CatalogEntrySet CatalogSet::getEntries(const Transaction* transaction) {
     std::shared_lock lck{mtx};
     for (auto& [name, entry] : entries) {
         auto currentEntry = traverseVersionChainsForTransactionNoLock(transaction, entry.get());
-        if (currentEntry->isDeleted()) {
+        // currentEntry can be nullptr if timestamps are incompatible (e.g., after database restart)
+        if (currentEntry == nullptr || currentEntry->isDeleted()) {
             continue;
         }
         result.emplace(name, currentEntry);
@@ -238,7 +246,7 @@ CatalogEntry* CatalogSet::getEntryOfOID(const Transaction* transaction, oid_t oi
 
 void CatalogSet::serialize(Serializer serializer) const {
     std::vector<CatalogEntry*> entriesToSerialize;
-    for (auto& [_, entry] : entries) {
+    for (auto& [name, entry] : entries) {
         switch (entry->getType()) {
         case CatalogEntryType::SCALAR_FUNCTION_ENTRY:
         case CatalogEntryType::REWRITE_FUNCTION_ENTRY:

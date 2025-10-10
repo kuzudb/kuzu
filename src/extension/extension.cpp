@@ -169,7 +169,7 @@ void ExtensionUtils::registerIndexType(main::Database& database, storage::IndexT
 
 ExtensionLibLoader::ExtensionLibLoader(const std::string& extensionName, const std::string& path)
     : extensionName{extensionName} {
-    libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    libHdl = dlopen(path.c_str(), RTLD_NOW | RTLD_GLOBAL);
     if (libHdl == nullptr) {
         throw common::IOException(common::stringFormat(
             "Failed to load library: {} which is needed by extension: {}.\nError: {}.", path,

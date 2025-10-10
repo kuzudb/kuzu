@@ -308,8 +308,8 @@ public:
         const EmbeddingHandle& queryVector, HNSWSearchState& searchState) const;
 
     static std::unique_ptr<Index> load(main::ClientContext* context,
-        storage::StorageManager* storageManager, storage::IndexInfo indexInfo,
-        std::span<uint8_t> storageInfoBuffer);
+        storage::StorageManager* storageManager, const catalog::IndexCatalogEntry* catalogEntry,
+        storage::IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);
     std::unique_ptr<InsertState> initInsertState(main::ClientContext* context,
         storage::visible_func) override;
     bool needCommitInsert() const override { return true; }

@@ -7,8 +7,13 @@
 #include "common/exception/binder.h"
 #include "common/string_format.h"
 #include "common/string_utils.h"
+#include "main/client_context.h"
+#include "main/database.h"
 #include "parser/copy.h"
 #include "transaction/transaction.h"
+
+#include <chrono>
+#include <thread>
 
 using namespace kuzu::binder;
 using namespace kuzu::catalog;
@@ -149,11 +154,53 @@ std::unique_ptr<BoundStatement> Binder::bindCopyNodeFrom(const Statement& statem
     // Check extension secondary index loaded
     auto catalog = Catalog::Get(*clientContext);
     auto transaction = transaction::Transaction::Get(*clientContext);
+
+    // First pass: check if any indexes are not loaded
+    bool hasUnloadedIndexes = false;
     for (auto indexEntry : catalog->getIndexEntries(transaction, nodeTableEntry.getTableID())) {
         if (!indexEntry->isLoaded()) {
+            hasUnloadedIndexes = true;
+            break;
+        }
+    }
+
+    // If unloaded indexes exist, wait for vector index loading to complete
+    if (hasUnloadedIndexes) {
+        auto* database = clientContext->getDatabase();
+
+        // Wait for vector index loading to complete (with timeout)
+        if (!database->isVectorIndexesLoaded()) {
+            // Wait up to 30 seconds for background loading to complete
+            constexpr int maxWaitMs = 30000;
+            constexpr int checkIntervalMs = 100;
+            int waitedMs = 0;
+
+            while (!database->isVectorIndexesLoaded() && waitedMs < maxWaitMs) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(checkIntervalMs));
+                waitedMs += checkIntervalMs;
+            }
+
+            if (!database->isVectorIndexesLoaded()) {
+                throw BinderException(stringFormat(
+                    "Timed out waiting for vector indexes to load on table {}.",
+                    nodeTableEntry.getName()));
+            }
+        }
+
+        // Check if loading was successful
+        if (!database->isVectorIndexesReady()) {
             throw BinderException(stringFormat(
-                "Trying to insert into an index on table {} but its extension is not loaded.",
+                "Vector indexes failed to load on table {}.",
                 nodeTableEntry.getName()));
+        }
+
+        // Second pass: re-check after loading completed
+        for (auto indexEntry : catalog->getIndexEntries(transaction, nodeTableEntry.getTableID())) {
+            if (!indexEntry->isLoaded()) {
+                throw BinderException(stringFormat(
+                    "Trying to insert into an index on table {} but its extension is not loaded.",
+                    nodeTableEntry.getName()));
+            }
         }
     }
     // Bind expected columns based on catalog information.

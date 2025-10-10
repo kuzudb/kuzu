@@ -4,6 +4,7 @@
 #include "catalog/hnsw_index_catalog_entry.h"
 #include "function/hnsw_index_functions.h"
 #include "index/hnsw_rel_batch_insert.h"
+#include "extension/extension.h"
 #include "storage/storage_manager.h"
 #include "storage/table/node_table.h"
 #include "storage/table/rel_table.h"
@@ -468,16 +469,18 @@ OnDiskHNSWIndex::OnDiskHNSWIndex(const main::ClientContext* context, IndexInfo i
 }
 
 std::unique_ptr<Index> OnDiskHNSWIndex::load(main::ClientContext* context, StorageManager*,
-    IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
+    const catalog::IndexCatalogEntry* catalogEntry, IndexInfo indexInfo,
+    std::span<uint8_t> storageInfoBuffer) {
     auto reader =
         std::make_unique<common::BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = HNSWStorageInfo::deserialize(std::move(reader));
-    const auto catalog = catalog::Catalog::Get(*context);
-    const auto transaction = Transaction::Get(*context);
-    const auto indexEntry = catalog->getIndex(transaction, indexInfo.tableID, indexInfo.name);
-    const auto auxInfo = indexEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
-    return std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
+
+    KU_ASSERT(catalogEntry != nullptr);
+    const auto auxInfo = catalogEntry->getAuxInfo().cast<HNSWIndexAuxInfo>();
+
+    auto result = std::make_unique<OnDiskHNSWIndex>(context, std::move(indexInfo), std::move(storageInfo),
         auxInfo.config.copy());
+    return result;
 }
 
 std::vector<NodeWithDistance> OnDiskHNSWIndex::search(Transaction* transaction,
@@ -605,7 +608,8 @@ void OnDiskHNSWIndex::commitInsert(Transaction* transaction,
 
 void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
     auto& hnswStorageInfo = storageInfo->cast<HNSWStorageInfo>();
-    const auto numTotalRows = nodeTable.getNumTotalRows(&DUMMY_CHECKPOINT_TRANSACTION);
+    const auto numTotalRows =
+        nodeTable.getNumTotalRows(extension::getExtensionCheckpointTransaction());
     if (numTotalRows == hnswStorageInfo.numCheckpointedNodes) {
         return;
     }
@@ -637,7 +641,7 @@ void OnDiskHNSWIndex::finalize(main::ClientContext* context) {
 void OnDiskHNSWIndex::checkpoint(main::ClientContext* context,
     storage::PageAllocator& pageAllocator) {
     auto [nodeTableEntry, upperRelTableEntry, lowerRelTableEntry] = getIndexTableCatalogEntries(
-        catalog::Catalog::Get(*context), &DUMMY_CHECKPOINT_TRANSACTION, indexInfo);
+        catalog::Catalog::Get(*context), extension::getExtensionCheckpointTransaction(), indexInfo);
     upperRelTable->checkpoint(context, upperRelTableEntry, pageAllocator);
     lowerRelTable->checkpoint(context, lowerRelTableEntry, pageAllocator);
 }

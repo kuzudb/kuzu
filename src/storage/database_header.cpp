@@ -75,6 +75,8 @@ void DatabaseHeader::serialize(common::Serializer& ser) const {
     ser.serializeValue(metadataPageRange.numPages);
     ser.writeDebuggingInfo("databaseID");
     ser.serializeValue(databaseID.value);
+    ser.writeDebuggingInfo("lastTimestamp");
+    ser.serializeValue(lastTimestamp);
 }
 
 DatabaseHeader DatabaseHeader::deserialize(common::Deserializer& deSer) {
@@ -82,6 +84,7 @@ DatabaseHeader DatabaseHeader::deserialize(common::Deserializer& deSer) {
     validateStorageVersion(deSer);
     PageRange catalogPageRange{}, metaPageRange{};
     common::ku_uuid_t databaseID{};
+    common::transaction_t lastTimestamp = 1;  // Default for backward compatibility
     std::string key;
     deSer.validateDebuggingInfo(key, "catalog");
     deSer.deserializeValue(catalogPageRange.startPageIdx);
@@ -91,7 +94,16 @@ DatabaseHeader DatabaseHeader::deserialize(common::Deserializer& deSer) {
     deSer.deserializeValue(metaPageRange.numPages);
     deSer.validateDebuggingInfo(key, "databaseID");
     deSer.deserializeValue(databaseID.value);
-    return {catalogPageRange, metaPageRange, databaseID};
+
+    // Backward compatibility: lastTimestamp may not exist in older database files
+    if (!deSer.finished()) {
+        deSer.validateDebuggingInfo(key, "lastTimestamp");
+        deSer.deserializeValue(lastTimestamp);
+    }
+
+    DatabaseHeader header{catalogPageRange, metaPageRange, databaseID};
+    header.lastTimestamp = lastTimestamp;
+    return header;
 }
 
 DatabaseHeader DatabaseHeader::createInitialHeader(common::RandomEngine* randomEngine) {

@@ -133,18 +133,40 @@ void Database::initMembers(std::string_view dbPath, construct_bm_func_t initBmFu
         extensionManager->autoLoadLinkedExtensions(&clientContext);
         return;
     }
-    StorageManager::recover(clientContext, dbConfig.throwOnWalReplayFailure,
-        dbConfig.enableChecksums);
+    // Set recovery flag before WAL replay to signal extensions to load synchronously
+    dbLifeCycleManager->isRecoveryInProgress.store(true, std::memory_order_release);
+    try {
+        StorageManager::recover(clientContext, dbConfig.throwOnWalReplayFailure,
+            dbConfig.enableChecksums);
+        // Clear recovery flag after WAL replay completes
+        dbLifeCycleManager->isRecoveryInProgress.store(false, std::memory_order_release);
+    } catch (...) {
+        // Ensure flag is cleared even on exception
+        dbLifeCycleManager->isRecoveryInProgress.store(false, std::memory_order_release);
+        throw;
+    }
+
+    // Load extensions after recovery (WAL replay) completes
+    // This ensures no background threads compete with recovery process
+    extensionManager->autoLoadLinkedExtensions(&clientContext);
 }
 
 Database::~Database() {
+    // Signal cancellation to background thread (if any)
+    {
+        std::lock_guard<std::mutex> lock(backgroundThreadStartMutex);
+        vectorIndexLoadCancelled.store(true, std::memory_order_release);
+        dbLifeCycleManager->isDatabaseClosed = true;
+    }
+
+    joinVectorIndexLoaderThread();
+
     if (!dbConfig.readOnly && dbConfig.forceCheckpointOnClose) {
         try {
             ClientContext clientContext(this);
             transactionManager->checkpoint(clientContext);
         } catch (...) {} // NOLINT
     }
-    dbLifeCycleManager->isDatabaseClosed = true;
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const): Semantically non-const function.
@@ -233,6 +255,74 @@ void Database::validatePathInReadOnly() const {
 uint64_t Database::getNextQueryID() {
     std::unique_lock lock(queryIDGenerator.queryIDLock);
     return queryIDGenerator.queryID++;
+}
+
+void Database::setVectorIndexLoadCallback(
+    VectorIndexLoadCompletionCallback callback,
+    void* userData
+) {
+    std::lock_guard<std::mutex> lock(vectorIndexCallbackMutex);
+
+    vectorIndexCallback = callback;
+    vectorIndexCallbackUserData = userData;
+
+    // If already loaded when callback is registered, invoke immediately
+    if (vectorIndexesLoaded.load(std::memory_order_acquire)) {
+        if (callback) {
+            bool success = vectorIndexesLoadSuccess.load(std::memory_order_acquire);
+            const char* errorMsg = success ? nullptr : vectorIndexLoadErrorMessage.c_str();
+            callback(userData, success, errorMsg);
+        }
+    }
+}
+
+void Database::notifyVectorIndexLoadComplete(bool success, const std::string& errorMsg) {
+    // Check vectorIndexLoadCancelled (atomic), not isDatabaseClosed
+    if (vectorIndexLoadCancelled.load(std::memory_order_acquire)) {
+        return;
+    }
+
+    // Store results with release semantics
+    vectorIndexesLoadSuccess.store(success, std::memory_order_release);
+    if (!success) {
+        vectorIndexLoadErrorMessage = errorMsg;
+    }
+    vectorIndexesLoaded.store(true, std::memory_order_release);
+
+    // Invoke callback if registered
+    std::lock_guard<std::mutex> lock(vectorIndexCallbackMutex);
+    if (vectorIndexCallback) {
+        const char* errorMsgPtr = success ? nullptr : vectorIndexLoadErrorMessage.c_str();
+        vectorIndexCallback(vectorIndexCallbackUserData, success, errorMsgPtr);
+    }
+}
+
+void Database::startVectorIndexLoader(std::thread loaderThread) {
+    if (!loaderThread.joinable()) {
+        return;
+    }
+
+    std::thread previous;
+    {
+        std::lock_guard<std::mutex> lock(vectorIndexLoaderMutex);
+        previous = std::move(vectorIndexLoaderThread);
+        vectorIndexLoaderThread = std::move(loaderThread);
+    }
+
+    if (previous.joinable()) {
+        previous.join();
+    }
+}
+
+void Database::joinVectorIndexLoaderThread() {
+    std::thread loader;
+    {
+        std::lock_guard<std::mutex> lock(vectorIndexLoaderMutex);
+        loader = std::move(vectorIndexLoaderThread);
+    }
+    if (loader.joinable()) {
+        loader.join();
+    }
 }
 
 } // namespace main

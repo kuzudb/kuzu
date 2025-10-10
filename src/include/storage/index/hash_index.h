@@ -476,7 +476,8 @@ public:
     void reclaimStorage(PageAllocator& pageAllocator) const;
 
     static KUZU_API std::unique_ptr<Index> load(main::ClientContext* context,
-        StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);
+        StorageManager* storageManager, const catalog::IndexCatalogEntry* catalogEntry,
+        IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer);
 
     static IndexType getIndexType() {
         static const IndexType HASH_INDEX_TYPE{"HASH", IndexConstraintType::PRIMARY,

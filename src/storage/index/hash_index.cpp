@@ -698,7 +698,8 @@ void PrimaryKeyIndex::checkpoint(main::ClientContext*, storage::PageAllocator& p
 PrimaryKeyIndex::~PrimaryKeyIndex() = default;
 
 std::unique_ptr<Index> PrimaryKeyIndex::load(main::ClientContext* context,
-    StorageManager* storageManager, IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
+    StorageManager* storageManager, const catalog::IndexCatalogEntry* /*catalogEntry*/,
+    IndexInfo indexInfo, std::span<uint8_t> storageInfoBuffer) {
     auto storageInfoBufferReader =
         std::make_unique<BufferReader>(storageInfoBuffer.data(), storageInfoBuffer.size());
     auto storageInfo = PrimaryKeyIndexStorageInfo::deserialize(std::move(storageInfoBufferReader));

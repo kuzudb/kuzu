@@ -314,7 +314,12 @@ void Catalog::createIndex(Transaction* transaction,
 IndexCatalogEntry* Catalog::getIndex(const Transaction* transaction, table_id_t tableID,
     const std::string& indexName) const {
     auto internalName = IndexCatalogEntry::getInternalIndexName(tableID, indexName);
-    return indexes->getEntry(transaction, internalName)->ptrCast<IndexCatalogEntry>();
+    if (!indexes) {
+        throw std::runtime_error("indexes is null");
+    }
+    auto* indexesRaw = indexes.get();
+    auto entry = indexesRaw->getEntry(transaction, internalName);
+    return entry->ptrCast<IndexCatalogEntry>();
 }
 
 std::vector<IndexCatalogEntry*> Catalog::getIndexEntries(const Transaction* transaction) const {

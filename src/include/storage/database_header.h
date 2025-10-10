@@ -17,6 +17,10 @@ struct DatabaseHeader {
     // Used to ensure that files such as the WAL match the current database
     common::ku_uuid_t databaseID{0};
 
+    // Last committed transaction timestamp
+    // Used to restore TransactionManager state after checkpoint
+    common::transaction_t lastTimestamp{1};
+
     void updateCatalogPageRange(PageManager& pageManager, PageRange newPageRange);
     void freeMetadataPageRange(PageManager& pageManager) const;
     void serialize(common::Serializer& ser) const;

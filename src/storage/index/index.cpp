@@ -87,7 +87,8 @@ void IndexHolder::serialize(common::Serializer& ser) const {
     }
 }
 
-void IndexHolder::load(main::ClientContext* context, StorageManager* storageManager) {
+void IndexHolder::load(main::ClientContext* context, StorageManager* storageManager,
+    const catalog::IndexCatalogEntry* catalogEntry) {
     if (loaded) {
         return;
     }
@@ -97,8 +98,8 @@ void IndexHolder::load(main::ClientContext* context, StorageManager* storageMana
     if (!indexTypeOptional.has_value()) {
         throw common::RuntimeException("No index type with name: " + indexInfo.indexType);
     }
-    index = indexTypeOptional.value().get().loadFunc(context, storageManager, indexInfo,
-        std::span(storageInfoBuffer.get(), storageInfoBufferSize));
+    index = indexTypeOptional.value().get().loadFunc(context, storageManager, catalogEntry,
+        indexInfo, std::span(storageInfoBuffer.get(), storageInfoBufferSize));
     loaded = true;
 }
 
