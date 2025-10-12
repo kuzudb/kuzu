@@ -64,6 +64,7 @@ struct KUZU_API ExpressionUtil {
     static bool canEvaluateAsLiteral(const Expression& expr);
     static common::Value evaluateAsLiteralValue(const Expression& expr);
     static uint64_t evaluateAsSkipLimit(const Expression& expr);
+    static uint64_t evaluateAsVariableLengthRelBound(const Expression& expr);
 
     template<typename T>
     using validate_param_func = void (*)(T);
