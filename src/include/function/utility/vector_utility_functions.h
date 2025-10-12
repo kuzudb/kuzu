@@ -47,5 +47,33 @@ struct TypeOfFunction {
     static function_set getFunctionSet();
 };
 
+struct PathPropertiesBindData : public FunctionBindData {
+    common::idx_t childIdx;
+
+    PathPropertiesBindData(common::LogicalType dataType, common::idx_t childIdx)
+        : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
+
+    inline std::unique_ptr<FunctionBindData> copy() const override {
+        return std::make_unique<PathPropertiesBindData>(resultType.copy(), childIdx);
+    }
+};
+
+struct StructPropertiesBindData : public FunctionBindData {
+    std::vector<common::idx_t> childIdxs;
+
+    StructPropertiesBindData(common::LogicalType dataType, std::vector<common::idx_t> childIdxs)
+        : FunctionBindData{std::move(dataType)}, childIdxs{std::move(childIdxs)} {}
+
+    std::unique_ptr<FunctionBindData> copy() const override {
+        return std::make_unique<StructPropertiesBindData>(resultType.copy(), childIdxs);
+    }
+};
+
+struct PropertiesFunctions {
+    static constexpr const char* name = "PROPERTIES";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu
