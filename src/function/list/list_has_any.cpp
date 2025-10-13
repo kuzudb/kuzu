@@ -10,13 +10,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-struct ListHasAll {
+struct ListHasAny {
     static void operation(common::list_entry_t& left, common::list_entry_t& right, uint8_t& result,
         common::ValueVector& leftVector, common::ValueVector& rightVector,
         common::ValueVector& resultVector) {
         int64_t pos = 0;
         auto rightDataVector = ListVector::getDataVector(&rightVector);
-        result = true;
+        result = false;
         for (auto i = 0u; i < right.size; i++) {
             common::TypeUtils::visit(ListType::getChildType(rightVector.dataType).getPhysicalType(),
                 [&]<typename T>(T) {
@@ -28,7 +28,7 @@ struct ListHasAll {
                         leftVector, *ListVector::getDataVector(&rightVector), resultVector);
                     result = (pos != 0);
                 });
-            if (!result) {
+            if (result) {
                 return;
             }
         }
@@ -46,16 +46,16 @@ static std::unique_ptr<FunctionBindData> bindFunc(const ScalarBindFuncInput& inp
     }
     if (types[0] != types[1]) {
         throw common::BinderException(ExceptionMessage::listFunctionIncompatibleChildrenType(
-            ListHasAllFunction::name, input.arguments[0]->getDataType().toString(),
+            ListHasAnyFunction::name, input.arguments[0]->getDataType().toString(),
             input.arguments[1]->getDataType().toString()));
     }
     return std::make_unique<FunctionBindData>(std::move(types), LogicalType::BOOL());
 }
 
-function_set ListHasAllFunction::getFunctionSet() {
+function_set ListHasAnyFunction::getFunctionSet() {
     function_set result;
     auto execFunc = ScalarFunction::BinaryExecListStructFunction<list_entry_t, list_entry_t,
-        uint8_t, ListHasAll>;
+        uint8_t, ListHasAny>;
     auto function = std::make_unique<ScalarFunction>(name,
         std::vector<LogicalTypeID>{LogicalTypeID::LIST, LogicalTypeID::LIST}, LogicalTypeID::BOOL,
         execFunc);

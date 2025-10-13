@@ -212,5 +212,47 @@ struct ListHasAllFunction {
     static function_set getFunctionSet();
 };
 
+struct ListHasAnyFunction {
+    static constexpr const char* name = "LIST_HAS_ANY";
+
+    static function_set getFunctionSet();
+};
+
+struct ListCosineSimilarityFunction {
+    static constexpr const char* name = "LIST_COSINE_SIMILARITY";
+
+    static function_set getFunctionSet();
+};
+
+struct ListCosineDistanceFunction {
+    static constexpr const char* name = "LIST_COSINE_DISTANCE";
+
+    static function_set getFunctionSet();
+};
+
+struct ListDistanceFunction {
+    static constexpr const char* name = "LIST_DISTANCE";
+
+    static function_set getFunctionSet();
+};
+
+struct ListIntersectFunction {
+    static constexpr const char* name = "LIST_INTERSECT";
+
+    static function_set getFunctionSet();
+};
+
+struct ListSelectFunction {
+    static constexpr const char* name = "LIST_SELECT";
+
+    static function_set getFunctionSet();
+};
+
+struct ListWhereFunction {
+    static constexpr const char* name = "LIST_WHERE";
+
+    static function_set getFunctionSet();
+};
+
 } // namespace function
 } // namespace kuzu

@@ -7,6 +7,7 @@ add_library(kuzu_list_function
         list_append_function.cpp
         list_concat_function.cpp
         list_contains_function.cpp
+        list_binary_float_function.cpp
         list_creation.cpp
         list_distinct_function.cpp
         list_extract_function.cpp
@@ -26,7 +27,11 @@ add_library(kuzu_list_function
         list_single.cpp
         size_function.cpp
         quantifier_functions.cpp
-        list_has_all.cpp)
+        list_has_all.cpp
+        list_has_any.cpp
+        list_intersect.cpp
+        list_select_function.cpp
+        list_where_function.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_list_function>
