@@ -87,8 +87,9 @@ void LocalStorage::rollback() {
     for (auto& optimisticAllocator : optimisticAllocators) {
         optimisticAllocator->rollback();
     }
-    auto* bufferManager = mm->getBufferManager();
-    PageManager::Get(clientContext)->clearEvictedBMEntriesIfNeeded(bufferManager);
+    auto& pageManager = *PageManager::Get(clientContext);
+    pageManager.mergeFreePages(pageManager.getDataFH());
+    pageManager.clearEvictedBMEntriesIfNeeded(mm->getBufferManager());
 }
 
 } // namespace storage

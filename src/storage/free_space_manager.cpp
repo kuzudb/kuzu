@@ -201,6 +201,10 @@ void FreeSpaceManager::finalizeCheckpoint(FileHandle* fileHandle) {
     uncheckpointedFreePageRanges.clear();
 }
 
+void FreeSpaceManager::mergeFreePages(FileHandle* fileHandle) {
+    mergePageRanges(std::move(uncheckpointedFreePageRanges), fileHandle);
+}
+
 void FreeSpaceManager::resetFreeLists() {
     freeLists.clear();
     numEntries = 0;

@@ -40,6 +40,8 @@ public:
     void finalizeCheckpoint();
     void rollbackCheckpoint() { freeSpaceManager->rollbackCheckpoint(); }
 
+    void mergeFreePages(FileHandle* fileHandle);
+
     common::row_idx_t getNumFreeEntries() const { return freeSpaceManager->getNumEntries(); }
     std::vector<PageRange> getFreeEntries(common::row_idx_t startOffset,
         common::row_idx_t endOffset) const {
