@@ -10,6 +10,7 @@ add_library(kuzu_algo_function
         k_core_decomposition.cpp
         louvain.cpp
         spanning_forest.cpp
+        betweenness_centrality.cpp
         )
 
 set(ALGO_EXTENSION_OBJECT_FILES

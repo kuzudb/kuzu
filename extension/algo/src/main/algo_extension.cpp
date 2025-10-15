@@ -23,6 +23,8 @@ void AlgoExtension::load(main::ClientContext* context) {
     ExtensionUtils::addTableFunc<LouvainFunction>(db);
     ExtensionUtils::addTableFunc<SpanningForest>(db);
     ExtensionUtils::addTableFuncAlias<SpanningForestAliasFunction>(db);
+    ExtensionUtils::addTableFunc<BetweennessCentrality>(db);
+    ExtensionUtils::addTableFuncAlias<BetweennessCentralityAliasFunction>(db);
 }
 
 } // namespace algo_extension

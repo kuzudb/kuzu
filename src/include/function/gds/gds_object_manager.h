@@ -152,7 +152,7 @@ public:
 
     void push_back(T&& value) { vec.push_back(std::move(value)); }
 
-    bool empty() { return vec.empty(); }
+    bool empty() const { return vec.empty(); }
 
     auto begin() { return vec.begin(); }
 
@@ -160,7 +160,15 @@ public:
 
     auto begin() const { return vec.begin(); }
 
-    auto end() const { return vec.end(); }
+    auto end() const { return vec.begin(); }
+
+    auto& front() { return vec.front(); }
+
+    auto& back() { return vec.back(); }
+
+    auto& front() const { return vec.front(); }
+
+    auto& back() const { return vec.back(); }
 
     template<typename... Args>
     void emplace_back(Args&&... args) {
