@@ -4,6 +4,7 @@
 #include "catalog/catalog_entry/index_catalog_entry.h"
 #include "function/fts_config.h"
 #include "function/gds/gds.h"
+#include "function/query_fts/query_fts_pattern_match.h"
 
 namespace kuzu {
 namespace fts_extension {
@@ -35,24 +36,22 @@ struct QueryFTSBindData final : public function::GDSBindData {
     common::table_id_t outputTableID;
     common::idx_t numDocs;
     double avgDocLen;
+    pattern_match_algo patternMatchAlgo;
 
     QueryFTSBindData(binder::expression_vector columns, graph::NativeGraphEntry graphEntry,
         std::shared_ptr<binder::Expression> docs, std::shared_ptr<binder::Expression> query,
         const catalog::IndexCatalogEntry& entry,
         std::unique_ptr<QueryFTSOptionalParams> optionalParams, common::idx_t numDocs,
-        double avgDocLen)
-        : GDSBindData{std::move(columns), std::move(graphEntry), binder::expression_vector{docs}},
-          query{std::move(query)}, entry{entry},
-          outputTableID{output[0]->constCast<binder::NodeExpression>().getTableIDs()[0]},
-          numDocs{numDocs}, avgDocLen{avgDocLen} {
-        auto& nodeExpr = output[0]->constCast<binder::NodeExpression>();
-        KU_ASSERT(nodeExpr.getNumEntries() == 1);
-        outputTableID = nodeExpr.getEntry(0)->getTableID();
-        this->optionalParams = std::move(optionalParams);
-    }
+        double avgDocLen);
+
     QueryFTSBindData(const QueryFTSBindData& other)
         : GDSBindData{other}, query{other.query}, entry{other.entry},
-          outputTableID{other.outputTableID}, numDocs{other.numDocs}, avgDocLen{other.avgDocLen} {}
+          outputTableID{other.outputTableID}, numDocs{other.numDocs}, avgDocLen{other.avgDocLen},
+          patternMatchAlgo{other.patternMatchAlgo} {}
+
+    catalog::TableCatalogEntry* getTermsEntry(main::ClientContext& context) const;
+
+    catalog::TableCatalogEntry* getOrigTermsEntry(main::ClientContext& context) const;
 
     std::vector<std::string> getQueryTerms(main::ClientContext& context) const;
 

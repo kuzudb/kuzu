@@ -51,3 +51,34 @@ Abcdefg|This book is a test?ax*alphabetical?
 ---- 2
 Echoes of the Past|A deep dive into the history of ancient civilizations.
 Computers|The hiory*?story*a?b?c of computing
+
+-CASE exact_term_match
+-LOAD_DYNAMIC_EXTENSION fts
+-STATEMENT CREATE NODE TABLE news (content string, primary key(content));
+---- ok
+-STATEMENT create (n:news {content: "alice is a canadian runner"})
+---- ok
+-STATEMENT create (n:news {content: "carol is running in the playground"})
+---- ok
+-STATEMENT CALL CREATE_FTS_INDEX('news', 'news_index_0', ['content'], exact_term_match := FALSE);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_0', 'runn*') RETURN node.content, score order by score
+---- 1
+alice is a canadian runner|0.301030
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_0', 'runn?ng') RETURN node.content, score order by score
+---- 0
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_0', 'runne?') RETURN node.content, score order by score
+---- 1
+alice is a canadian runner|0.301030
+-STATEMENT CALL CREATE_FTS_INDEX('news', 'news_index_1', ['content'], exact_term_match := TRUE);
+---- ok
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_1', 'runn*') RETURN node.content, score order by score
+---- 2
+alice is a canadian runner|0.301030
+carol is running in the playground|0.301030
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_1', 'runn?ng') RETURN node.content, score order by score
+---- 1
+carol is running in the playground|0.301030
+-STATEMENT CALL QUERY_FTS_INDEX('news', 'news_index_1', 'runne?') RETURN node.content, score order by score
+---- 1
+alice is a canadian runner|0.301030
