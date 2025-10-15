@@ -77,7 +77,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         // Resolve exec and select function if necessary
         // Only used for decimal at the moment. See `bindDecimalCompare`.
         function->bindFunc({childrenAfterCast, function, nullptr,
-            std::vector<std::string>{} /* optionalParams */});
+            binder::expression_vector{} /* optionalParams */});
     }
     auto bindData = std::make_unique<FunctionBindData>(LogicalType(function->returnTypeID));
     auto uniqueExpressionName =
